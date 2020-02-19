@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -15,39 +17,39 @@ const (
 )
 
 type Qbert struct {
-	WorkloadsOnMaster int         `json:"allowWorkloadsOnMaster,omitempty"`
-	Ami               string      `json:"ami,omitempty"`
-	AppCatalogEnabled int         `json:"appCatalogEnabled,omitempty"`
-	Azs               []string    `json:"azs,omitempty"`
-	ContainersCIDR    string      `json:"containersCidr,omitempty"`
-	DomainID          string      `json:"domainId,omitempty"`
-	ExternalDNSName   string      `json:"externalDnsName,omitempty"`
-	HTTPProxy         string      `json:"httpProxy,omitempty"`
-	InternalElb       bool        `json:"internalElb,omitempty"`
-	IsPrivate         bool        `json:"isPrivate,omitempty"`
-	K8sAPIPort        string      `json:"k8sApiPort,omitempty"`
-	MasterFlavor      string      `json:"masterFlavor,omitempty"`
-	Name              string      `json:"name,omitempty"`
-	NetworkPlugin     string      `json:"networkPlugin,omitempty"`
-	NodePoolUUID      string      `json:"nodePoolUuid,omitempty"`
-	NumMasters        int         `json:"numMasters,omitempty"`
-	NumWorkers        int         `json:"numWorkers,omitempty"`
-	PrivateSubnets    []string    `json:"privateSubnets,omitempty"`
-	Privileged        bool        `json:"privileged,omitempty"`
-	Region            string      `json:"region,omitempty"`
-	RuntimeConfig     string      `json:"runtimeConfig,omitempty"`
-	ServiceFQDN       string      `json:"serviceFqdn,omitempty"`
-	ServicesCIDR      string      `json:"servicesCidr,omitempty"`
-	SSHKey            string      `json:"sshKey,omitempty"`
-	Subnets           []string    `json:"subnets,omitempty"`
-	Tags              interface{} `json:"tags,omitempty"`
-	UsePF9Domain      bool        `json:"usePf9Domain,omitempty"`
-	VPC               string      `json:"vpc,omitempty"`
-	workerFlavor      string      `json:"workerFlavor,omitempty"`
-	MasterVIPIPv4     string      `json:"masterVipIpv4,omitempty"`
-	MasterVIPIface    string      `json:"masterVipIface,omitempty"`
-	EnableMetalLB     bool        `json:"enableMetallb,omitempty"`
-	MetalLBCIDR       string      `json:"metallbCidr,omitempty"`
+	WorkloadsOnMaster int           `json:"allowWorkloadsOnMaster,omitempty"`
+	Ami               string        `json:"ami,omitempty"`
+	AppCatalogEnabled int           `json:"appCatalogEnabled,omitempty"`
+	Azs               []string      `json:"azs,omitempty"`
+	ContainersCIDR    string        `json:"containersCidr,omitempty"`
+	DomainID          string        `json:"domainId,omitempty"`
+	ExternalDNSName   string        `json:"externalDnsName,omitempty"`
+	HTTPProxy         string        `json:"httpProxy,omitempty"`
+	InternalElb       bool          `json:"internalElb,omitempty"`
+	IsPrivate         bool          `json:"isPrivate,omitempty"`
+	K8sAPIPort        string        `json:"k8sApiPort,omitempty"`
+	MasterFlavor      string        `json:"masterFlavor,omitempty"`
+	Name              string        `json:"name,omitempty"`
+	NetworkPlugin     string        `json:"networkPlugin,omitempty"`
+	NodePoolUUID      string        `json:"nodePoolUuid,omitempty"`
+	NumMasters        int           `json:"numMasters,omitempty"`
+	NumWorkers        int           `json:"numWorkers,omitempty"`
+	PrivateSubnets    []string      `json:"privateSubnets,omitempty"`
+	Privileged        bool          `json:"privileged,omitempty"`
+	Region            string        `json:"region,omitempty"`
+	RuntimeConfig     string        `json:"runtimeConfig,omitempty"`
+	ServiceFQDN       string        `json:"serviceFqdn,omitempty"`
+	ServicesCIDR      string        `json:"servicesCidr,omitempty"`
+	SSHKey            string        `json:"sshKey,omitempty"`
+	Subnets           []string      `json:"subnets,omitempty"`
+	Tags              []interface{} `json:"tags,omitempty"`
+	UsePF9Domain      bool          `json:"usePf9Domain,omitempty"`
+	VPC               string        `json:"vpc,omitempty"`
+	WorkerFlavor      string        `json:"workerFlavor,omitempty"`
+	MasterVIPIPv4     string        `json:"masterVipIpv4,omitempty"`
+	MasterVIPIface    string        `json:"masterVipIface,omitempty"`
+	EnableMetalLB     bool          `json:"enableMetallb,omitempty"`
+	MetalLBCIDR       string        `json:"metallbCidr,omitempty"`
 }
 
 func resourcePF9Cluster() *schema.Resource {
@@ -219,7 +221,7 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Failed to generate token: %s", errToken)
 	}
 
-	qbert_cluster_api := "https://" + config.DuFQDN + "/qbert/v2/" + d.Get("project_uuid").(string) + "/clusters"
+	qbert_cluster_api := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/clusters"
 
 	request := &Qbert{
 		WorkloadsOnMaster: d.Get("allowWorkloadsOnMaster").(int),
@@ -247,10 +249,10 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		ServicesCIDR:      d.Get("servicesCidr").(string),
 		SSHKey:            d.Get("sshKey").(string),
 		Subnets:           d.Get("subnets").([]string),
-		Tags:              d.Get("tags"),
+		Tags:              d.Get("tags").([]interface{}),
 		UsePF9Domain:      d.Get("usePf9Domain").(bool),
 		VPC:               d.Get("vpc").(string),
-		workerFlavor:      d.Get("workerFlavor").(string),
+		WorkerFlavor:      d.Get("workerFlavor").(string),
 		MasterVIPIPv4:     d.Get("masterVipIpv4").(string),
 		MasterVIPIface:    d.Get("masterVipIface").(string),
 		EnableMetalLB:     d.Get("enableMetallb").(bool),
@@ -286,6 +288,63 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+	token, errToken := generateToken(config)
+	if errToken != nil {
+		return fmt.Errorf("Failed to generate token: %s", errToken)
+	}
+
+	qbert_cluster_api := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/clusters/" + d.Id()
+
+	client := http.DefaultClient
+	req, errReq := http.NewRequest("GET", qbert_cluster_api, nil)
+	if errReq != nil {
+		return fmt.Errorf("Failed to create cluster read request: %s", errReq)
+	}
+	req.Header.Add("X-Auth-Token", token)
+
+	resp, errResp := client.Do(req)
+	if errResp != nil {
+		return fmt.Errorf("Failed to get cluster details: %s", errResp)
+	}
+
+	var cluster Qbert
+	json.NewDecoder(resp.Body).Decode(&cluster)
+
+	d.Set("allowWorkloadsOnMaster", string(cluster.WorkloadsOnMaster))
+	d.Set("ami", cluster.Ami)
+	d.Set("appCatalogEnabled", string(cluster.AppCatalogEnabled))
+	d.Set("azs", "["+strings.Join(cluster.Azs, ",")+"]")
+	d.Set("containersCidr", cluster.ContainersCIDR)
+	d.Set("domainId", cluster.DomainID)
+	d.Set("externalDnsName", cluster.ExternalDNSName)
+	d.Set("httpProxy", cluster.HTTPProxy)
+	d.Set("internalElb", strconv.FormatBool(cluster.InternalElb))
+	d.Set("isPrivate", strconv.FormatBool(cluster.IsPrivate))
+	d.Set("k8sApiPort", cluster.K8sAPIPort)
+	d.Set("masterFlavor", cluster.MasterFlavor)
+	d.Set("name", cluster.Name)
+	d.Set("networkPlugin", cluster.NetworkPlugin)
+	d.Set("nodePoolUuid", cluster.NodePoolUUID)
+	d.Set("numMasters", string(cluster.NumMasters))
+	d.Set("numWorkers", string(cluster.NumWorkers))
+	d.Set("privateSubets", "["+strings.Join(cluster.PrivateSubnets, ",")+"]")
+	d.Set("privileged", strconv.FormatBool(cluster.Privileged))
+	d.Set("region", cluster.Region)
+	d.Set("runtimeConfig", cluster.RuntimeConfig)
+	d.Set("serviceFqdn", cluster.ServiceFQDN)
+	d.Set("servicesCidr", cluster.ServicesCIDR)
+	d.Set("sshKey", cluster.SSHKey)
+	d.Set("subnets", "["+strings.Join(cluster.Subnets, ",")+"]")
+	d.Set("tags", fmt.Sprintf("%v", cluster.Tags...))
+	d.Set("usePf9Domain", strconv.FormatBool(cluster.UsePF9Domain))
+	d.Set("vpc", cluster.VPC)
+	d.Set("workerFlavor", cluster.WorkerFlavor)
+	d.Set("masterVipIpv4", cluster.MasterVIPIPv4)
+	d.Set("masterVipIface", cluster.MasterVIPIface)
+	d.Set("enableMetallb", strconv.FormatBool(cluster.EnableMetalLB))
+	d.Set("metallbCidr", cluster.MetalLBCIDR)
+
 	return nil
 }
 
