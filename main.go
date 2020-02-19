@@ -7,8 +7,5 @@ import (
 
 func main() {
 	plugin.Serve(&plugin.ServeOpts{
-		ProviderFunc: func() pf9.ResourceProvider {
-			return Provider()
-		},
-	})
+		ProviderFunc: pf9.Provider})
 }
