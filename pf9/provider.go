@@ -86,6 +86,7 @@ func Provider() terraform.ResourceProvider {
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"pf9_cluster": resourcePF9Cluster(),
+			"pf9_aws_cloud_provider": resourcePf9AWSCloudProvider(),
 		},
 	}
 
