@@ -1,6 +1,10 @@
 package pf9
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
@@ -9,6 +13,42 @@ import (
 const (
 	PF9ClusterRetryTimeout = 5 * time.Minute
 )
+
+type Qbert struct {
+	WorkloadsOnMaster int         `json:"allowWorkloadsOnMaster,omitempty"`
+	Ami               string      `json:"ami,omitempty"`
+	AppCatalogEnabled int         `json:"appCatalogEnabled,omitempty"`
+	Azs               []string    `json:"azs,omitempty"`
+	ContainersCIDR    string      `json:"containersCidr,omitempty"`
+	DomainID          string      `json:"domainId,omitempty"`
+	ExternalDNSName   string      `json:"externalDnsName,omitempty"`
+	HTTPProxy         string      `json:"httpProxy,omitempty"`
+	InternalElb       bool        `json:"internalElb,omitempty"`
+	IsPrivate         bool        `json:"isPrivate,omitempty"`
+	K8sAPIPort        string      `json:"k8sApiPort,omitempty"`
+	MasterFlavor      string      `json:"masterFlavor,omitempty"`
+	Name              string      `json:"name,omitempty"`
+	NetworkPlugin     string      `json:"networkPlugin,omitempty"`
+	NodePoolUUID      string      `json:"nodePoolUuid,omitempty"`
+	NumMasters        int         `json:"numMasters,omitempty"`
+	NumWorkers        int         `json:"numWorkers,omitempty"`
+	PrivateSubnets    []string    `json:"privateSubnets,omitempty"`
+	Privileged        bool        `json:"privileged,omitempty"`
+	Region            string      `json:"region,omitempty"`
+	RuntimeConfig     string      `json:"runtimeConfig,omitempty"`
+	ServiceFQDN       string      `json:"serviceFqdn,omitempty"`
+	ServicesCIDR      string      `json:"servicesCidr,omitempty"`
+	SSHKey            string      `json:"sshKey,omitempty"`
+	Subnets           []string    `json:"subnets,omitempty"`
+	Tags              interface{} `json:"tags,omitempty"`
+	UsePF9Domain      bool        `json:"usePf9Domain,omitempty"`
+	VPC               string      `json:"vpc,omitempty"`
+	workerFlavor      string      `json:"workerFlavor,omitempty"`
+	MasterVIPIPv4     string      `json:"masterVipIpv4,omitempty"`
+	MasterVIPIface    string      `json:"masterVipIface,omitempty"`
+	EnableMetalLB     bool        `json:"enableMetallb,omitempty"`
+	MetalLBCIDR       string      `json:"metallbCidr,omitempty"`
+}
 
 func resourcePF9Cluster() *schema.Resource {
 	return &schema.Resource{
@@ -28,15 +68,7 @@ func resourcePF9Cluster() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"du_fqdn": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"du_username": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"du_password": &schema.Schema{
+			"project_uuid": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -181,6 +213,75 @@ func resourcePF9Cluster() *schema.Resource {
 }
 
 func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+	token, errToken := generateToken(config)
+	if errToken != nil {
+		return fmt.Errorf("Failed to generate token: %s", errToken)
+	}
+
+	qbert_cluster_api := "https://" + config.DuFQDN + "/qbert/v2/" + d.Get("project_uuid").(string) + "/clusters"
+
+	request := &Qbert{
+		WorkloadsOnMaster: d.Get("allowWorkloadsOnMaster").(int),
+		Ami:               d.Get("ami").(string),
+		AppCatalogEnabled: d.Get("appCatalogEnabled").(int),
+		Azs:               d.Get("azs").([]string),
+		ContainersCIDR:    d.Get("containersCidr").(string),
+		DomainID:          d.Get("domainId").(string),
+		ExternalDNSName:   d.Get("externalDnsName").(string),
+		HTTPProxy:         d.Get("httpProxy").(string),
+		InternalElb:       d.Get("internalElb").(bool),
+		IsPrivate:         d.Get("isPrivate").(bool),
+		K8sAPIPort:        d.Get("k8sApiPort").(string),
+		MasterFlavor:      d.Get("masterFlavor").(string),
+		Name:              d.Get("name").(string),
+		NetworkPlugin:     d.Get("networkPlugin").(string),
+		NodePoolUUID:      d.Get("nodePoolUuid").(string),
+		NumMasters:        d.Get("numMasters").(int),
+		NumWorkers:        d.Get("numWorkers").(int),
+		PrivateSubnets:    d.Get("privateSubnets").([]string),
+		Privileged:        d.Get("privileged").(bool),
+		Region:            d.Get("region").(string),
+		RuntimeConfig:     d.Get("runtimeConfig").(string),
+		ServiceFQDN:       d.Get("serviceFqdn").(string),
+		ServicesCIDR:      d.Get("servicesCidr").(string),
+		SSHKey:            d.Get("sshKey").(string),
+		Subnets:           d.Get("subnets").([]string),
+		Tags:              d.Get("tags"),
+		UsePF9Domain:      d.Get("usePf9Domain").(bool),
+		VPC:               d.Get("vpc").(string),
+		workerFlavor:      d.Get("workerFlavor").(string),
+		MasterVIPIPv4:     d.Get("masterVipIpv4").(string),
+		MasterVIPIface:    d.Get("masterVipIface").(string),
+		EnableMetalLB:     d.Get("enableMetallb").(bool),
+		MetalLBCIDR:       d.Get("metallbCidr").(string),
+	}
+
+	request_data, errJSON := json.Marshal(request)
+	if errJSON != nil {
+		return fmt.Errorf("Failed to parse request: %s", errJSON)
+	}
+
+	client := http.DefaultClient
+	req, errReq := http.NewRequest("POST", qbert_cluster_api, bytes.NewBuffer(request_data))
+	if errReq != nil {
+		return fmt.Errorf("Failed to create cluster create request: %s", errReq)
+	}
+	req.Header.Add("X-Auth-Token", token)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, errResp := client.Do(req)
+	if errResp != nil {
+		return fmt.Errorf("Cluster create failed: %s", errResp)
+	}
+
+	var resp_data struct {
+		UUID string `json:"uuid"`
+	}
+	json.NewDecoder(resp.Body).Decode(&resp_data)
+
+	d.SetId(resp_data.UUID)
+
 	return resourcePF9ClusterRead(d, meta)
 }
 
