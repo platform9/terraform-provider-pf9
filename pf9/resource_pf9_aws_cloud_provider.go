@@ -25,7 +25,7 @@ func resourcePf9AWSCloudProvider() *schema.Resource {
 	return &schema.Resource{
 		Create: resourcePf9AWSCloudProviderCreate,
 		Read:   resourcePf9AWSCloudProviderRead,
-		Update: resourcePf9AWSCloudProviderUpdate,
+		Update: resourcePf9AWSCloudProviderRead,
 		Delete: resourcePf9AWSCloudProviderDelete,
 
 		Importer: &schema.ResourceImporter{
@@ -39,6 +39,10 @@ func resourcePf9AWSCloudProvider() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+		    "project_uuid": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -82,6 +86,10 @@ func resourcePf9AWSCloudProviderCreate(d *schema.ResourceData, meta interface{})
 
 	client := http.DefaultClient
 	req, errReq := http.NewRequest("POST", qbert_cloud_provider_api, bytes.NewBuffer(request_data))
+	if errReq != nil {
+	    return fmt.Errorf("AWS Cloud Provider get failed: %s", errReq)
+	}
+
 	req.Header.Add("X-Auth-Token", token)
 	req.Header.Add("Content-Type", "application/json")
 
@@ -106,15 +114,19 @@ func resourcePf9AWSCloudProviderRead(d *schema.ResourceData, meta interface{}) e
 	if errToken != nil {
 		return fmt.Errorf("Failed to generate token: %s", errToken)
 	}
-    cloudProviderUuid = d.Id()
-	qbert_cloud_provider_get_api := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/cloudProviders/" + cloudProviderUuid.(string)
+    cloudProviderUuid := d.Id()
+	qbert_cloud_provider_get_api := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/cloudProviders/" + cloudProviderUuid
 
     client := http.DefaultClient
-	req, errReq := http.NewRequest("GET", qbert_cloud_provider_api)
+	req, errReq := http.NewRequest("GET", qbert_cloud_provider_get_api, nil)
+	if errReq != nil {
+	    return fmt.Errorf("AWS Cloud Provider get failed: %s", errReq)
+	}
+
 	req.Header.Add("X-Auth-Token", token)
 	req.Header.Add("Content-Type", "application/json")
 
-    resp, errResp := client.Do(req)
+    _, errResp := client.Do(req)
 	if errResp != nil {
 		return fmt.Errorf("AWS Cloud Provider get failed: %s", errResp)
 	}

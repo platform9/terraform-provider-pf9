@@ -74,141 +74,141 @@ func resourcePF9Cluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"allowWorkloadsOnMaster": &schema.Schema{
+			"allow_workloads_on_master": &schema.Schema{
 				Type:     schema.TypeInt,
-				Required: false,
+				Optional: true,
 			},
 			"ami": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"appCatalogEnabled": &schema.Schema{
+			"app_catalog_enabled": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
 			"azs": &schema.Schema{
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Required: false,
+				Optional: true,
 			},
-			"containersCidr": &schema.Schema{
+			"containers_cidr": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"domainId": &schema.Schema{
+			"domain_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"externalDnsName": &schema.Schema{
+			"external_dns_name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"httpProxy": &schema.Schema{
+			"http_proxy": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"internalElb": &schema.Schema{
+			"internal_elb": &schema.Schema{
 				Type:     schema.TypeBool,
-				Required: false,
+				Optional: true,
 			},
-			"isPrivate": &schema.Schema{
+			"is_private": &schema.Schema{
 				Type:     schema.TypeBool,
-				Required: false,
+				Optional: true,
 			},
-			"k8sApiPort": &schema.Schema{
+			"k8s_api_port": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"masterFlavor": &schema.Schema{
+			"master_flavor": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"networkPlugin": &schema.Schema{
+			"network_plugin": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"nodePoolUuid": &schema.Schema{
+			"node_pool_uuid": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"privateSubnets": &schema.Schema{
+			"private_subnets": &schema.Schema{
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Required: false,
+				Optional: true,
 			},
 			"privileged": &schema.Schema{
 				Type:     schema.TypeBool,
-				Required: false,
+				Optional: true,
 			},
 			"region": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"runtimeConfig": &schema.Schema{
+			"runtime_config": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"serviceFqdn": &schema.Schema{
+			"service_fqdn": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"servicesCidr": &schema.Schema{
+			"services_cidr": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"sshKey": &schema.Schema{
+			"ssh_key": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
 			"subnets": &schema.Schema{
 				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Required: false,
+				Optional: true,
 			},
 			"tags": &schema.Schema{
 				Type: schema.TypeMap,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Required: false,
+				Optional: true,
 			},
-			"usePf9Domain": &schema.Schema{
+			"use_pf9_domain": &schema.Schema{
 				Type:     schema.TypeBool,
-				Required: false,
+				Optional: true,
 			},
 			"vpc": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"workerFlavor": &schema.Schema{
+			"worker_flavor": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"masterVipIpv4": &schema.Schema{
+			"master_vip_ipv4": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"masterVipIface": &schema.Schema{
+			"master_vip_iface": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
-			"enableMetallb": &schema.Schema{
+			"enable_metal_lb": &schema.Schema{
 				Type:     schema.TypeBool,
-				Required: false,
+				Optional: true,
 			},
-			"metallbCidr": &schema.Schema{
+			"metallb_cidr": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
 		},
 	}
@@ -224,39 +224,39 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	qbert_cluster_api := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/clusters"
 
 	request := &Qbert{
-		WorkloadsOnMaster: d.Get("allowWorkloadsOnMaster").(int),
+		WorkloadsOnMaster: d.Get("allow_workloads_on_master").(int),
 		Ami:               d.Get("ami").(string),
-		AppCatalogEnabled: d.Get("appCatalogEnabled").(int),
+		AppCatalogEnabled: d.Get("app_catalog_enabled").(int),
 		Azs:               d.Get("azs").([]string),
-		ContainersCIDR:    d.Get("containersCidr").(string),
-		DomainID:          d.Get("domainId").(string),
-		ExternalDNSName:   d.Get("externalDnsName").(string),
-		HTTPProxy:         d.Get("httpProxy").(string),
-		InternalElb:       d.Get("internalElb").(bool),
-		IsPrivate:         d.Get("isPrivate").(bool),
-		K8sAPIPort:        d.Get("k8sApiPort").(string),
-		MasterFlavor:      d.Get("masterFlavor").(string),
+		ContainersCIDR:    d.Get("containers_cidr").(string),
+		DomainID:          d.Get("domain_id").(string),
+		ExternalDNSName:   d.Get("external_dns_name").(string),
+		HTTPProxy:         d.Get("http_proxy").(string),
+		InternalElb:       d.Get("internal_elb").(bool),
+		IsPrivate:         d.Get("is_private").(bool),
+		K8sAPIPort:        d.Get("k8s_api_port").(string),
+		MasterFlavor:      d.Get("master_flavor").(string),
 		Name:              d.Get("name").(string),
-		NetworkPlugin:     d.Get("networkPlugin").(string),
-		NodePoolUUID:      d.Get("nodePoolUuid").(string),
-		NumMasters:        d.Get("numMasters").(int),
-		NumWorkers:        d.Get("numWorkers").(int),
-		PrivateSubnets:    d.Get("privateSubnets").([]string),
+		NetworkPlugin:     d.Get("network_plugin").(string),
+		NodePoolUUID:      d.Get("node_pool_uuid").(string),
+		NumMasters:        d.Get("num_masters").(int),
+		NumWorkers:        d.Get("num_workers").(int),
+		PrivateSubnets:    d.Get("private_subnets").([]string),
 		Privileged:        d.Get("privileged").(bool),
 		Region:            d.Get("region").(string),
-		RuntimeConfig:     d.Get("runtimeConfig").(string),
-		ServiceFQDN:       d.Get("serviceFqdn").(string),
-		ServicesCIDR:      d.Get("servicesCidr").(string),
-		SSHKey:            d.Get("sshKey").(string),
+		RuntimeConfig:     d.Get("runtime_config").(string),
+		ServiceFQDN:       d.Get("service_fqdn").(string),
+		ServicesCIDR:      d.Get("services_cidr").(string),
+		SSHKey:            d.Get("ssh_key").(string),
 		Subnets:           d.Get("subnets").([]string),
 		Tags:              d.Get("tags").([]interface{}),
-		UsePF9Domain:      d.Get("usePf9Domain").(bool),
+		UsePF9Domain:      d.Get("use_pf9_domain").(bool),
 		VPC:               d.Get("vpc").(string),
-		WorkerFlavor:      d.Get("workerFlavor").(string),
-		MasterVIPIPv4:     d.Get("masterVipIpv4").(string),
-		MasterVIPIface:    d.Get("masterVipIface").(string),
-		EnableMetalLB:     d.Get("enableMetallb").(bool),
-		MetalLBCIDR:       d.Get("metallbCidr").(string),
+		WorkerFlavor:      d.Get("worker_flavor").(string),
+		MasterVIPIPv4:     d.Get("master_vip_ipv4").(string),
+		MasterVIPIface:    d.Get("master_vip_iface").(string),
+		EnableMetalLB:     d.Get("enable_metal_lb").(bool),
+		MetalLBCIDR:       d.Get("metallb_cidr").(string),
 	}
 
 	request_data, errJSON := json.Marshal(request)
@@ -311,39 +311,39 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	var cluster Qbert
 	json.NewDecoder(resp.Body).Decode(&cluster)
 
-	d.Set("allowWorkloadsOnMaster", string(cluster.WorkloadsOnMaster))
+	d.Set("allow_workloads_on_master", string(cluster.WorkloadsOnMaster))
 	d.Set("ami", cluster.Ami)
-	d.Set("appCatalogEnabled", string(cluster.AppCatalogEnabled))
+	d.Set("app_catalog_enabled", string(cluster.AppCatalogEnabled))
 	d.Set("azs", "["+strings.Join(cluster.Azs, ",")+"]")
-	d.Set("containersCidr", cluster.ContainersCIDR)
-	d.Set("domainId", cluster.DomainID)
-	d.Set("externalDnsName", cluster.ExternalDNSName)
-	d.Set("httpProxy", cluster.HTTPProxy)
-	d.Set("internalElb", strconv.FormatBool(cluster.InternalElb))
-	d.Set("isPrivate", strconv.FormatBool(cluster.IsPrivate))
-	d.Set("k8sApiPort", cluster.K8sAPIPort)
-	d.Set("masterFlavor", cluster.MasterFlavor)
+	d.Set("containers_cidr", cluster.ContainersCIDR)
+	d.Set("domain_id", cluster.DomainID)
+	d.Set("external_dns_name", cluster.ExternalDNSName)
+	d.Set("http_proxy", cluster.HTTPProxy)
+	d.Set("internal_elb", strconv.FormatBool(cluster.InternalElb))
+	d.Set("is_private", strconv.FormatBool(cluster.IsPrivate))
+	d.Set("k8s_api_port", cluster.K8sAPIPort)
+	d.Set("master_flavor", cluster.MasterFlavor)
 	d.Set("name", cluster.Name)
-	d.Set("networkPlugin", cluster.NetworkPlugin)
-	d.Set("nodePoolUuid", cluster.NodePoolUUID)
-	d.Set("numMasters", string(cluster.NumMasters))
-	d.Set("numWorkers", string(cluster.NumWorkers))
+	d.Set("network_plugin", cluster.NetworkPlugin)
+	d.Set("node_pool_uuid", cluster.NodePoolUUID)
+	d.Set("num_masters", string(cluster.NumMasters))
+	d.Set("num_workers", string(cluster.NumWorkers))
 	d.Set("privateSubets", "["+strings.Join(cluster.PrivateSubnets, ",")+"]")
 	d.Set("privileged", strconv.FormatBool(cluster.Privileged))
 	d.Set("region", cluster.Region)
-	d.Set("runtimeConfig", cluster.RuntimeConfig)
-	d.Set("serviceFqdn", cluster.ServiceFQDN)
-	d.Set("servicesCidr", cluster.ServicesCIDR)
-	d.Set("sshKey", cluster.SSHKey)
+	d.Set("runtime_config", cluster.RuntimeConfig)
+	d.Set("service_fqdn", cluster.ServiceFQDN)
+	d.Set("services_cidr", cluster.ServicesCIDR)
+	d.Set("ssh_key", cluster.SSHKey)
 	d.Set("subnets", "["+strings.Join(cluster.Subnets, ",")+"]")
 	d.Set("tags", fmt.Sprintf("%v", cluster.Tags...))
-	d.Set("usePf9Domain", strconv.FormatBool(cluster.UsePF9Domain))
+	d.Set("use_pf9_domain", strconv.FormatBool(cluster.UsePF9Domain))
 	d.Set("vpc", cluster.VPC)
-	d.Set("workerFlavor", cluster.WorkerFlavor)
-	d.Set("masterVipIpv4", cluster.MasterVIPIPv4)
-	d.Set("masterVipIface", cluster.MasterVIPIface)
-	d.Set("enableMetallb", strconv.FormatBool(cluster.EnableMetalLB))
-	d.Set("metallbCidr", cluster.MetalLBCIDR)
+	d.Set("worker_flavor", cluster.WorkerFlavor)
+	d.Set("master_vip_ipv4", cluster.MasterVIPIPv4)
+	d.Set("master_vip_iface", cluster.MasterVIPIface)
+	d.Set("enable_metal_lb", strconv.FormatBool(cluster.EnableMetalLB))
+	d.Set("metallb_cidr", cluster.MetalLBCIDR)
 
 	return nil
 }
