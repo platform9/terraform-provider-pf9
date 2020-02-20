@@ -17,9 +17,9 @@ const (
 )
 
 type Qbert struct {
-	WorkloadsOnMaster int           `json:"allowWorkloadsOnMaster,omitempty"`
+	WorkloadsOnMaster string        `json:"allowWorkloadsOnMaster,omitempty"`
 	Ami               string        `json:"ami,omitempty"`
-	AppCatalogEnabled int           `json:"appCatalogEnabled,omitempty"`
+	AppCatalogEnabled string        `json:"appCatalogEnabled,omitempty"`
 	Azs               []string      `json:"azs,omitempty"`
 	ContainersCIDR    string        `json:"containersCidr,omitempty"`
 	DomainID          string        `json:"domainId,omitempty"`
@@ -34,6 +34,8 @@ type Qbert struct {
 	NodePoolUUID      string        `json:"nodePoolUuid,omitempty"`
 	NumMasters        int           `json:"numMasters,omitempty"`
 	NumWorkers        int           `json:"numWorkers,omitempty"`
+	EnableCAS         string        `json:"enableCAS,omitempty"`
+	Masterless        string        `json:"masterless,omitempty"`
 	PrivateSubnets    []string      `json:"privateSubnets,omitempty"`
 	Privileged        bool          `json:"privileged,omitempty"`
 	Region            string        `json:"region,omitempty"`
@@ -42,7 +44,7 @@ type Qbert struct {
 	ServicesCIDR      string        `json:"servicesCidr,omitempty"`
 	SSHKey            string        `json:"sshKey,omitempty"`
 	Subnets           []string      `json:"subnets,omitempty"`
-	Tags              []interface{} `json:"tags,omitempty"`
+	Tags              []string      `json:"tags,omitempty"`
 	UsePF9Domain      bool          `json:"usePf9Domain,omitempty"`
 	VPC               string        `json:"vpc,omitempty"`
 	WorkerFlavor      string        `json:"workerFlavor,omitempty"`
@@ -75,7 +77,7 @@ func resourcePF9Cluster() *schema.Resource {
 				Required: true,
 			},
 			"allow_workloads_on_master": &schema.Schema{
-				Type:     schema.TypeInt,
+				Type:     schema.TypeString,
 				Optional: true,
 			},
 			"ami": &schema.Schema{
@@ -122,6 +124,22 @@ func resourcePF9Cluster() *schema.Resource {
 				Optional: true,
 			},
 			"master_flavor": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"num_masters": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"num_workers": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+			"enable_cas":  &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"masterless":  &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
@@ -176,7 +194,7 @@ func resourcePF9Cluster() *schema.Resource {
 				Optional: true,
 			},
 			"tags": &schema.Schema{
-				Type: schema.TypeMap,
+				Type: schema.TypeList,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -214,6 +232,14 @@ func resourcePF9Cluster() *schema.Resource {
 	}
 }
 
+func convertIntfListToString(data []interface{}) []string {
+	conv := make([]string, len(data))
+	for i, data := range data {
+		conv[i] = data.(string)
+	}
+	return conv
+}
+
 func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	token, errToken := generateToken(config)
@@ -223,11 +249,16 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 
 	qbert_cluster_api := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/clusters"
 
+    azs := convertIntfListToString(d.Get("azs").([]interface{}))
+    PrivateSubnets := convertIntfListToString(d.Get("private_subnets").([]interface{}))
+    Subnets := convertIntfListToString(d.Get("subnets").([]interface{}))
+    Tags := convertIntfListToString(d.Get("tags").([]interface{}))
+
 	request := &Qbert{
-		WorkloadsOnMaster: d.Get("allow_workloads_on_master").(int),
+		WorkloadsOnMaster: d.Get("allow_workloads_on_master").(string),
 		Ami:               d.Get("ami").(string),
-		AppCatalogEnabled: d.Get("app_catalog_enabled").(int),
-		Azs:               d.Get("azs").([]string),
+		AppCatalogEnabled: d.Get("app_catalog_enabled").(string),
+		Azs:               azs,
 		ContainersCIDR:    d.Get("containers_cidr").(string),
 		DomainID:          d.Get("domain_id").(string),
 		ExternalDNSName:   d.Get("external_dns_name").(string),
@@ -241,15 +272,17 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		NodePoolUUID:      d.Get("node_pool_uuid").(string),
 		NumMasters:        d.Get("num_masters").(int),
 		NumWorkers:        d.Get("num_workers").(int),
-		PrivateSubnets:    d.Get("private_subnets").([]string),
+		EnableCAS:         d.Get("enable_cas").(string),
+		Masterless:        d.Get("masterless").(string),
+		PrivateSubnets:    PrivateSubnets,
 		Privileged:        d.Get("privileged").(bool),
 		Region:            d.Get("region").(string),
 		RuntimeConfig:     d.Get("runtime_config").(string),
 		ServiceFQDN:       d.Get("service_fqdn").(string),
 		ServicesCIDR:      d.Get("services_cidr").(string),
 		SSHKey:            d.Get("ssh_key").(string),
-		Subnets:           d.Get("subnets").([]string),
-		Tags:              d.Get("tags").([]interface{}),
+		Subnets:           Subnets,
+		Tags:              Tags,
 		UsePF9Domain:      d.Get("use_pf9_domain").(bool),
 		VPC:               d.Get("vpc").(string),
 		WorkerFlavor:      d.Get("worker_flavor").(string),
@@ -328,7 +361,9 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("node_pool_uuid", cluster.NodePoolUUID)
 	d.Set("num_masters", string(cluster.NumMasters))
 	d.Set("num_workers", string(cluster.NumWorkers))
-	d.Set("privateSubets", "["+strings.Join(cluster.PrivateSubnets, ",")+"]")
+	d.Set("enable_cas", string(cluster.EnableCAS))
+	d.Set("masterless", string(cluster.Masterless))
+	d.Set("private_subnets", "["+strings.Join(cluster.PrivateSubnets, ",")+"]")
 	d.Set("privileged", strconv.FormatBool(cluster.Privileged))
 	d.Set("region", cluster.Region)
 	d.Set("runtime_config", cluster.RuntimeConfig)
@@ -336,7 +371,7 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("services_cidr", cluster.ServicesCIDR)
 	d.Set("ssh_key", cluster.SSHKey)
 	d.Set("subnets", "["+strings.Join(cluster.Subnets, ",")+"]")
-	d.Set("tags", fmt.Sprintf("%v", cluster.Tags...))
+	d.Set("tags", "["+strings.Join(cluster.Tags, ",")+"]")
 	d.Set("use_pf9_domain", strconv.FormatBool(cluster.UsePF9Domain))
 	d.Set("vpc", cluster.VPC)
 	d.Set("worker_flavor", cluster.WorkerFlavor)
