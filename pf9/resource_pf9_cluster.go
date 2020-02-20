@@ -17,41 +17,41 @@ const (
 )
 
 type Qbert struct {
-	WorkloadsOnMaster string        `json:"allowWorkloadsOnMaster,omitempty"`
-	Ami               string        `json:"ami,omitempty"`
-	AppCatalogEnabled string        `json:"appCatalogEnabled,omitempty"`
-	Azs               []string      `json:"azs,omitempty"`
-	ContainersCIDR    string        `json:"containersCidr,omitempty"`
-	DomainID          string        `json:"domainId,omitempty"`
-	ExternalDNSName   string        `json:"externalDnsName,omitempty"`
-	HTTPProxy         string        `json:"httpProxy,omitempty"`
-	InternalElb       bool          `json:"internalElb,omitempty"`
-	IsPrivate         bool          `json:"isPrivate,omitempty"`
-	K8sAPIPort        string        `json:"k8sApiPort,omitempty"`
-	MasterFlavor      string        `json:"masterFlavor,omitempty"`
-	Name              string        `json:"name,omitempty"`
-	NetworkPlugin     string        `json:"networkPlugin,omitempty"`
-	NodePoolUUID      string        `json:"nodePoolUuid,omitempty"`
-	NumMasters        int           `json:"numMasters,omitempty"`
-	NumWorkers        int           `json:"numWorkers,omitempty"`
-	EnableCAS         string        `json:"enableCAS,omitempty"`
-	Masterless        string        `json:"masterless,omitempty"`
-	PrivateSubnets    []string      `json:"privateSubnets,omitempty"`
-	Privileged        bool          `json:"privileged,omitempty"`
-	Region            string        `json:"region,omitempty"`
-	RuntimeConfig     string        `json:"runtimeConfig,omitempty"`
-	ServiceFQDN       string        `json:"serviceFqdn,omitempty"`
-	ServicesCIDR      string        `json:"servicesCidr,omitempty"`
-	SSHKey            string        `json:"sshKey,omitempty"`
-	Subnets           []string      `json:"subnets,omitempty"`
-	Tags              []string      `json:"tags,omitempty"`
-	UsePF9Domain      bool          `json:"usePf9Domain,omitempty"`
-	VPC               string        `json:"vpc,omitempty"`
-	WorkerFlavor      string        `json:"workerFlavor,omitempty"`
-	MasterVIPIPv4     string        `json:"masterVipIpv4,omitempty"`
-	MasterVIPIface    string        `json:"masterVipIface,omitempty"`
-	EnableMetalLB     bool          `json:"enableMetallb,omitempty"`
-	MetalLBCIDR       string        `json:"metallbCidr,omitempty"`
+	WorkloadsOnMaster string   `json:"allowWorkloadsOnMaster,omitempty"`
+	Ami               string   `json:"ami,omitempty"`
+	AppCatalogEnabled string   `json:"appCatalogEnabled,omitempty"`
+	Azs               []string `json:"azs,omitempty"`
+	ContainersCIDR    string   `json:"containersCidr,omitempty"`
+	DomainID          string   `json:"domainId,omitempty"`
+	ExternalDNSName   string   `json:"externalDnsName,omitempty"`
+	HTTPProxy         string   `json:"httpProxy,omitempty"`
+	InternalElb       bool     `json:"internalElb,omitempty"`
+	IsPrivate         bool     `json:"isPrivate,omitempty"`
+	K8sAPIPort        string   `json:"k8sApiPort,omitempty"`
+	MasterFlavor      string   `json:"masterFlavor,omitempty"`
+	Name              string   `json:"name,omitempty"`
+	NetworkPlugin     string   `json:"networkPlugin,omitempty"`
+	NodePoolUUID      string   `json:"nodePoolUuid,omitempty"`
+	NumMasters        int      `json:"numMasters,omitempty"`
+	NumWorkers        int      `json:"numWorkers,omitempty"`
+	EnableCAS         string   `json:"enableCAS,omitempty"`
+	Masterless        int      `json:"masterless,omitempty"`
+	PrivateSubnets    []string `json:"privateSubnets,omitempty"`
+	Privileged        int      `json:"privileged,omitempty"`
+	Region            string   `json:"region,omitempty"`
+	RuntimeConfig     string   `json:"runtimeConfig,omitempty"`
+	ServiceFQDN       string   `json:"serviceFqdn,omitempty"`
+	ServicesCIDR      string   `json:"servicesCidr,omitempty"`
+	SSHKey            string   `json:"sshKey,omitempty"`
+	Subnets           []string `json:"subnets,omitempty"`
+	Tags              []string `json:"tags,omitempty"`
+	UsePF9Domain      bool     `json:"usePf9Domain,omitempty"`
+	VPC               string   `json:"vpc,omitempty"`
+	WorkerFlavor      string   `json:"workerFlavor,omitempty"`
+	MasterVIPIPv4     string   `json:"masterVipIpv4,omitempty"`
+	MasterVIPIface    string   `json:"masterVipIface,omitempty"`
+	EnableMetalLB     bool     `json:"enableMetallb,omitempty"`
+	MetalLBCIDR       string   `json:"metallbCidr,omitempty"`
 }
 
 func resourcePF9Cluster() *schema.Resource {
@@ -135,12 +135,12 @@ func resourcePF9Cluster() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"enable_cas":  &schema.Schema{
+			"enable_cas": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"masterless":  &schema.Schema{
-				Type:     schema.TypeString,
+			"masterless": &schema.Schema{
+				Type:     schema.TypeInt,
 				Optional: true,
 			},
 			"name": &schema.Schema{
@@ -163,7 +163,7 @@ func resourcePF9Cluster() *schema.Resource {
 				Optional: true,
 			},
 			"privileged": &schema.Schema{
-				Type:     schema.TypeBool,
+				Type:     schema.TypeInt,
 				Optional: true,
 			},
 			"region": &schema.Schema{
@@ -249,10 +249,10 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 
 	qbert_cluster_api := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/clusters"
 
-    azs := convertIntfListToString(d.Get("azs").([]interface{}))
-    PrivateSubnets := convertIntfListToString(d.Get("private_subnets").([]interface{}))
-    Subnets := convertIntfListToString(d.Get("subnets").([]interface{}))
-    Tags := convertIntfListToString(d.Get("tags").([]interface{}))
+	azs := convertIntfListToString(d.Get("azs").([]interface{}))
+	PrivateSubnets := convertIntfListToString(d.Get("private_subnets").([]interface{}))
+	Subnets := convertIntfListToString(d.Get("subnets").([]interface{}))
+	Tags := convertIntfListToString(d.Get("tags").([]interface{}))
 
 	request := &Qbert{
 		WorkloadsOnMaster: d.Get("allow_workloads_on_master").(string),
@@ -273,9 +273,9 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		NumMasters:        d.Get("num_masters").(int),
 		NumWorkers:        d.Get("num_workers").(int),
 		EnableCAS:         d.Get("enable_cas").(string),
-		Masterless:        d.Get("masterless").(string),
+		Masterless:        d.Get("masterless").(int),
 		PrivateSubnets:    PrivateSubnets,
-		Privileged:        d.Get("privileged").(bool),
+		Privileged:        d.Get("privileged").(int),
 		Region:            d.Get("region").(string),
 		RuntimeConfig:     d.Get("runtime_config").(string),
 		ServiceFQDN:       d.Get("service_fqdn").(string),
@@ -364,7 +364,7 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("enable_cas", string(cluster.EnableCAS))
 	d.Set("masterless", string(cluster.Masterless))
 	d.Set("private_subnets", "["+strings.Join(cluster.PrivateSubnets, ",")+"]")
-	d.Set("privileged", strconv.FormatBool(cluster.Privileged))
+	d.Set("privileged", string(cluster.Privileged))
 	d.Set("region", cluster.Region)
 	d.Set("runtime_config", cluster.RuntimeConfig)
 	d.Set("service_fqdn", cluster.ServiceFQDN)
