@@ -9,6 +9,50 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
+// Qbert API fields
+type Qbert struct {
+	WorkloadsOnMaster int                    `json:"allowWorkloadsOnMaster"`
+	Ami               string                 `json:"ami,omitempty"`
+	AppCatalogEnabled int                    `json:"appCatalogEnabled"`
+	Azs               []string               `json:"azs,omitempty"`
+	ContainersCIDR    string                 `json:"containersCidr,omitempty"`
+	DomainID          string                 `json:"domainId,omitempty"`
+	ExternalDNSName   string                 `json:"externalDnsName,omitempty"`
+	HTTPProxy         string                 `json:"httpProxy,omitempty"`
+	InternalElb       bool                   `json:"internalElb,omitempty"`
+	IsPrivate         bool                   `json:"isPrivate,omitempty"`
+	K8sAPIPort        string                 `json:"k8sApiPort,omitempty"`
+	MasterFlavor      string                 `json:"masterFlavor,omitempty"`
+	Name              string                 `json:"name,omitempty"`
+	NetworkPlugin     string                 `json:"networkPlugin,omitempty"`
+	NodePoolUUID      string                 `json:"nodePoolUuid,omitempty"`
+	NumMasters        int                    `json:"numMasters,omitempty"`
+	NumWorkers        int                    `json:"numWorkers,omitempty"`
+	EnableCAS         bool                   `json:"enableCAS,omitempty"`
+	NumSpotWorkers    int                    `json:"numSpotWorkers,omitempty"`
+	NumMaxSpotWorkers int                    `json:"numMaxSpotWorkers,omitempty"`
+	SpotPrice         float64                `json:"spotPrice,omitempty"`
+	SpotWorkerFlavor  string                 `json:"spotWorkerFlavor,omitempty"`
+	Masterless        int                    `json:"masterless,omitempty"`
+	PrivateSubnets    []string               `json:"privateSubnets,omitempty"`
+	Privileged        int                    `json:"privileged,omitempty"`
+	Region            string                 `json:"region,omitempty"`
+	RuntimeConfig     string                 `json:"runtimeConfig,omitempty"`
+	ServiceFQDN       string                 `json:"serviceFqdn,omitempty"`
+	ServicesCIDR      string                 `json:"servicesCidr,omitempty"`
+	SSHKey            string                 `json:"sshKey,omitempty"`
+	Subnets           []string               `json:"subnets,omitempty"`
+	Tags              map[string]interface{} `json:"tags,omitempty"`
+	UsePF9Domain      bool                   `json:"usePf9Domain,omitempty"`
+	VPC               string                 `json:"vpc,omitempty"`
+	WorkerFlavor      string                 `json:"workerFlavor,omitempty"`
+	MasterVIPIPv4     string                 `json:"masterVipIpv4,omitempty"`
+	MasterVIPIface    string                 `json:"masterVipIface,omitempty"`
+	EnableMetalLB     bool                   `json:"enableMetallb,omitempty"`
+	MetalLBCIDR       string                 `json:"metallbCidr,omitempty"`
+}
+
+// Config stores the PF9 provider configuration options
 type Config struct {
 	DuFQDN           string
 	DuUsername       string
@@ -18,25 +62,30 @@ type Config struct {
 	TerraformVersion string
 }
 
+// Domain defines a keystone region
 type Domain struct {
-	Id string `json:"id"`
+	ID string `json:"id"`
 }
 
+// User defines a keystone user
 type User struct {
 	Name     string `json:"name"`
 	Domain   Domain `json:"domain"`
 	Password string `json:"password"`
 }
 
+// Password defines the structure used to describe password based auth
 type Password struct {
 	User User `json:"user"`
 }
 
+// Identity defines the Identity keystone object
 type Identity struct {
 	Methods  []string `json:"methods"`
 	Password Password `json:"password"`
 }
 
+// Project defines the structure used to describe the keystone project
 type Project struct {
 	Name   string `json:"name"`
 	Domain Domain `json:"domain"`
@@ -55,6 +104,7 @@ type Request struct {
 	Auth Auth `json:"auth"`
 }
 
+// Provider returns a pf9 terraform resource provider
 func Provider() terraform.ResourceProvider {
 	provider := &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -85,8 +135,9 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"pf9_cluster": resourcePF9Cluster(),
-			"pf9_aws_cloud_provider": resourcePf9AWSCloudProvider(),
+			"pf9_cluster":              resourcePF9Cluster(),
+			"pf9_aws_cloud_provider":   resourcePf9AWSCloudProvider(),
+			"pf9_azure_cloud_provider": resourcePf9AzureCloudProvider(),
 		},
 	}
 
@@ -112,9 +163,9 @@ func init() {
 }
 
 func configureProvider(d *schema.ResourceData, terraformVersion string) (interface{}, error) {
-	identity_endpoint := "https://" + d.Get("du_fqdn").(string) + "/keystone/v3/auth/tokens"
+	identityEndpoint := "https://" + d.Get("du_fqdn").(string) + "/keystone/v3/auth/tokens"
 	config := Config{
-		IdentityEndpoint: identity_endpoint,
+		IdentityEndpoint: identityEndpoint,
 		DuUsername:       d.Get("du_username").(string),
 		DuPassword:       d.Get("du_password").(string),
 		DuTenantName:     d.Get("du_tenant").(string),
@@ -134,7 +185,7 @@ func generateToken(config *Config) (string, error) {
 					User: User{
 						Name: config.DuUsername,
 						Domain: Domain{
-							Id: "default",
+							ID: "default",
 						},
 						Password: config.DuPassword,
 					},
@@ -144,19 +195,19 @@ func generateToken(config *Config) (string, error) {
 				Project: Project{
 					Name: config.DuTenantName,
 					Domain: Domain{
-						Id: "default",
+						ID: "default",
 					},
 				},
 			},
 		},
 	}
 
-	request_data, err := json.Marshal(request)
+	requestData, err := json.Marshal(request)
 	if err != nil {
 		return "", err
 	}
 
-	resp, errPost := http.Post(config.IdentityEndpoint, "application/json", bytes.NewBuffer(request_data))
+	resp, errPost := http.Post(config.IdentityEndpoint, "application/json", bytes.NewBuffer(requestData))
 	if errPost != nil {
 		return "", errPost
 	}

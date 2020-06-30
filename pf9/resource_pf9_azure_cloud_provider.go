@@ -10,34 +10,36 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
-// AWSCloudProvider defines API fields for the AWS cloud provider
-type AWSCloudProvider struct {
-	Name   string `json:"name,omitempty"`
-	Type   string `json:"type,omitempty"`
-	Key    string `json:"key,omitempty"`
-	Secret string `json:"secret,omitempty"`
+// AzureCloudProvider defines API fields for the Azure cloud provider
+type AzureCloudProvider struct {
+	ClientID       string `json:"clientId,omitempty"`
+	ClientSecret   string `json:"clientSecret,omitempty"`
+	Name           string `json:"name,omitempty"`
+	SubscriptionID string `json:"subscriptionId,omitempty"`
+	TenantID       string `json:"tenantId,omitempty"`
+	Type           string `json:"type,omitempty"`
 }
 
-// Timeouts for AWS cloud provider operations
+// Timeouts for Azure cloud provider operations
 const (
-	Pf9AWSCloudProviderRetryTimeout = 2 * time.Minute
+	Pf9AzureCloudProviderTimeout = 2 * time.Minute
 )
 
-func resourcePf9AWSCloudProvider() *schema.Resource {
+func resourcePf9AzureCloudProvider() *schema.Resource {
 	return &schema.Resource{
-		Create: resourcePf9AWSCloudProviderCreate,
-		Read:   resourcePf9AWSCloudProviderRead,
-		Update: resourcePf9AWSCloudProviderUpdate,
-		Delete: resourcePf9AWSCloudProviderDelete,
+		Create: resourcePf9AzureCloudProviderCreate,
+		Read:   resourcePf9AzureCloudProviderRead,
+		Update: resourcePf9AzureCloudProviderUpdate,
+		Delete: resourcePf9AzureCloudProviderDelete,
 
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(Pf9AWSCloudProviderRetryTimeout),
-			Update: schema.DefaultTimeout(Pf9AWSCloudProviderRetryTimeout),
-			Delete: schema.DefaultTimeout(Pf9AWSCloudProviderRetryTimeout),
+			Create: schema.DefaultTimeout(Pf9AzureCloudProviderTimeout),
+			Update: schema.DefaultTimeout(Pf9AzureCloudProviderTimeout),
+			Delete: schema.DefaultTimeout(Pf9AzureCloudProviderTimeout),
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -45,19 +47,27 @@ func resourcePf9AWSCloudProvider() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"client_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"client_secret": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"key": &schema.Schema{
+			"subscription_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"secret": &schema.Schema{
+			"tenant_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -65,7 +75,7 @@ func resourcePf9AWSCloudProvider() *schema.Resource {
 	}
 }
 
-func resourcePf9AWSCloudProviderCreate(d *schema.ResourceData, meta interface{}) error {
+func resourcePf9AzureCloudProviderCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	token, errToken := generateToken(config)
 	if errToken != nil {
@@ -74,11 +84,13 @@ func resourcePf9AWSCloudProviderCreate(d *schema.ResourceData, meta interface{})
 
 	qbertCloudProviderAPI := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/cloudProviders"
 
-	request := &AWSCloudProvider{
-		Name:   d.Get("name").(string),
-		Type:   d.Get("type").(string),
-		Key:    d.Get("key").(string),
-		Secret: d.Get("secret").(string),
+	request := &AzureCloudProvider{
+		ClientID:       d.Get("client_id").(string),
+		ClientSecret:   d.Get("client_secret").(string),
+		Name:           d.Get("name").(string),
+		SubscriptionID: d.Get("subscription_id").(string),
+		TenantID:       d.Get("tenant_id").(string),
+		Type:           d.Get("type").(string),
 	}
 
 	requestData, errJSON := json.Marshal(request)
@@ -107,10 +119,10 @@ func resourcePf9AWSCloudProviderCreate(d *schema.ResourceData, meta interface{})
 
 	d.SetId(respData.UUID)
 
-	return resourcePf9AWSCloudProviderRead(d, meta)
+	return resourcePf9AzureCloudProviderRead(d, meta)
 }
 
-func resourcePf9AWSCloudProviderRead(d *schema.ResourceData, meta interface{}) error {
+func resourcePf9AzureCloudProviderRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	token, errToken := generateToken(config)
 	if errToken != nil {
@@ -134,10 +146,13 @@ func resourcePf9AWSCloudProviderRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	return nil
-
 }
 
-func resourcePf9AWSCloudProviderDelete(d *schema.ResourceData, meta interface{}) error {
+func resourcePf9AzureCloudProviderUpdate(d *schema.ResourceData, meta interface{}) error {
+	return resourcePf9AzureCloudProviderRead(d, meta)
+}
+
+func resourcePf9AzureCloudProviderDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	token, errToken := generateToken(config)
 	if errToken != nil {
@@ -163,46 +178,4 @@ func resourcePf9AWSCloudProviderDelete(d *schema.ResourceData, meta interface{})
 	d.SetId("")
 
 	return nil
-}
-
-func resourcePf9AWSCloudProviderUpdate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-	token, errToken := generateToken(config)
-	if errToken != nil {
-		return fmt.Errorf("Failed to generate token: %s", errToken)
-	}
-
-	cloudProviderUUID := d.Id()
-	qbertCloudProviderAPI := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/cloudProviders/" + cloudProviderUUID
-
-	if d.HasChange("type") {
-		return fmt.Errorf("Cannot change type of cloud provider")
-	}
-
-	request := &AWSCloudProvider{
-		Name:   d.Get("name").(string),
-		Key:    d.Get("key").(string),
-		Secret: d.Get("secret").(string),
-	}
-
-	requestData, errJSON := json.Marshal(request)
-	if errJSON != nil {
-		return fmt.Errorf("Failed to parse request: %s", errJSON)
-	}
-
-	client := http.DefaultClient
-	req, errReq := http.NewRequest("PUT", qbertCloudProviderAPI, bytes.NewBuffer(requestData))
-	if errReq != nil {
-		return fmt.Errorf("AWS Cloud Provider update failed: %s", errReq)
-	}
-
-	req.Header.Add("X-Auth-Token", token)
-	req.Header.Add("Content-Type", "application/json")
-
-	_, errResp := client.Do(req)
-	if errResp != nil {
-		return fmt.Errorf("AWS Cloud Provider update failed: %s", errResp)
-	}
-
-	return resourcePf9AWSCloudProviderRead(d, meta)
 }
