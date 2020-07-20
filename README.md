@@ -27,7 +27,7 @@ Terraform looks for the plugin in the local directory as well as under `$HOME/.t
 
 ### Usage
 
-Konform requires you to source access credentials to the Platform9 DU before running terraform. Please create and source an environment file with the following fields set:
+Konform requires you to source access credentials to the Platform9 Saas Management Plane(DU) before running terraform. Please create and source an environment file with the following fields set:
 
 ```shell
 export DU_USERNAME=<Platform9 DU Username>
