@@ -25,6 +25,8 @@ type Qbert struct {
 	MasterFlavor      string                 `json:"masterFlavor,omitempty"`
 	Name              string                 `json:"name,omitempty"`
 	NetworkPlugin     string                 `json:"networkPlugin,omitempty"`
+	CalicoIPIPMode    string                 `json:"calicoIpIpMode,omitempty"`
+	CalicoNATOutgoing bool                   `json:"calicoNatOutgoing,omitempty"`
 	NodePoolUUID      string                 `json:"nodePoolUuid,omitempty"`
 	NumMasters        int                    `json:"numMasters,omitempty"`
 	NumWorkers        int                    `json:"numWorkers,omitempty"`
