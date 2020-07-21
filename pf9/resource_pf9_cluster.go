@@ -130,6 +130,16 @@ func resourcePF9Cluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"calico_ip_ip_mode": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "Always",
+			},
+			"calico_nat_outgoing": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 			"node_pool_uuid": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -247,6 +257,8 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		MasterFlavor:      d.Get("master_flavor").(string),
 		Name:              d.Get("name").(string),
 		NetworkPlugin:     d.Get("network_plugin").(string),
+		CalicoIPIPMode:    d.Get("calico_ip_ip_mode").(string),
+		CalicoNATOutgoing: d.Get("calico_nat_outgoing").(bool),
 		NodePoolUUID:      d.Get("node_pool_uuid").(string),
 		NumMasters:        d.Get("num_masters").(int),
 		NumWorkers:        d.Get("num_workers").(int),
@@ -340,6 +352,8 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("master_flavor", cluster.MasterFlavor)
 	d.Set("name", cluster.Name)
 	d.Set("network_plugin", cluster.NetworkPlugin)
+	d.Set("calico_ip_ip_mode", cluster.CalicoIPIPMode)
+	d.Set("calico_nat_outgoing", strconv.FormatBool(cluster.CalicoNATOutgoing))
 	d.Set("node_pool_uuid", cluster.NodePoolUUID)
 	d.Set("num_masters", string(cluster.NumMasters))
 	d.Set("num_workers", string(cluster.NumWorkers))
