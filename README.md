@@ -71,6 +71,7 @@ allow_workloads_on_master   (int)       Allow workloads on master nodes options:
 ami                         (string)    AWS clusters: AWS Image ID
 app_catalog_enabled         (int)       Enable/Disable App Catalog. options: 0/1
 azs                         (list)      List of AWS availability zones. Example: ["az1", "az2"]
+zones                       (list)      List of Azure availability zones. Example: ["zone1, "zone2"]
 containers_cidr             (string)    Subnet used for Pod IPs
 service_cidr                (string)    Subnet used for Service IPs
 domain_id                   (string)    AWS Domain ID
@@ -79,8 +80,10 @@ http_proxy                  (string)    (optional) Specify the HTTP proxy for th
 internal_elb                (boolean)   Enable or disable elastic load balancer
 is_private                  (boolean)   Private cluster (for advanced users only)
 k8s_api_port                (string)    Port on which the k8s API server listens on
-master_flavor               (string)    Flavor of master nodes
-worker_flavor               (string)    Flavor of worker nodes
+master_flavor               (string)    Flavor of master nodes (AWS)
+worker_flavor               (string)    Flavor of worker nodes (AWS)
+master_sku                  (string)    Flavor of master nodes (Azure)
+worker_sku                  (string)    Flavor of worker nodes (Azure)
 num_masters                 (string)    Number of masters. Recommended: 1, 3, or 5.
 num_workers                 (string)    Number of workers.
 enable_cas                  (boolean)   Enable or disable cluster auto scaler.
@@ -92,6 +95,7 @@ node_pool_uuid              (string)    AWS node pool UUID
 private_subnets             (list)      List of private subnets to use
 privileged                  (int)       Allow/disallow privileged containers (0/1)    
 region                      (string)    AWS region
+location                    (string)    Azure region
 runtime_config              (string)    Runtime config data
 service_fqdn                (string)    "auto-generate" or provide FQDN for service endpoints
 ssh_key                     (string)    Keyname for SSH access to nodes
