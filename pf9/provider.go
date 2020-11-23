@@ -15,6 +15,7 @@ type Qbert struct {
 	Ami               string                 `json:"ami,omitempty"`
 	AppCatalogEnabled int                    `json:"appCatalogEnabled"`
 	Azs               []string               `json:"azs,omitempty"`
+        Zones             []string               `json:"zones,omitempty"`
 	ContainersCIDR    string                 `json:"containersCidr,omitempty"`
 	DomainID          string                 `json:"domainId,omitempty"`
 	ExternalDNSName   string                 `json:"externalDnsName,omitempty"`
@@ -23,6 +24,7 @@ type Qbert struct {
 	IsPrivate         bool                   `json:"isPrivate,omitempty"`
 	K8sAPIPort        string                 `json:"k8sApiPort,omitempty"`
 	MasterFlavor      string                 `json:"masterFlavor,omitempty"`
+        MasterSku         string                 `json:"masterSku,omitempty"`
 	Name              string                 `json:"name,omitempty"`
 	NetworkPlugin     string                 `json:"networkPlugin,omitempty"`
 	CalicoIPIPMode    string                 `json:"calicoIpIpMode,omitempty"`
@@ -39,6 +41,7 @@ type Qbert struct {
 	PrivateSubnets    []string               `json:"privateSubnets,omitempty"`
 	Privileged        int                    `json:"privileged,omitempty"`
 	Region            string                 `json:"region,omitempty"`
+        Location          string                 `json:"location,omitempty"`
 	RuntimeConfig     string                 `json:"runtimeConfig,omitempty"`
 	ServiceFQDN       string                 `json:"serviceFqdn,omitempty"`
 	ServicesCIDR      string                 `json:"servicesCidr,omitempty"`
@@ -48,6 +51,7 @@ type Qbert struct {
 	UsePF9Domain      bool                   `json:"usePf9Domain,omitempty"`
 	VPC               string                 `json:"vpc,omitempty"`
 	WorkerFlavor      string                 `json:"workerFlavor,omitempty"`
+        WorkerSku         string                 `json:"workerSku,omitempty"`
 	MasterVIPIPv4     string                 `json:"masterVipIpv4,omitempty"`
 	MasterVIPIface    string                 `json:"masterVipIface,omitempty"`
 	EnableMetalLB     bool                   `json:"enableMetallb,omitempty"`
