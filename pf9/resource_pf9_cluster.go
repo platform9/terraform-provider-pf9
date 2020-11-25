@@ -58,13 +58,13 @@ func resourcePF9Cluster() *schema.Resource {
 				},
 				Optional: true,
 			},
-                        "zones": &schema.Schema{
-                                Type: schema.TypeList,
-                                Elem: &schema.Schema{
-                                        Type: schema.TypeString,
-                                },
-                                Optional: true,
-                        },
+			"zones": &schema.Schema{
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional: true,
+			},
 			"containers_cidr": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -97,10 +97,10 @@ func resourcePF9Cluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-                        "master_sku": &schema.Schema{
-                                Type:     schema.TypeString,
-                                Optional: true,
-                        },
+			"master_sku": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"num_masters": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -170,10 +170,10 @@ func resourcePF9Cluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-                        "location": &schema.Schema{
-                                Type:     schema.TypeString,
-                                Optional: true,
-                        },
+			"location": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"runtime_config": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -216,10 +216,10 @@ func resourcePF9Cluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-                        "worker_sku": &schema.Schema{
-                                Type:     schema.TypeString,
-                                Optional: true,
-                        },
+			"worker_sku": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"master_vip_ipv4": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -258,7 +258,7 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	qbertClusterAPI := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/clusters"
 
 	azs := convertIntfListToString(d.Get("azs").([]interface{}))
-        zones := convertIntfListToString(d.Get("zones").([]interface{}))
+	zones := convertIntfListToString(d.Get("zones").([]interface{}))
 	PrivateSubnets := convertIntfListToString(d.Get("private_subnets").([]interface{}))
 	Subnets := convertIntfListToString(d.Get("subnets").([]interface{}))
 
@@ -276,7 +276,7 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		IsPrivate:         d.Get("is_private").(bool),
 		K8sAPIPort:        d.Get("k8s_api_port").(string),
 		MasterFlavor:      d.Get("master_flavor").(string),
-                MasterSku:         d.Get("master_sku").(string),
+		MasterSku:         d.Get("master_sku").(string),
 		Name:              d.Get("name").(string),
 		NetworkPlugin:     d.Get("network_plugin").(string),
 		CalicoIPIPMode:    d.Get("calico_ip_ip_mode").(string),
@@ -293,7 +293,7 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		PrivateSubnets:    PrivateSubnets,
 		Privileged:        d.Get("privileged").(int),
 		Region:            d.Get("region").(string),
-                Location:          d.Get("location").(string),
+		Location:          d.Get("location").(string),
 		RuntimeConfig:     d.Get("runtime_config").(string),
 		ServiceFQDN:       d.Get("service_fqdn").(string),
 		ServicesCIDR:      d.Get("services_cidr").(string),
@@ -303,7 +303,7 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		UsePF9Domain:      d.Get("use_pf9_domain").(bool),
 		VPC:               d.Get("vpc").(string),
 		WorkerFlavor:      d.Get("worker_flavor").(string),
-                WorkerSku:         d.Get("worker_sku").(string),
+		WorkerSku:         d.Get("worker_sku").(string),
 		MasterVIPIPv4:     d.Get("master_vip_ipv4").(string),
 		MasterVIPIface:    d.Get("master_vip_iface").(string),
 		EnableMetalLB:     d.Get("enable_metal_lb").(bool),
@@ -362,11 +362,11 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	var cluster Qbert
 	json.NewDecoder(resp.Body).Decode(&cluster)
 
-	d.Set("allow_workloads_on_master", string(cluster.WorkloadsOnMaster))
+	d.Set("allow_workloads_on_master", fmt.Sprint(cluster.WorkloadsOnMaster))
 	d.Set("ami", cluster.Ami)
-	d.Set("app_catalog_enabled", string(cluster.AppCatalogEnabled))
+	d.Set("app_catalog_enabled", fmt.Sprint(cluster.AppCatalogEnabled))
 	d.Set("azs", "["+strings.Join(cluster.Azs, ",")+"]")
-        d.Set("zones", "["+strings.Join(cluster.Zones, ",")+"]")
+	d.Set("zones", "["+strings.Join(cluster.Zones, ",")+"]")
 	d.Set("containers_cidr", cluster.ContainersCIDR)
 	d.Set("domain_id", cluster.DomainID)
 	d.Set("external_dns_name", cluster.ExternalDNSName)
@@ -375,24 +375,24 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("is_private", strconv.FormatBool(cluster.IsPrivate))
 	d.Set("k8s_api_port", cluster.K8sAPIPort)
 	d.Set("master_flavor", cluster.MasterFlavor)
-        d.Set("master_sku", cluster.MasterSku)
+	d.Set("master_sku", cluster.MasterSku)
 	d.Set("name", cluster.Name)
 	d.Set("network_plugin", cluster.NetworkPlugin)
 	d.Set("calico_ip_ip_mode", cluster.CalicoIPIPMode)
 	d.Set("calico_nat_outgoing", strconv.FormatBool(cluster.CalicoNATOutgoing))
 	d.Set("node_pool_uuid", cluster.NodePoolUUID)
-	d.Set("num_masters", string(cluster.NumMasters))
-	d.Set("num_workers", string(cluster.NumWorkers))
+	d.Set("num_masters", fmt.Sprint(cluster.NumMasters))
+	d.Set("num_workers", fmt.Sprint(cluster.NumWorkers))
 	d.Set("enable_cas", strconv.FormatBool(cluster.EnableCAS))
-	d.Set("num_spot_workers", string(cluster.NumSpotWorkers))
-	d.Set("num_max_spot_workers", string(cluster.NumMaxSpotWorkers))
+	d.Set("num_spot_workers", fmt.Sprint(cluster.NumSpotWorkers))
+	d.Set("num_max_spot_workers", fmt.Sprint(cluster.NumMaxSpotWorkers))
 	d.Set("spot_price", fmt.Sprintf("%f", cluster.SpotPrice))
 	d.Set("spot_worker_flavor", cluster.SpotWorkerFlavor)
-	d.Set("masterless", string(cluster.Masterless))
+	d.Set("masterless", fmt.Sprint(cluster.Masterless))
 	d.Set("private_subnets", "["+strings.Join(cluster.PrivateSubnets, ",")+"]")
-	d.Set("privileged", string(cluster.Privileged))
+	d.Set("privileged", fmt.Sprint(cluster.Privileged))
 	d.Set("region", cluster.Region)
-        d.Set("location", cluster.Location)
+	d.Set("location", cluster.Location)
 	d.Set("runtime_config", cluster.RuntimeConfig)
 	d.Set("service_fqdn", cluster.ServiceFQDN)
 	d.Set("services_cidr", cluster.ServicesCIDR)
@@ -402,7 +402,7 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("use_pf9_domain", strconv.FormatBool(cluster.UsePF9Domain))
 	d.Set("vpc", cluster.VPC)
 	d.Set("worker_flavor", cluster.WorkerFlavor)
-        d.Set("worker_sku", cluster.WorkerSku)
+	d.Set("worker_sku", cluster.WorkerSku)
 	d.Set("master_vip_ipv4", cluster.MasterVIPIPv4)
 	d.Set("master_vip_iface", cluster.MasterVIPIface)
 	d.Set("enable_metal_lb", strconv.FormatBool(cluster.EnableMetalLB))
