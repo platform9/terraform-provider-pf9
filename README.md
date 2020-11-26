@@ -107,6 +107,9 @@ master_vip_ipv4             (string)    Virtual IP for master nodes
 master_vip_iface            (string)    Interface to attach master VIP to
 enable_metal_lb             (boolean)   Enable/disable MetalLB
 metallb_cidr                (string)    MetalLB CIDR
+api_server_flags            (list)      List of custom api server flags. Example: ["--request-timeout=2m0s", "--kubelet-timeout=20s"]
+scheduler_flags             (list)      List of scheduler flags. Example: ["--kube-api-burst=120"]
+controller_manager_flags    (list)      List of controller manager flags. Example: ["--large-cluster-size-threshold=60"]
 ```
 
 ## Issues

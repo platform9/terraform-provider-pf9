@@ -56,6 +56,9 @@ type Qbert struct {
 	MasterVIPIface    string                 `json:"masterVipIface,omitempty"`
 	EnableMetalLB     bool                   `json:"enableMetallb,omitempty"`
 	MetalLBCIDR       string                 `json:"metallbCidr,omitempty"`
+	ApiServerFlags    []string               `json:"apiServerFlags, omitempty"`
+	SchedulerFlags    []string               `json:"schedulerFlags, omitempty"`
+	CtrlrManagerFlags []string               `json:"controllerManagerFlags, omitempty"`
 }
 
 // Config stores the PF9 provider configuration options

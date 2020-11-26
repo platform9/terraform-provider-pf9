@@ -236,6 +236,27 @@ func resourcePF9Cluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"api_server_flags": &schema.Schema{
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+				        Type: schema.TypeString,
+				},      
+				Optional: true,
+			},      
+			"scheduler_flags": &schema.Schema{
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+				        Type: schema.TypeString,
+				},      
+				Optional: true,
+			},      
+			"controller_manager_flags": &schema.Schema{
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+				        Type: schema.TypeString,
+				},      
+				Optional: true,
+			}, 
 		},
 	}
 }
@@ -261,6 +282,9 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	zones := convertIntfListToString(d.Get("zones").([]interface{}))
 	PrivateSubnets := convertIntfListToString(d.Get("private_subnets").([]interface{}))
 	Subnets := convertIntfListToString(d.Get("subnets").([]interface{}))
+	ApiServerFlags := convertIntfListToString(d.Get("api_server_flags").([]interface{}))
+	SchedulerFlags := convertIntfListToString(d.Get("scheduler_flags").([]interface{}))
+	CtrlrManagerFlags := convertIntfListToString(d.Get("controller_manager_flags").([]interface{}))
 
 	request := &Qbert{
 		WorkloadsOnMaster: d.Get("allow_workloads_on_master").(int),
@@ -308,6 +332,9 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		MasterVIPIface:    d.Get("master_vip_iface").(string),
 		EnableMetalLB:     d.Get("enable_metal_lb").(bool),
 		MetalLBCIDR:       d.Get("metallb_cidr").(string),
+		ApiServerFlags:    ApiServerFlags,
+		SchedulerFlags:    SchedulerFlags,
+		CtrlrManagerFlags: CtrlrManagerFlags,
 	}
 
 	requestData, errJSON := json.Marshal(request)
@@ -407,6 +434,9 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("master_vip_iface", cluster.MasterVIPIface)
 	d.Set("enable_metal_lb", strconv.FormatBool(cluster.EnableMetalLB))
 	d.Set("metallb_cidr", cluster.MetalLBCIDR)
+	d.Set("api_server_flags", "["+strings.Join(cluster.ApiServerFlags, ",")+"]")
+	d.Set("scheduler_flags", "["+strings.Join(cluster.SchedulerFlags, ",")+"]")
+	d.Set("controller_manager_flags", "["+strings.Join(cluster.CtrlrManagerFlags, ",")+"]")
 
 	return nil
 }
