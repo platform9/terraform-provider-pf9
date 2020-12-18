@@ -91,7 +91,7 @@ masterless                  (int)       Run masterless (0/1) (for advanced users
 network_plugin              (string)    Network plugin to use: Available options: flannel, calico, canal(experimental)
 calico_ip_ip_mode           (string)    IP-IP mode if using the calico network plugin. Available options: Always, Never, CrossSubnet (default: Always)
 calico_nat_outgoing         (boolean)   Enable outgoing NAT for calico nodes (default: True)
-node_pool_uuid              (string)    AWS node pool UUID
+cloud_provider_uuid         (string)    Cloud provider UUID
 private_subnets             (list)      List of private subnets to use
 privileged                  (int)       Allow/disallow privileged containers (0/1)    
 region                      (string)    AWS region

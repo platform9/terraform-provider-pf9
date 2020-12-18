@@ -1,6 +1,7 @@
 package pf9
 
 import (
+	"io/ioutil"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -36,6 +37,10 @@ func resourcePF9Cluster() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"project_uuid": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"cloud_provider_uuid": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -153,7 +158,7 @@ func resourcePF9Cluster() *schema.Resource {
 			},
 			"node_pool_uuid": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Computed: true,
 			},
 			"private_subnets": &schema.Schema{
 				Type: schema.TypeList,
@@ -275,6 +280,47 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	if errToken != nil {
 		return fmt.Errorf("Failed to generate token: %s", errToken)
 	}
+	qbertNodePoolGetAPI := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/nodePools"
+
+	client := http.DefaultClient
+
+	req, errReq := http.NewRequest("GET", qbertNodePoolGetAPI, nil)
+	if errReq != nil {
+		return fmt.Errorf("Node Pool get failed: %s", errReq)
+	}
+
+	req.Header.Add("X-Auth-Token", token)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, errResp := client.Do(req)
+	if errResp != nil {
+		return fmt.Errorf("Node Pool get failed: %s", errResp)
+	}
+
+	defer resp.Body.Close()
+
+	respData, errRead := ioutil.ReadAll(resp.Body)
+	if errRead != nil {
+		return fmt.Errorf("Error reading response data: %s", errRead)
+	}
+
+	type nodePoolStruct struct {
+		NodePoolUuid string `json:"uuid"`
+		CloudProviderUuid string `json:"cloudProviderUuid"`
+	}
+
+	var x []*nodePoolStruct
+
+	errParse := json.Unmarshal(respData, &x)
+	if errParse != nil {
+		return fmt.Errorf("Error parsing response data %s", errParse)
+	}
+
+	for _, v := range x {
+		if v.CloudProviderUuid == d.Get("cloud_provider_uuid").(string) {
+			d.Set("node_pool_uuid", v.NodePoolUuid)
+		}
+	}
 
 	qbertClusterAPI := "https://" + config.DuFQDN + "/qbert/v3/" + d.Get("project_uuid").(string) + "/clusters"
 
@@ -342,25 +388,24 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Failed to parse request: %s", errJSON)
 	}
 
-	client := http.DefaultClient
-	req, errReq := http.NewRequest("POST", qbertClusterAPI, bytes.NewBuffer(requestData))
+	createReq, errReq := http.NewRequest("POST", qbertClusterAPI, bytes.NewBuffer(requestData))
 	if errReq != nil {
 		return fmt.Errorf("Failed to create cluster create request: %s", errReq)
 	}
-	req.Header.Add("X-Auth-Token", token)
-	req.Header.Add("Content-Type", "application/json")
+	createReq.Header.Add("X-Auth-Token", token)
+	createReq.Header.Add("Content-Type", "application/json")
 
-	resp, errResp := client.Do(req)
+	createResp, errResp := client.Do(createReq)
 	if errResp != nil {
 		return fmt.Errorf("Cluster create failed: %s", errResp)
 	}
 
-	var respData struct {
+	var createRespData struct {
 		UUID string `json:"uuid"`
 	}
-	json.NewDecoder(resp.Body).Decode(&respData)
+	json.NewDecoder(createResp.Body).Decode(&createRespData)
 
-	d.SetId(respData.UUID)
+	d.SetId(createRespData.UUID)
 
 	return resourcePF9ClusterRead(d, meta)
 }
