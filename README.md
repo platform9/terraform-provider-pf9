@@ -2,7 +2,7 @@
 
 ## Terraform provider for PMK
 
-Terraform has been widely regarded by the industry as a leader in the “infrastructure-as-code” space. With konform, we now enable customers to create and manage their PMK clusters with terraform, allowing them to integrate this with other components that they may already be managing with terraform, like AWS, openstack, etc.
+Terraform(https://www.terraform.io/) has been widely regarded by the industry as a leader in the “infrastructure-as-code” space. With konform, we now enable customers to create and manage their PMK clusters with terraform, allowing them to integrate this with other components that they may already be managing with terraform, like AWS, openstack, etc.
 
 ### Getting Started
 
