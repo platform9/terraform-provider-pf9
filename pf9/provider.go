@@ -17,8 +17,8 @@ type Qbert struct {
 	Azs               []string               `json:"azs,omitempty"`
         Zones             []string               `json:"zones,omitempty"`
 	ContainersCIDR    string                 `json:"containersCidr,omitempty"`
-	DomainID          string                 `json:"domainId,omitempty"`
-	ExternalDNSName   string                 `json:"externalDnsName,omitempty"`
+	DomainID          string                 `json:"domainId"`
+	ExternalDNSName   string                 `json:"externalDnsName"`
 	HTTPProxy         string                 `json:"httpProxy,omitempty"`
 	InternalElb       bool                   `json:"internalElb,omitempty"`
 	IsPrivate         bool                   `json:"isPrivate,omitempty"`
@@ -43,12 +43,11 @@ type Qbert struct {
 	Region            string                 `json:"region,omitempty"`
         Location          string                 `json:"location,omitempty"`
 	RuntimeConfig     string                 `json:"runtimeConfig,omitempty"`
-	ServiceFQDN       string                 `json:"serviceFqdn,omitempty"`
+	ServiceFQDN       string                 `json:"serviceFqdn"`
 	ServicesCIDR      string                 `json:"servicesCidr,omitempty"`
 	SSHKey            string                 `json:"sshKey,omitempty"`
 	Subnets           []string               `json:"subnets,omitempty"`
 	Tags              map[string]interface{} `json:"tags,omitempty"`
-	UsePF9Domain      bool                   `json:"usePf9Domain,omitempty"`
 	VPC               string                 `json:"vpc,omitempty"`
 	WorkerFlavor      string                 `json:"workerFlavor,omitempty"`
         WorkerSku         string                 `json:"workerSku,omitempty"`

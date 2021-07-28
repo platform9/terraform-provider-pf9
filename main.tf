@@ -25,14 +25,13 @@ resource "pf9_cluster" "cluster_1" {
     master_flavor = "t2.medium"
     name = "tf-sample-1"
     network_plugin = "flannel"
-    node_pool_uuid = "5c703dc1-6037-44a6-b7f4-1d7fc89cbca6"
+    cloud_provider_uuid = "5c703dc1-6037-44a6-b7f4-1d7fc89cbca6"
     privileged = 1
     region = "us-west-2"
     runtime_config = ""
     service_fqdn = "auto-generate"
     services_cidr = "10.21.0.0/16"
     ssh_key = "my-ssh-key"
-    use_pf9_domain = "true"
     worker_flavor = "t2.medium"
     num_masters = 1
     num_workers = 3

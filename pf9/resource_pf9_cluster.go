@@ -209,10 +209,6 @@ func resourcePF9Cluster() *schema.Resource {
 				},
 				Optional: true,
 			},
-			"use_pf9_domain": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-			},
 			"vpc": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -370,7 +366,6 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		SSHKey:            d.Get("ssh_key").(string),
 		Subnets:           Subnets,
 		Tags:              d.Get("tags").(map[string]interface{}),
-		UsePF9Domain:      d.Get("use_pf9_domain").(bool),
 		VPC:               d.Get("vpc").(string),
 		WorkerFlavor:      d.Get("worker_flavor").(string),
 		WorkerSku:         d.Get("worker_sku").(string),
@@ -471,7 +466,6 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("ssh_key", cluster.SSHKey)
 	d.Set("subnets", "["+strings.Join(cluster.Subnets, ",")+"]")
 	d.Set("tags", fmt.Sprintf("%v", cluster.Tags))
-	d.Set("use_pf9_domain", strconv.FormatBool(cluster.UsePF9Domain))
 	d.Set("vpc", cluster.VPC)
 	d.Set("worker_flavor", cluster.WorkerFlavor)
 	d.Set("worker_sku", cluster.WorkerSku)
