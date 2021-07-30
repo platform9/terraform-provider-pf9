@@ -134,10 +134,6 @@ func resourcePF9Cluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"masterless": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -355,7 +351,6 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		NumMaxSpotWorkers: d.Get("num_max_spot_workers").(int),
 		SpotPrice:         d.Get("spot_price").(float64),
 		SpotWorkerFlavor:  d.Get("spot_worker_flavor").(string),
-		Masterless:        d.Get("masterless").(int),
 		PrivateSubnets:    PrivateSubnets,
 		Privileged:        d.Get("privileged").(int),
 		Region:            d.Get("region").(string),
@@ -455,7 +450,6 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("num_max_spot_workers", fmt.Sprint(cluster.NumMaxSpotWorkers))
 	d.Set("spot_price", fmt.Sprintf("%f", cluster.SpotPrice))
 	d.Set("spot_worker_flavor", cluster.SpotWorkerFlavor)
-	d.Set("masterless", fmt.Sprint(cluster.Masterless))
 	d.Set("private_subnets", "["+strings.Join(cluster.PrivateSubnets, ",")+"]")
 	d.Set("privileged", fmt.Sprint(cluster.Privileged))
 	d.Set("region", cluster.Region)

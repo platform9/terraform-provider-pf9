@@ -92,7 +92,6 @@ worker_sku                  (string)    Flavor of worker nodes (Azure)
 num_masters                 (string)    Number of masters. Recommended: 1, 3, or 5.
 num_workers                 (string)    Number of workers.
 enable_cas                  (boolean)   Enable or disable cluster auto scaler.
-masterless                  (int)       Run masterless (0/1) (for advanced users)    
 network_plugin              (string)    Network plugin to use: Available options: flannel, calico, canal(experimental)
 calico_ip_ip_mode           (string)    IP-IP mode if using the calico network plugin. Available options: Always, Never, CrossSubnet (default: Always)
 calico_nat_outgoing         (boolean)   Enable outgoing NAT for calico nodes (default: True)

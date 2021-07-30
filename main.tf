@@ -36,5 +36,4 @@ resource "pf9_cluster" "cluster_1" {
     num_masters = 1
     num_workers = 3
     enable_cas = "false"
-    masterless = 1
 }

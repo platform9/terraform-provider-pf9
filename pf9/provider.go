@@ -37,7 +37,6 @@ type Qbert struct {
 	NumMaxSpotWorkers int                    `json:"numMaxSpotWorkers,omitempty"`
 	SpotPrice         float64                `json:"spotPrice,omitempty"`
 	SpotWorkerFlavor  string                 `json:"spotWorkerFlavor,omitempty"`
-	Masterless        int                    `json:"masterless,omitempty"`
 	PrivateSubnets    []string               `json:"privateSubnets,omitempty"`
 	Privileged        int                    `json:"privileged,omitempty"`
 	Region            string                 `json:"region,omitempty"`
