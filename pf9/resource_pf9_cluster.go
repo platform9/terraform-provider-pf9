@@ -134,10 +134,6 @@ func resourcePF9Cluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"masterless": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -207,10 +203,6 @@ func resourcePF9Cluster() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Optional: true,
-			},
-			"use_pf9_domain": &schema.Schema{
-				Type:     schema.TypeBool,
 				Optional: true,
 			},
 			"vpc": &schema.Schema{
@@ -359,7 +351,6 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		NumMaxSpotWorkers: d.Get("num_max_spot_workers").(int),
 		SpotPrice:         d.Get("spot_price").(float64),
 		SpotWorkerFlavor:  d.Get("spot_worker_flavor").(string),
-		Masterless:        d.Get("masterless").(int),
 		PrivateSubnets:    PrivateSubnets,
 		Privileged:        d.Get("privileged").(int),
 		Region:            d.Get("region").(string),
@@ -370,7 +361,6 @@ func resourcePF9ClusterCreate(d *schema.ResourceData, meta interface{}) error {
 		SSHKey:            d.Get("ssh_key").(string),
 		Subnets:           Subnets,
 		Tags:              d.Get("tags").(map[string]interface{}),
-		UsePF9Domain:      d.Get("use_pf9_domain").(bool),
 		VPC:               d.Get("vpc").(string),
 		WorkerFlavor:      d.Get("worker_flavor").(string),
 		WorkerSku:         d.Get("worker_sku").(string),
@@ -460,7 +450,6 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("num_max_spot_workers", fmt.Sprint(cluster.NumMaxSpotWorkers))
 	d.Set("spot_price", fmt.Sprintf("%f", cluster.SpotPrice))
 	d.Set("spot_worker_flavor", cluster.SpotWorkerFlavor)
-	d.Set("masterless", fmt.Sprint(cluster.Masterless))
 	d.Set("private_subnets", "["+strings.Join(cluster.PrivateSubnets, ",")+"]")
 	d.Set("privileged", fmt.Sprint(cluster.Privileged))
 	d.Set("region", cluster.Region)
@@ -471,7 +460,6 @@ func resourcePF9ClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("ssh_key", cluster.SSHKey)
 	d.Set("subnets", "["+strings.Join(cluster.Subnets, ",")+"]")
 	d.Set("tags", fmt.Sprintf("%v", cluster.Tags))
-	d.Set("use_pf9_domain", strconv.FormatBool(cluster.UsePF9Domain))
 	d.Set("vpc", cluster.VPC)
 	d.Set("worker_flavor", cluster.WorkerFlavor)
 	d.Set("worker_sku", cluster.WorkerSku)

@@ -80,7 +80,7 @@ zones                       (list)      List of Azure availability zones. Exampl
 containers_cidr             (string)    Subnet used for Pod IPs
 service_cidr                (string)    Subnet used for Service IPs
 domain_id                   (string)    AWS Domain ID
-external_dns_name           (string)    "auto-generate", or provide DNS name
+external_dns_name           (string)    provide DNS name
 http_proxy                  (string)    (optional) Specify the HTTP proxy for this cluster. Format: <scheme>://<username>:<password>@<host>:<port>
 internal_elb                (boolean)   Enable or disable elastic load balancer
 is_private                  (boolean)   Private cluster (for advanced users only)
@@ -92,21 +92,19 @@ worker_sku                  (string)    Flavor of worker nodes (Azure)
 num_masters                 (string)    Number of masters. Recommended: 1, 3, or 5.
 num_workers                 (string)    Number of workers.
 enable_cas                  (boolean)   Enable or disable cluster auto scaler.
-masterless                  (int)       Run masterless (0/1) (for advanced users)    
 network_plugin              (string)    Network plugin to use: Available options: flannel, calico, canal(experimental)
 calico_ip_ip_mode           (string)    IP-IP mode if using the calico network plugin. Available options: Always, Never, CrossSubnet (default: Always)
 calico_nat_outgoing         (boolean)   Enable outgoing NAT for calico nodes (default: True)
 cloud_provider_uuid         (string)    Cloud provider UUID
 private_subnets             (list)      List of private subnets to use
-privileged                  (int)       Allow/disallow privileged containers (0/1)    
+privileged                  (int)       Allow/disallow privileged containers (0/1)
 region                      (string)    AWS region
 location                    (string)    Azure region
 runtime_config              (string)    Runtime config data
-service_fqdn                (string)    "auto-generate" or provide FQDN for service endpoints
+service_fqdn                (string)    provide FQDN for service endpoints
 ssh_key                     (string)    Keyname for SSH access to nodes
 subnets                     (list)      List of subnets to use (advanced)
 tags                        (map)       Tags to apply on nodes (key-value pairs)
-use_pf9_domain              (boolean)   Use platform9 domains for FQDNs
 vpc                         (string)    Name of AWS VPC for nodes
 master_vip_ipv4             (string)    Virtual IP for master nodes
 master_vip_iface            (string)    Interface to attach master VIP to
