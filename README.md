@@ -97,7 +97,7 @@ calico_ip_ip_mode           (string)    IP-IP mode if using the calico network p
 calico_nat_outgoing         (boolean)   Enable outgoing NAT for calico nodes (default: True)
 cloud_provider_uuid         (string)    Cloud provider UUID
 private_subnets             (list)      List of private subnets to use
-privileged                  (int)       Allow/disallow privileged containers (0/1)    
+privileged                  (int)       Allow/disallow privileged containers (0/1)
 region                      (string)    AWS region
 location                    (string)    Azure region
 runtime_config              (string)    Runtime config data
