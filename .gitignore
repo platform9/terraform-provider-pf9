@@ -20,3 +20,4 @@ terraform-provider-pf9
 *.tfstate
 *.backup
 crash.log
+workspace.code-workspace
