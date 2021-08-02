@@ -29,7 +29,7 @@ terraform {
   required_providers {
     pf9 = {
       source = "platform9/pf9"
-      version = "0.1.4"
+      version = "0.1.5"
     }
   }
 }
@@ -37,23 +37,35 @@ terraform {
 provider "pf9" {}
 
 resource "pf9_aws_cloud_provider" "sample_aws_prov" {
-    name                = "sample_aws_provider"
-    type                = "aws"
-    key                 = "<YOUR_AWS_KEY>"
-    secret              = "<YOUR_AWS_SECRET>"
-    project_uuid        = "<YOUR_P9_PROJECT_UUID>"
+  name                = "sample_aws_provider"
+  type                = "aws"
+  key                 = "<YOUR_AWS_KEY>"
+  secret              = "<YOUR_AWS_SECRET>"
+  project_uuid        = "<YOUR_P9_PROJECT_UUID>"
 }
 
 resource "pf9_cluster" "cluster_1" {
   project_uuid        = "<YOUR_P9_PROJECT_UUID>"
-  region = "us-east-1"
-  azs    = ["us-east-1a", "us-east-1b"]
+  name                = "some-memorable-cluster-name"
+  ami                 = "ubuntu"
+  azs                 = ["us-east-1b"]
+  region              = "us-east-1"
+  containers_cidr     = "10.20.0.0/16"
+  services_cidr       = "10.21.0.0/16"
+  worker_flavor       = "t2.medium"
+  master_flavor       = "t2.medium"
+  ssh_key             = "<MY_AWS_KEY_PAIR>"
+  num_masters         = 1
+  num_workers         = 1
 }
 ```
 
 Initialize the directory `terraform init`.
+
 Format your configuration `terraform fmt`.
+
 Validate your configuration `terraform validate`.
+
 Apply your configuration `terraform apply`.
 
 ## Argument Reference

@@ -7,6 +7,7 @@ The pf9 resource allows you to create a cluster in a chosen cloud.
 ```terraform
 resource "pf9_cluster" "cluster_1" {
   project_uuid        = "<YOUR_P9_PROJECT_UUID>"
+  cloud_provider_uuid = ""
   name                = "some-memorable-cluster-name"
   ami                 = "ubuntu"
   azs                 = ["us-east-1b"]
@@ -60,7 +61,6 @@ resource "pf9_cluster" "cluster_1" {
 - **calico_ip_ip_mode** (String) IP-IP mode if using the calico network plugin. Available options: Always, Never, CrossSubnet (default: Always)
 - **calico_nat_outgoing** (Boolean) Enable outgoing NAT for calico nodes. Default value: true
 - **tags** (Map) Tags to apply on nodes. Format: ["key1":"value1","key2":"value2"] (key-value pairs)
-- **runtime_config** (String) Runtime config data.
 - **allow_workloads_on_master** (Int) Allow workloads on master nodes. Available options: [0], 1
 - **app_catalog_enabled** (Int) Enable/Disable Platform9 [app catalog](https://platform9.com/docs/kubernetes/application-catalog). Available options: [0], 1
 - **k8s_api_port** (String) Port on which the k8s API server listens on. Default value: 443
@@ -72,6 +72,7 @@ resource "pf9_cluster" "cluster_1" {
 - **controller_manager_flags** (List) List of controller manager flags. Example: "--large-cluster-size-threshold=60"
 - **internal_elb** (Boolean) Enable or disable elastic load balancer. Available options: true, [false]
 - **enable_cas** (Boolean) Enable or disable cluster auto scaler. Available options: true, [false]
+- **master_vip_ipv4** (String) Virtual IP for master nodes.
 
 ### Optional if using AWS
 
@@ -81,6 +82,6 @@ resource "pf9_cluster" "cluster_1" {
 ### Danger zone
 
 - **is_private** (Boolean) Private cluster (for advanced users only)
+- **runtime_config** (String) Runtime config data.
 - **subnets** (List) List of subnets to use (advanced)
-- **master_vip_ipv4** (String) Virtual IP for master nodes.
 - **master_vip_iface** (String) Interface to attach master VIP to.

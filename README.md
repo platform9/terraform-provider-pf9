@@ -1,6 +1,6 @@
 # Konform Terraform Provider
 
-Available in the [Terraform Registry](https://registry.terraform.io/providers/platform9/pf9/latest).
+Available in the [Terraform Registry](https://registry.terraform.io/namespaces/platform9).
 
 [Terraform](https://www.terraform.io/) has been widely regarded by the industry as a leader in the “infrastructure-as-code” space. With konform, we now enable customers to create and manage their PMK clusters with terraform, allowing them to integrate this with other components that they may already be managing with terraform, like AWS, openstack, etc.
 
@@ -10,7 +10,7 @@ Available in the [Terraform Registry](https://registry.terraform.io/providers/pl
 
 ## Using the Provider
 
-See the [Konform Provider documentation](https://registry.terraform.io/providers/hashicorp/hcp/latest/docs) to lean about using the provider.
+See the [Konform Provider documentation](https://registry.terraform.io/providers/platform9/pf9/latest/docs) to lean about using the provider.
 
 ### Getting Started
 
@@ -28,14 +28,14 @@ Cluster configuration options should be added to the terraform script. An exampl
 ```terraform
 terraform {
   required_providers {
-    konform = {
+    pf9 = {
       source = "platform9/pf9"
-      version = "0.1.4"
+      version = "0.1.5"
     }
   }
 }
 
-provider "konform" {}
+provider "pf9" {}
 
 resource "pf9_aws_cloud_provider" "sample_aws_prov" {
     name                = "sample_aws_provider"
@@ -43,6 +43,22 @@ resource "pf9_aws_cloud_provider" "sample_aws_prov" {
     key                 = "<YOUR_AWS_KEY>"
     secret              = "<YOUR_AWS_SECRET>"
     project_uuid        = "<YOUR_P9_PROJECT_UUID>"
+}
+
+resource "pf9_cluster" "cluster_1" {
+  project_uuid        = "<YOUR_P9_PROJECT_UUID>"
+  cloud_provider_uuid = ""
+  name                = "some-memorable-cluster-name"
+  ami                 = "ubuntu"
+  azs                 = ["us-east-1b"]
+  region              = "us-east-1"
+  containers_cidr     = "10.20.0.0/16"
+  services_cidr       = "10.21.0.0/16"
+  worker_flavor       = "t2.medium"
+  master_flavor       = "t2.medium"
+  ssh_key             = "<MY_AWS_KEY_PAIR>"
+  num_masters         = 1
+  num_workers         = 1
 }
 ```
 
