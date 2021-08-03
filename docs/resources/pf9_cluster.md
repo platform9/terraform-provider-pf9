@@ -47,7 +47,7 @@ resource "pf9_cluster" "cluster_1" {
 
 - **location** (String) Azure region. Example: "eastus"
 - **zones** (List) List of Azure availability zones. Example: ["1", "2"]
-- **ssh_key** (String) Keyname for SSH access to nodes. Learn how to create and save a [key-pair](https://docs.microsoft.com/en-us/azure/virtual-machines/ssh-keys-portal) on aAzure.
+- **ssh_key** (String) The *public* key signature for access to nodes. Learn how to create and save a [key-pair on Azure](https://docs.microsoft.com/en-us/azure/virtual-machines/ssh-keys-portal). Once created download the private for your records and provide the public key as this value.
 - **master_sku** (String) Flavor of master nodes. Example: "Standard_A4_v2"
 - **worker_sku** (String) Flavor of worker nodes. Example: "Standard_A4_v2"
 
