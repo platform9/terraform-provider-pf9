@@ -7,8 +7,11 @@ With the Konform Terraform Platform9 provider, we enable customers to create and
 Konform requires you to set access credentials to the Platform9 Management Plane before running terraform. All the values can be found by logging into the P9 Console.
 
 DU_FQDN: Navigate to the API Access tab and locate the "API Endpoints" table – there, you will kind the full URL.
+
 DU_USERNAME: Click the top right user icon – the email displayed under your name is your username. If you click on "My Account", you may confirm or update this value.
+
 DU_PASSWORD: The password used to log in to the PMK UI and also may be updated under the "My Account" details.
+
 DU_TENANT: The name of the "Tenant" which you are currently scoped to, via the selected dropdown which is displayed to the left of the user icon.
 
 The following values are used as constants. Please set in the environment running terraform.

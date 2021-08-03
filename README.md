@@ -62,7 +62,8 @@ resource "pf9_cluster" "cluster_1" {
 }
 ```
 
-With that in place Run `terraform init` to initalize the plugin.
+With that in place `terraform init` to initalize the plugin.
+Then `terraform apply` to run.
 
 ## Contributing
 
