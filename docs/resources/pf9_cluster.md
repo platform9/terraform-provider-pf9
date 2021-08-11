@@ -53,14 +53,14 @@ resource "pf9_cluster" "cluster_1" {
 
 ### Optional
 
-- **external_dns_name** (String) Provide DNS name. For AWS this will be an A record in the provided hosted zone, routing to the cluster's master instance(s) ELB. Example: `domain.com`
+- **external_dns_name** (String) Provide DNS name. For AWS this will be an A record in the provided hosted zone (domain_id), routing to the cluster's master instance(s) ELB. Example: `domain.com`
 - **service_fqdn** (String) Provide FQDN for service endpoints. For AWS this will be an A record in the provided hosted zone, routing to the cluster's worker instance(s) ELB. Example: `my-services.domain.com`
 - **privileged** (Int) Allow/disallow privileged containers. Available options: 1, [0]
 - **http_proxy** (String) (optional) Specify the HTTP proxy for this cluster. Format: `<scheme>://<username>:<password>@<host>:<port>`
 - **network_plugin** (String) Network plugin to use. Available options: [flannel], calico, canal(experimental)
 - **calico_ip_ip_mode** (String) IP-IP mode if using the calico network plugin. Available options: Always, Never, CrossSubnet (default: Always)
 - **calico_nat_outgoing** (Boolean) Enable outgoing NAT for calico nodes. Default value: true
-- **tags** (Map) Tags to apply on nodes. Format: ["key1":"value1","key2":"value2"] (key-value pairs)
+- **tags** (Map) Tags to apply on nodes. Format: {"key1":"value1","key2":"value2"} (key-value pairs)
 - **allow_workloads_on_master** (Int) Allow workloads on master nodes. Available options: [0], 1
 - **app_catalog_enabled** (Int) Enable/Disable Platform9 [app catalog](https://platform9.com/docs/kubernetes/application-catalog). Available options: [0], 1
 - **k8s_api_port** (String) Port on which the k8s API server listens on. Default value: 443
