@@ -12,6 +12,10 @@ Available in the [Terraform Registry](https://registry.terraform.io/namespaces/p
 
 See the [Konform Provider documentation](https://registry.terraform.io/providers/platform9/pf9/latest/docs) to lean about using the provider.
 
+## Example TF
+
+Refer to our [Community repo](https://github.com/Platform9-Community/terraform-pf9-examples) for examples of how to use the provider.
+
 ### Getting Started
 
 Please set the following values in your environment or source them from a script.
