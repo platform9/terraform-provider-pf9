@@ -5,8 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // Qbert API fields
@@ -15,7 +14,7 @@ type Qbert struct {
 	Ami               string                 `json:"ami,omitempty"`
 	AppCatalogEnabled int                    `json:"appCatalogEnabled"`
 	Azs               []string               `json:"azs,omitempty"`
-        Zones             []string               `json:"zones,omitempty"`
+	Zones             []string               `json:"zones,omitempty"`
 	ContainersCIDR    string                 `json:"containersCidr,omitempty"`
 	DomainID          string                 `json:"domainId"`
 	ExternalDNSName   string                 `json:"externalDnsName"`
@@ -24,7 +23,7 @@ type Qbert struct {
 	IsPrivate         bool                   `json:"isPrivate,omitempty"`
 	K8sAPIPort        string                 `json:"k8sApiPort,omitempty"`
 	MasterFlavor      string                 `json:"masterFlavor,omitempty"`
-        MasterSku         string                 `json:"masterSku,omitempty"`
+	MasterSku         string                 `json:"masterSku,omitempty"`
 	Name              string                 `json:"name,omitempty"`
 	NetworkPlugin     string                 `json:"networkPlugin,omitempty"`
 	CalicoIPIPMode    string                 `json:"calicoIpIpMode,omitempty"`
@@ -40,7 +39,7 @@ type Qbert struct {
 	PrivateSubnets    []string               `json:"privateSubnets,omitempty"`
 	Privileged        int                    `json:"privileged,omitempty"`
 	Region            string                 `json:"region,omitempty"`
-        Location          string                 `json:"location,omitempty"`
+	Location          string                 `json:"location,omitempty"`
 	RuntimeConfig     string                 `json:"runtimeConfig,omitempty"`
 	ServiceFQDN       string                 `json:"serviceFqdn"`
 	ServicesCIDR      string                 `json:"servicesCidr,omitempty"`
@@ -49,7 +48,7 @@ type Qbert struct {
 	Tags              map[string]interface{} `json:"tags,omitempty"`
 	VPC               string                 `json:"vpc,omitempty"`
 	WorkerFlavor      string                 `json:"workerFlavor,omitempty"`
-        WorkerSku         string                 `json:"workerSku,omitempty"`
+	WorkerSku         string                 `json:"workerSku,omitempty"`
 	MasterVIPIPv4     string                 `json:"masterVipIpv4,omitempty"`
 	MasterVIPIface    string                 `json:"masterVipIface,omitempty"`
 	EnableMetalLB     bool                   `json:"enableMetallb,omitempty"`
@@ -112,7 +111,7 @@ type Request struct {
 }
 
 // Provider returns a pf9 terraform resource provider
-func Provider() terraform.ResourceProvider {
+func Provider() *schema.Provider {
 	provider := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"du_fqdn": {
