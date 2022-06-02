@@ -23,6 +23,10 @@ export DU_FQDN=<Platform9 DU FQDN>
 export DU_TENANT=<Platform9 Tenant Name>
 ```
 
+## Example TF
+
+Refer to our [Community repo](https://github.com/Platform9-Community/terraform-pf9-examples) for examples of how to use the provider.
+
 ## Example Usage
 
 Cluster configuration options should be added to the terraform script. An example .tf using your AWS account as the cloud provider is below. This will create a new cloud provider named "sample_aws_prov" in your Platform9 account. Then it will create a cluster named "cluster_1" using that provider.
