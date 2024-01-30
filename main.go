@@ -5,26 +5,48 @@ import (
 	"flag"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
-	"github.com/platform9/konform/pf9"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/platform9/terraform-provider-pf9/internal/provider"
+)
+
+// Run "go generate" to format example terraform files and generate the docs for the registry/website
+
+// If you do not have terraform installed, you can remove the formatting command, but its suggested to
+// ensure the documentation is formatted properly.
+//// go:generate terraform fmt -recursive ./examples/
+
+// Run the docs generation tool, check its repository for more information on how it works and how docs
+// can be customized.
+////go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+
+// Run the docs generation tool, check its repository for more information on how it works and how docs
+// can be customized.
+//go:generate go install github.com/hashicorp/terraform-plugin-codegen-framework/cmd/tfplugingen-framework
+
+var (
+	// these will be set by the goreleaser configuration
+	// to appropriate values for the compiled binary.
+	version string = "dev"
+
+	// goreleaser can pass other information to the main package, such as the specific commit
+	// https://goreleaser.com/cookbooks/using-main.version/
 )
 
 func main() {
-	var debugMode bool
+	var debug bool
 
-	flag.BoolVar(&debugMode, "debuggable", false, "set to true to run the provider with support for debuggers like delve")
+	flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers like delve")
 	flag.Parse()
 
-	if debugMode {
-		err := plugin.Debug(context.Background(), "registry.terraform.io/platform9/pf9",
-			&plugin.ServeOpts{
-				ProviderFunc: pf9.Provider,
-			})
-		if err != nil {
-			log.Println(err.Error())
-		}
-	} else {
-		plugin.Serve(&plugin.ServeOpts{
-			ProviderFunc: pf9.Provider})
+	opts := providerserver.ServeOpts{
+		// TODO: Should we rename it to registry.terraform.io/platform9/pf9
+		Address: "github.com/platform9/pf9",
+		Debug:   debug,
+	}
+	// TODO: User version to init provider
+	err := providerserver.Serve(context.Background(), provider.New(), opts)
+
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 }

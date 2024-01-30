@@ -1,0 +1,2433 @@
+{
+	"datasources": [
+		{
+			"name": "cluster",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the cluster"
+						}
+					},
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the project the cluster belongs to"
+						}
+					},
+					{
+						"name": "addon_operator_image_tag",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "(optional) addon operator image tag for this cluster."
+						}
+					},
+					{
+						"name": "allow_workloads_on_master",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to 1 if the master nodes can run non-critical workloads"
+						}
+					},
+					{
+						"name": "app_catalog_enabled",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "DEPRECATED. Field doesn't lead to any action on the cluster now. Field is set to 1 if app catalog is enabled, 0 otherwise"
+						}
+					},
+					{
+						"name": "authz_enabled",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to 1 if authz is enabled, 0 otherwise"
+						}
+					},
+					{
+						"name": "calico_controller_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_controller_memory_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_ip_ip_mode",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet"
+						}
+					},
+					{
+						"name": "calico_nat_outgoing",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to true if Calico nodes need to NAT north-south egress traffic."
+						}
+					},
+					{
+						"name": "calico_node_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_node_memory_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_typha_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_typha_memory_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_v4block_size",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Subnet size per node for the Calico network, in CIDR notation (e.g. 26)"
+						}
+					},
+					{
+						"name": "can_upgrade",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to true if the cluster can be upgraded, false otherwise"
+						}
+					},
+					{
+						"name": "cert_expiry_hrs",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "(optional) Number of hours before user certificates in kubeconfig expires, should be greater than 0 if set. Default is 24hrs."
+						}
+					},
+					{
+						"name": "cloud_properties",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "ami",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "AMI ID used to provision cluster nodes"
+									}
+								},
+								{
+									"name": "azs",
+									"list": {
+										"computed_optional_required": "computed",
+										"element_type": {
+											"string": {}
+										},
+										"description": "Availability zone(s) the cluster is deployed in"
+									}
+								},
+								{
+									"name": "custom_ami",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "The custom ami name which can be specified by a user"
+									}
+								},
+								{
+									"name": "domain_id",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Domain used for cluster FQDNs"
+									}
+								},
+								{
+									"name": "http_proxy",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "The http proxy used for node communications. This parameter is required when internalElb is set to true and the private subnet selected does not route IP packets to the internet through a VPN"
+									}
+								},
+								{
+									"name": "internal_elb",
+									"bool": {
+										"computed_optional_required": "computed",
+										"description": "Set to true if load balancer is an internal load balancer or false for an Internet-facing load balancer. More information here: https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-internal-load-balancers.html Setting this parameter to true requires that isPrivate is set to true. If the private subnet selected is not configured to route IP packets through a VPN, then an httpProxy is required for node communications to work"
+									}
+								},
+								{
+									"name": "is_private",
+									"bool": {
+										"computed_optional_required": "computed",
+										"description": "Set to true if nodes are deployed using public subnet, false otherwise, applicable also for manual deploy. This parameter is required if internalElb is set to true."
+									}
+								},
+								{
+									"name": "master_flavor",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Node flavor used for master node"
+									}
+								},
+								{
+									"name": "private_subnets",
+									"list": {
+										"computed_optional_required": "computed",
+										"element_type": {
+											"string": {}
+										},
+										"description": "The private subnet ID to which the cluster is deployed. This parameter is optional if vpc (VPC ID) is set. This parameter is required if vpc (VPC ID) is set and isPrivate is set to true. This parameter is ignored if vpc (VPC ID) is not set"
+									}
+								},
+								{
+									"name": "region",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Cloud provider region in which the cluster was created"
+									}
+								},
+								{
+									"name": "service_fqdn",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "FQDN used to reference cluster services"
+									}
+								},
+								{
+									"name": "ssh_key",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Public SSH key associated with the cluster nodes"
+									}
+								},
+								{
+									"name": "subnets",
+									"list": {
+										"computed_optional_required": "computed",
+										"element_type": {
+											"string": {}
+										}
+									}
+								},
+								{
+									"name": "use_pf9domain",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Set to true if platform9.net domain is used, false otherwise"
+									}
+								},
+								{
+									"name": "vpc",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "If set, creates cluster using this VPC ID. Otherwise, the cluster is deployed on a new VPC. This parameter is required if internalElb is set to true"
+									}
+								},
+								{
+									"name": "worker_flavor",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Node flavor used for worker node"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "cloud_provider_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the cloud provider used to create this cluster"
+						}
+					},
+					{
+						"name": "cloud_provider_type",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Type of the cloud provider used to create this cluster"
+						}
+					},
+					{
+						"name": "cloud_provider_uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the cloud provider used to create this cluster"
+						}
+					},
+					{
+						"name": "container_runtime",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "(optional) Container runtime for this cluster. Valid values: [docker, containerd]"
+						}
+					},
+					{
+						"name": "containers_cidr",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "CIDR used for container IP addresses"
+						}
+					},
+					{
+						"name": "cpu_manager_policy",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "options: none, static; default: none"
+						}
+					},
+					{
+						"name": "docker_centos_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "(optional) URL of the centos repo to be used for docker installation"
+						}
+					},
+					{
+						"name": "docker_private_registry",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "(optional) URL of private Docker registry to fetch Platform9 images from"
+						}
+					},
+					{
+						"name": "docker_root",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Root directory for docker"
+						}
+					},
+					{
+						"name": "docker_ubuntu_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "(optional) URL of the ubuntu repo to be used for docker installation"
+						}
+					},
+					{
+						"name": "enable_etcd_encryption",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "States whether tls encryption is enabled on etcd, Default:false"
+						}
+					},
+					{
+						"name": "enable_metallb",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "1 if metallb enabled. Defaults to 0"
+						}
+					},
+					{
+						"name": "enable_profile_agent",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "(optional) If set to true platform9 profile engine agent will be deployed on the cluster. This agent is required to be able to use profiles."
+						}
+					},
+					{
+						"name": "etcd_backup",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "daily_backup_time",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "etcd backup Timestamp for daily backup, specified in format 'HH:MM' "
+									}
+								},
+								{
+									"name": "interval_in_hours",
+									"int64": {
+										"computed_optional_required": "computed",
+										"description": "etcd backup interval, specified in Hours"
+									}
+								},
+								{
+									"name": "interval_in_mins",
+									"int64": {
+										"computed_optional_required": "computed",
+										"description": "etcd backup interval, specified in minutes"
+									}
+								},
+								{
+									"name": "is_etcd_backup_enabled",
+									"bool": {
+										"computed_optional_required": "computed",
+										"description": "Set to true if etcd backup should be enabled, false otherwise"
+									}
+								},
+								{
+									"name": "max_interval_backup_count",
+									"int64": {
+										"computed_optional_required": "computed",
+										"description": "max number of Backups retention for interval type backups"
+									}
+								},
+								{
+									"name": "max_timestamp_backup_count",
+									"int64": {
+										"computed_optional_required": "computed",
+										"description": "max number of Backups retention for Timestamp type backups"
+									}
+								},
+								{
+									"name": "storage_properties",
+									"single_nested": {
+										"computed_optional_required": "computed",
+										"attributes": [
+											{
+												"name": "local_path",
+												"string": {
+													"computed_optional_required": "computed",
+													"description": "Path on the local filesystem where the etcd backup should be stored. For 'local' storage type only."
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "storage_type",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Storage type for the etcd backup. Only 'local' is current supported type. 'local' saves backup to the node's local disk"
+									}
+								},
+								{
+									"name": "task_error_detail",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Details of the error occurred of the taskStatus returned is 'error'"
+									}
+								},
+								{
+									"name": "task_status",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Status indicating whether the backup cron job on the Kubernetes cluster was successfully setup. Can be 'success' or 'error'"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "etcd_data_dir",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Data directory for etcd. The field is applicable to master nodes only"
+						}
+					},
+					{
+						"name": "external_dns_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Optional DNS name for API endpoint. This field is autogenerated when pf9 domain is used."
+						}
+					},
+					{
+						"name": "flannel_iface_label",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The interface used by flannel for interhost communication"
+						}
+					},
+					{
+						"name": "flannel_public_iface_label",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The IP address used as the flannel public IP for the nodes in the cluster"
+						}
+					},
+					{
+						"name": "gcr_private_registry",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "(optional) URL of private GCR registry to fetch Platform9 images from"
+						}
+					},
+					{
+						"name": "is_kubernetes",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to 1 if the cluster is a Kubernetes cluster, 0 otherwise"
+						}
+					},
+					{
+						"name": "k8s_api_port",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Port on which K8S API Server will listen, 443 by default"
+						}
+					},
+					{
+						"name": "k8s_private_registry",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "(optional) URL of private K8S registry to fetch Platform9 images from"
+						}
+					},
+					{
+						"name": "keystone_enabled",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to 1 if keystone is enabled, 0 otherwise"
+						}
+					},
+					{
+						"name": "last_ok",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The timestamp when the cluster last reported an OK status"
+						}
+					},
+					{
+						"name": "last_op",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The last operation such as node attach or node detach that was performed on the cluster"
+						}
+					},
+					{
+						"name": "master_ip",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Ip of the master node, applicable only for cloud provider type 'openstack'"
+						}
+					},
+					{
+						"name": "master_status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the master nodes. 'healthy' means all masters are healthy. 'partially healthy' means quorum number of masters are healthy, but some are not. 'unhealthy' means quorum number of master are unhealthy"
+						}
+					},
+					{
+						"name": "master_vip_iface",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The interface that VIP attaches to if specified. Defaults to empty string"
+						}
+					},
+					{
+						"name": "master_vip_ipv4",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "API server Virtual IP that provides failover if specified for the cluster. Defaults to empty string"
+						}
+					},
+					{
+						"name": "master_vip_vrouter_id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Virtual router id choosen for the cluster. Range: 0-254. Emptry string if masterVipIpv4 not specified"
+						}
+					},
+					{
+						"name": "metallb_cidr",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Comma separated pools of IPs like A.B.C.D-E.F.G.H, I.J.K.L-M.N.O.P that metallb will manage if specified"
+						}
+					},
+					{
+						"name": "mtu_size",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "MTU for container network interfaces. Optional and used for the Calico network backend"
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the cluster"
+						}
+					},
+					{
+						"name": "network_plugin",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Network backend to use for container networking. Defaults to flannel. Supported choices are flannel, calico, noop, weave"
+						}
+					},
+					{
+						"name": "node_pool_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the node pool used for the cluster"
+						}
+					},
+					{
+						"name": "node_pool_uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the node pool used for the cluster"
+						}
+					},
+					{
+						"name": "num_masters",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "Number of master nodes in the cluster"
+						}
+					},
+					{
+						"name": "num_workers",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "Number of worker nodes in the cluster"
+						}
+					},
+					{
+						"name": "privileged",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to 1 if cluster runs privileged containers, 0 otherwise"
+						}
+					},
+					{
+						"name": "quay_private_registry",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "(optional) URL of private Quay registry to fetch Platform9 images from"
+						}
+					},
+					{
+						"name": "reserved_cpus",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "list of CPUs to be reserved for the system. Ex: 1-3,5"
+						}
+					},
+					{
+						"name": "runtime_config",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "services_cidr",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "CIDR used for service IP addresses"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the cluster"
+						}
+					},
+					{
+						"name": "tags",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"description": "User defined key-value pairs represented as a JSON object"
+						}
+					},
+					{
+						"name": "task_error",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Error details if the last task on cluster did not succeed"
+						}
+					},
+					{
+						"name": "task_status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the last task that run on the cluster."
+						}
+					},
+					{
+						"name": "topology_manager_policy",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "options: none, best-effort, restricted, single-numa-node; default: none"
+						}
+					},
+					{
+						"name": "use_hostname",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "(optioanl) If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts. This option is ignored when deploying clusters on IPv6 enabled hosts and public clouds - AWS, Azure, etc."
+						}
+					},
+					{
+						"name": "uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the cluster"
+						}
+					},
+					{
+						"name": "worker_status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the worker nodes. 'healthy' means all workers are healthy. 'partially healthy' means more than 50% of the workers are healthy, rest are unhealthy. 'unhealthy' means more than 50% of the workers are unhealthy"
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "clusters",
+			"schema": {
+				"attributes": [
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the project the cluster belongs to"
+						}
+					},
+					{
+						"name": "clusters",
+						"set_nested": {
+							"computed_optional_required": "computed",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "addon_operator_image_tag",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "(optional) addon operator image tag for this cluster."
+										}
+									},
+									{
+										"name": "allow_workloads_on_master",
+										"int64": {
+											"computed_optional_required": "computed",
+											"description": "Field is set to 1 if the master nodes can run non-critical workloads"
+										}
+									},
+									{
+										"name": "app_catalog_enabled",
+										"int64": {
+											"computed_optional_required": "computed",
+											"description": "DEPRECATED. Field doesn't lead to any action on the cluster now. Field is set to 1 if app catalog is enabled, 0 otherwise"
+										}
+									},
+									{
+										"name": "authz_enabled",
+										"int64": {
+											"computed_optional_required": "computed",
+											"description": "Field is set to 1 if authz is enabled, 0 otherwise"
+										}
+									},
+									{
+										"name": "calico_controller_cpu_limit",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico."
+										}
+									},
+									{
+										"name": "calico_controller_memory_limit",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico."
+										}
+									},
+									{
+										"name": "calico_ip_ip_mode",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet"
+										}
+									},
+									{
+										"name": "calico_nat_outgoing",
+										"bool": {
+											"computed_optional_required": "computed",
+											"description": "Field is set to true if Calico nodes need to NAT north-south egress traffic."
+										}
+									},
+									{
+										"name": "calico_node_cpu_limit",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico."
+										}
+									},
+									{
+										"name": "calico_node_memory_limit",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico."
+										}
+									},
+									{
+										"name": "calico_typha_cpu_limit",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico."
+										}
+									},
+									{
+										"name": "calico_typha_memory_limit",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico."
+										}
+									},
+									{
+										"name": "calico_v4block_size",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Subnet size per node for the Calico network, in CIDR notation (e.g. 26)"
+										}
+									},
+									{
+										"name": "can_upgrade",
+										"bool": {
+											"computed_optional_required": "computed",
+											"description": "Field is set to true if the cluster can be upgraded, false otherwise"
+										}
+									},
+									{
+										"name": "cert_expiry_hrs",
+										"int64": {
+											"computed_optional_required": "computed",
+											"description": "(optional) Number of hours before user certificates in kubeconfig expires, should be greater than 0 if set. Default is 24hrs."
+										}
+									},
+									{
+										"name": "cloud_properties",
+										"single_nested": {
+											"computed_optional_required": "computed",
+											"attributes": [
+												{
+													"name": "ami",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "AMI ID used to provision cluster nodes"
+													}
+												},
+												{
+													"name": "azs",
+													"list": {
+														"computed_optional_required": "computed",
+														"element_type": {
+															"string": {}
+														},
+														"description": "Availability zone(s) the cluster is deployed in"
+													}
+												},
+												{
+													"name": "custom_ami",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "The custom ami name which can be specified by a user"
+													}
+												},
+												{
+													"name": "domain_id",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Domain used for cluster FQDNs"
+													}
+												},
+												{
+													"name": "http_proxy",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "The http proxy used for node communications. This parameter is required when internalElb is set to true and the private subnet selected does not route IP packets to the internet through a VPN"
+													}
+												},
+												{
+													"name": "internal_elb",
+													"bool": {
+														"computed_optional_required": "computed",
+														"description": "Set to true if load balancer is an internal load balancer or false for an Internet-facing load balancer. More information here: https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-internal-load-balancers.html Setting this parameter to true requires that isPrivate is set to true. If the private subnet selected is not configured to route IP packets through a VPN, then an httpProxy is required for node communications to work"
+													}
+												},
+												{
+													"name": "is_private",
+													"bool": {
+														"computed_optional_required": "computed",
+														"description": "Set to true if nodes are deployed using public subnet, false otherwise, applicable also for manual deploy. This parameter is required if internalElb is set to true."
+													}
+												},
+												{
+													"name": "master_flavor",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Node flavor used for master node"
+													}
+												},
+												{
+													"name": "private_subnets",
+													"list": {
+														"computed_optional_required": "computed",
+														"element_type": {
+															"string": {}
+														},
+														"description": "The private subnet ID to which the cluster is deployed. This parameter is optional if vpc (VPC ID) is set. This parameter is required if vpc (VPC ID) is set and isPrivate is set to true. This parameter is ignored if vpc (VPC ID) is not set"
+													}
+												},
+												{
+													"name": "region",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Cloud provider region in which the cluster was created"
+													}
+												},
+												{
+													"name": "service_fqdn",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "FQDN used to reference cluster services"
+													}
+												},
+												{
+													"name": "ssh_key",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Public SSH key associated with the cluster nodes"
+													}
+												},
+												{
+													"name": "subnets",
+													"list": {
+														"computed_optional_required": "computed",
+														"element_type": {
+															"string": {}
+														}
+													}
+												},
+												{
+													"name": "use_pf9domain",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Set to true if platform9.net domain is used, false otherwise"
+													}
+												},
+												{
+													"name": "vpc",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "If set, creates cluster using this VPC ID. Otherwise, the cluster is deployed on a new VPC. This parameter is required if internalElb is set to true"
+													}
+												},
+												{
+													"name": "worker_flavor",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Node flavor used for worker node"
+													}
+												}
+											]
+										}
+									},
+									{
+										"name": "cloud_provider_name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the cloud provider used to create this cluster"
+										}
+									},
+									{
+										"name": "cloud_provider_type",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Type of the cloud provider used to create this cluster"
+										}
+									},
+									{
+										"name": "cloud_provider_uuid",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the cloud provider used to create this cluster"
+										}
+									},
+									{
+										"name": "container_runtime",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "(optional) Container runtime for this cluster. Valid values: [docker, containerd]"
+										}
+									},
+									{
+										"name": "containers_cidr",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "CIDR used for container IP addresses"
+										}
+									},
+									{
+										"name": "cpu_manager_policy",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "options: none, static; default: none"
+										}
+									},
+									{
+										"name": "docker_centos_package_repo_url",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "(optional) URL of the centos repo to be used for docker installation"
+										}
+									},
+									{
+										"name": "docker_private_registry",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "(optional) URL of private Docker registry to fetch Platform9 images from"
+										}
+									},
+									{
+										"name": "docker_root",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Root directory for docker"
+										}
+									},
+									{
+										"name": "docker_ubuntu_package_repo_url",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "(optional) URL of the ubuntu repo to be used for docker installation"
+										}
+									},
+									{
+										"name": "enable_etcd_encryption",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "States whether tls encryption is enabled on etcd, Default:false"
+										}
+									},
+									{
+										"name": "enable_metallb",
+										"bool": {
+											"computed_optional_required": "computed",
+											"description": "1 if metallb enabled. Defaults to 0"
+										}
+									},
+									{
+										"name": "enable_profile_agent",
+										"bool": {
+											"computed_optional_required": "computed",
+											"description": "(optional) If set to true platform9 profile engine agent will be deployed on the cluster. This agent is required to be able to use profiles."
+										}
+									},
+									{
+										"name": "etcd_backup",
+										"single_nested": {
+											"computed_optional_required": "computed",
+											"attributes": [
+												{
+													"name": "daily_backup_time",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "etcd backup Timestamp for daily backup, specified in format 'HH:MM' "
+													}
+												},
+												{
+													"name": "interval_in_hours",
+													"int64": {
+														"computed_optional_required": "computed",
+														"description": "etcd backup interval, specified in Hours"
+													}
+												},
+												{
+													"name": "interval_in_mins",
+													"int64": {
+														"computed_optional_required": "computed",
+														"description": "etcd backup interval, specified in minutes"
+													}
+												},
+												{
+													"name": "is_etcd_backup_enabled",
+													"bool": {
+														"computed_optional_required": "computed",
+														"description": "Set to true if etcd backup should be enabled, false otherwise"
+													}
+												},
+												{
+													"name": "max_interval_backup_count",
+													"int64": {
+														"computed_optional_required": "computed",
+														"description": "max number of Backups retention for interval type backups"
+													}
+												},
+												{
+													"name": "max_timestamp_backup_count",
+													"int64": {
+														"computed_optional_required": "computed",
+														"description": "max number of Backups retention for Timestamp type backups"
+													}
+												},
+												{
+													"name": "storage_properties",
+													"single_nested": {
+														"computed_optional_required": "computed",
+														"attributes": [
+															{
+																"name": "local_path",
+																"string": {
+																	"computed_optional_required": "computed",
+																	"description": "Path on the local filesystem where the etcd backup should be stored. For 'local' storage type only."
+																}
+															}
+														]
+													}
+												},
+												{
+													"name": "storage_type",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Storage type for the etcd backup. Only 'local' is current supported type. 'local' saves backup to the node's local disk"
+													}
+												},
+												{
+													"name": "task_error_detail",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Details of the error occurred of the taskStatus returned is 'error'"
+													}
+												},
+												{
+													"name": "task_status",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Status indicating whether the backup cron job on the Kubernetes cluster was successfully setup. Can be 'success' or 'error'"
+													}
+												}
+											]
+										}
+									},
+									{
+										"name": "etcd_data_dir",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Data directory for etcd. The field is applicable to master nodes only"
+										}
+									},
+									{
+										"name": "external_dns_name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Optional DNS name for API endpoint. This field is autogenerated when pf9 domain is used."
+										}
+									},
+									{
+										"name": "flannel_iface_label",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "The interface used by flannel for interhost communication"
+										}
+									},
+									{
+										"name": "flannel_public_iface_label",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "The IP address used as the flannel public IP for the nodes in the cluster"
+										}
+									},
+									{
+										"name": "gcr_private_registry",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "(optional) URL of private GCR registry to fetch Platform9 images from"
+										}
+									},
+									{
+										"name": "is_kubernetes",
+										"int64": {
+											"computed_optional_required": "computed",
+											"description": "Field is set to 1 if the cluster is a Kubernetes cluster, 0 otherwise"
+										}
+									},
+									{
+										"name": "k8s_api_port",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Port on which K8S API Server will listen, 443 by default"
+										}
+									},
+									{
+										"name": "k8s_private_registry",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "(optional) URL of private K8S registry to fetch Platform9 images from"
+										}
+									},
+									{
+										"name": "keystone_enabled",
+										"int64": {
+											"computed_optional_required": "computed",
+											"description": "Field is set to 1 if keystone is enabled, 0 otherwise"
+										}
+									},
+									{
+										"name": "last_ok",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "The timestamp when the cluster last reported an OK status"
+										}
+									},
+									{
+										"name": "last_op",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "The last operation such as node attach or node detach that was performed on the cluster"
+										}
+									},
+									{
+										"name": "master_ip",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Ip of the master node, applicable only for cloud provider type 'openstack'"
+										}
+									},
+									{
+										"name": "master_status",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Status of the master nodes. 'healthy' means all masters are healthy. 'partially healthy' means quorum number of masters are healthy, but some are not. 'unhealthy' means quorum number of master are unhealthy"
+										}
+									},
+									{
+										"name": "master_vip_iface",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "The interface that VIP attaches to if specified. Defaults to empty string"
+										}
+									},
+									{
+										"name": "master_vip_ipv4",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "API server Virtual IP that provides failover if specified for the cluster. Defaults to empty string"
+										}
+									},
+									{
+										"name": "master_vip_vrouter_id",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Virtual router id choosen for the cluster. Range: 0-254. Emptry string if masterVipIpv4 not specified"
+										}
+									},
+									{
+										"name": "metallb_cidr",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Comma separated pools of IPs like A.B.C.D-E.F.G.H, I.J.K.L-M.N.O.P that metallb will manage if specified"
+										}
+									},
+									{
+										"name": "mtu_size",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "MTU for container network interfaces. Optional and used for the Calico network backend"
+										}
+									},
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the cluster"
+										}
+									},
+									{
+										"name": "network_plugin",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Network backend to use for container networking. Defaults to flannel. Supported choices are flannel, calico, noop, weave"
+										}
+									},
+									{
+										"name": "node_pool_name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the node pool used for the cluster"
+										}
+									},
+									{
+										"name": "node_pool_uuid",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the node pool used for the cluster"
+										}
+									},
+									{
+										"name": "num_masters",
+										"int64": {
+											"computed_optional_required": "computed",
+											"description": "Number of master nodes in the cluster"
+										}
+									},
+									{
+										"name": "num_workers",
+										"int64": {
+											"computed_optional_required": "computed",
+											"description": "Number of worker nodes in the cluster"
+										}
+									},
+									{
+										"name": "privileged",
+										"int64": {
+											"computed_optional_required": "computed",
+											"description": "Field is set to 1 if cluster runs privileged containers, 0 otherwise"
+										}
+									},
+									{
+										"name": "project_id",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the Keystone project that this cluster is part of"
+										}
+									},
+									{
+										"name": "quay_private_registry",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "(optional) URL of private Quay registry to fetch Platform9 images from"
+										}
+									},
+									{
+										"name": "reserved_cpus",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "list of CPUs to be reserved for the system. Ex: 1-3,5"
+										}
+									},
+									{
+										"name": "runtime_config",
+										"string": {
+											"computed_optional_required": "computed"
+										}
+									},
+									{
+										"name": "services_cidr",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "CIDR used for service IP addresses"
+										}
+									},
+									{
+										"name": "status",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Status of the cluster"
+										}
+									},
+									{
+										"name": "tags",
+										"single_nested": {
+											"computed_optional_required": "computed",
+											"description": "User defined key-value pairs represented as a JSON object"
+										}
+									},
+									{
+										"name": "task_error",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Error details if the last task on cluster did not succeed"
+										}
+									},
+									{
+										"name": "task_status",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Status of the last task that run on the cluster."
+										}
+									},
+									{
+										"name": "topology_manager_policy",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "options: none, best-effort, restricted, single-numa-node; default: none"
+										}
+									},
+									{
+										"name": "use_hostname",
+										"bool": {
+											"computed_optional_required": "computed",
+											"description": "(optioanl) If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts. This option is ignored when deploying clusters on IPv6 enabled hosts and public clouds - AWS, Azure, etc."
+										}
+									},
+									{
+										"name": "uuid",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the cluster"
+										}
+									},
+									{
+										"name": "worker_status",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Status of the worker nodes. 'healthy' means all workers are healthy. 'partially healthy' means more than 50% of the workers are healthy, rest are unhealthy. 'unhealthy' means more than 50% of the workers are unhealthy"
+										}
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "nodes",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the cluster"
+						}
+					},
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the project the cluster belongs to"
+						}
+					},
+					{
+						"name": "api_responding",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "1 indicates the API server on this node is running. 0 otherwise. Applicable only if isMaster is 1"
+						}
+					},
+					{
+						"name": "cloud_provider_type",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Type of cloud provider, such as local or aws used to create the cluster"
+						}
+					},
+					{
+						"name": "cluster_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the cluster the node belongs to"
+						}
+					},
+					{
+						"name": "cluster_uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the cluster the node belongs to"
+						}
+					},
+					{
+						"name": "is_master",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "1 if this node is a master of a custer. 0 otherwise."
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Host name of the node"
+						}
+					},
+					{
+						"name": "node_pool_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the node pool, the node belongs to"
+						}
+					},
+					{
+						"name": "node_pool_uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the node pool, the node belongs to"
+						}
+					},
+					{
+						"name": "primary_ip",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "IP address of the node"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the node. States include “ok”, ”converging”, “failed”. These states indicate the current state of kubernetes setup on the host."
+						}
+					},
+					{
+						"name": "uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the node"
+						}
+					}
+				]
+			}
+		}
+	],
+	"provider": {
+		"name": "pf9"
+	},
+	"resources": [
+		{
+			"name": "cluster",
+			"schema": {
+				"attributes": [
+					{
+						"name": "addon_operator_image_tag",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) addon operator image tag for this cluster."
+						}
+					},
+					{
+						"name": "addon_versions",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "clusterautoscaleraws",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "cluster-autoscaler-aws version"
+									}
+								},
+								{
+									"name": "clusterautoscalerazure",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "cluster-autoscaler-azure version"
+									}
+								},
+								{
+									"name": "coredns",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "coredns version"
+									}
+								},
+								{
+									"name": "dashboard",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "dashboard version"
+									}
+								},
+								{
+									"name": "dnsautoscaler",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "dns-autoscaler version"
+									}
+								},
+								{
+									"name": "kubevirt",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "kubevirt version"
+									}
+								},
+								{
+									"name": "luigi",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "luigi version"
+									}
+								},
+								{
+									"name": "metal3",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "metal3 version"
+									}
+								},
+								{
+									"name": "metallb",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "metallb version"
+									}
+								},
+								{
+									"name": "metricsserver",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "metricsserver version"
+									}
+								},
+								{
+									"name": "monitoring",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "monitoring version"
+									}
+								},
+								{
+									"name": "profileagent",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "profileagent version"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "allow_workloads_on_master",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"description": "Field is set to 1 if the master nodes can run non-critical workloads"
+						}
+					},
+					{
+						"name": "ami",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "AMI ID used to provision cluster nodes"
+						}
+					},
+					{
+						"name": "app_catalog_enabled",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"description": "DEPRECATED. Always disabled now. Field is set to 1 if app catalog is enabled, 0 otherwise, applicable also for manual deploy"
+						}
+					},
+					{
+						"name": "azs",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "Availability zone(s) the cluster is deployed in"
+						}
+					},
+					{
+						"name": "calico_controller_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_controller_memory_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_ip_ip_mode",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet"
+						}
+					},
+					{
+						"name": "calico_nat_outgoing",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Field is set to true if Calico nodes need to NAT north-south egress traffic."
+						}
+					},
+					{
+						"name": "calico_node_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_node_memory_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_typha_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_typha_memory_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_v4block_size",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Subnet size per node for the Calico network, in CIDR notation (e.g. 26)"
+						}
+					},
+					{
+						"name": "cert_expiry_hrs",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) Number of hours before user certificates in kubeconfig expires, should be greater than 0 if set. Default is 24hrs."
+						}
+					},
+					{
+						"name": "container_runtime",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) Container runtime for this cluster. Valid values: [docker, containerd]"
+						}
+					},
+					{
+						"name": "containers_cidr",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "CIDR used for container IP addresses, applicable also for manual deploy"
+						}
+					},
+					{
+						"name": "cpu_manager_policy",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "options: none, static; default: none"
+						}
+					},
+					{
+						"name": "docker_centos_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) URL of the centos repo to be used for docker installation, this URL is added as a first mirror optiopn"
+						}
+					},
+					{
+						"name": "docker_live_restore_enabled",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Enables the use of Docker live restore as described here: https://docs.docker.com/config/containers/live-restore/"
+						}
+					},
+					{
+						"name": "docker_private_registry",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) URL of private Docker registry to fetch Platform9 images from"
+						}
+					},
+					{
+						"name": "docker_ubuntu_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) URL of the ubuntu repo to be used for docker installation, this URL is added as a first mirror option"
+						}
+					},
+					{
+						"name": "domain_id",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Domain used for cluster FQDNs"
+						}
+					},
+					{
+						"name": "enable_cas",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "If true, cluster autoscaling is enabled (only for AWS clusters)."
+						}
+					},
+					{
+						"name": "enable_catapult_monitoring",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) If set to true (default value) platform9 Catapult monitoring will be deployed on the cluster"
+						}
+					},
+					{
+						"name": "enable_metallb",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "If true, install MetalLB to support the loadbalancer service-type"
+						}
+					},
+					{
+						"name": "enable_profile_agent",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) If set to true platform9 profile engine agent will be deployed on the cluster. This agent is required to be able to use profiles."
+						}
+					},
+					{
+						"name": "etcd_backup",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"attributes": [
+								{
+									"name": "daily_backup_time",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "etcd backup Timestamp for daily backup, specified in format 'HH:MM' "
+									}
+								},
+								{
+									"name": "interval_in_hours",
+									"int64": {
+										"computed_optional_required": "computed_optional",
+										"description": "etcd backup interval, specified in Hours. intervalInMins and intervalInHours are mutually exclusive"
+									}
+								},
+								{
+									"name": "interval_in_mins",
+									"int64": {
+										"computed_optional_required": "computed_optional",
+										"description": "etcd backup interval, specified in minutes. intervalInMins and intervalInHours are mutually exclusive"
+									}
+								},
+								{
+									"name": "is_etcd_backup_enabled",
+									"bool": {
+										"computed_optional_required": "computed_optional",
+										"description": "Set to true if etcd backup should be enabled, false otherwise"
+									}
+								},
+								{
+									"name": "max_interval_backup_count",
+									"int64": {
+										"computed_optional_required": "computed_optional",
+										"description": "max number of Backups retention for interval type backups, required if intervalInMins or intervalInHours is provided"
+									}
+								},
+								{
+									"name": "max_timestamp_backup_count",
+									"int64": {
+										"computed_optional_required": "computed_optional",
+										"description": "max number of Backups retention for Timestamp type backups, required if dailyBackupTime is provided"
+									}
+								},
+								{
+									"name": "storage_properties",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "local_path",
+												"string": {
+													"computed_optional_required": "computed_optional",
+													"description": "Path on the local filesystem where the etcd backup should be stored. For 'local' storage type only."
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "storage_type",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "Storage type for the etcd backup. Only 'local' is current supported type. 'local' saves backup to the node's local disk"
+									}
+								},
+								{
+									"name": "task_error_detail",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Details of the error occurred of the taskStatus returned is 'error'"
+									}
+								},
+								{
+									"name": "task_status",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Status indicating whether the backup cron job on the Kubernetes cluster was successfully setup. Can be 'success' or 'error'"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "external_dns_name",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Optional DNS name for API endpoint. This field is autogenerated when usePf9Domain is set, also applicable for manual deploy"
+						}
+					},
+					{
+						"name": "gcr_private_registry",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) URL of private GCR registry to fetch Platform9 images from"
+						}
+					},
+					{
+						"name": "http_proxy",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "The http proxy used for node communications. This parameter is required when internalElb is set to true and the private subnet selected does not route IP packets to the internet through a VPN"
+						}
+					},
+					{
+						"name": "internal_elb",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Set to true if load balancer is an internal load balancer or false for an Internet-facing load balancer. More information here: https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-internal-load-balancers.html. Setting this parameter to true requires that isPrivate is set to true. If the private subnet selected is not configured to route IP packets through a VPN, then an httpProxy is required for node communications to work"
+						}
+					},
+					{
+						"name": "is_private",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Set to true if nodes are deployed using public subnet, false otherwise, applicable also for manual deploy. This parameter is required if internalElb is set to true."
+						}
+					},
+					{
+						"name": "k8s_api_port",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Port on which K8S API Server will listen, 443 by default"
+						}
+					},
+					{
+						"name": "k8s_private_registry",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) URL of private K8S registry to fetch Platform9 images from"
+						}
+					},
+					{
+						"name": "kube_role_version",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "Pf9-kube role version to be used when bringing up the cluster."
+						}
+					},
+					{
+						"name": "master_flavor",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Node flavor used for master node"
+						}
+					},
+					{
+						"name": "master_vip_iface",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to"
+						}
+					},
+					{
+						"name": "master_vip_ipv4",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together"
+						}
+					},
+					{
+						"name": "metallb_cidr",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "If enableMetallb is true, specify the comma-separated pools of IPs that MetalLB will manage (for example: A.B.C.D-E.F.G.H, I.J.K.L-M.N.O.P)"
+						}
+					},
+					{
+						"name": "mtu_size",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "MTU for container network interfaces. Optional and used for the Calico network backend"
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Name of the cluster, applicable also for manual deploy"
+						}
+					},
+					{
+						"name": "network_plugin",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "Network backend to use for container networking. Defaults to flannel. Supported choices are flannel, calico, noop, weave"
+						}
+					},
+					{
+						"name": "node_pool_uuid",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "UUID of the node pool used for the cluster, applicable also for manual deploy"
+						}
+					},
+					{
+						"name": "num_masters",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"description": "Number of master nodes in the cluster"
+						}
+					},
+					{
+						"name": "num_max_workers",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"description": "This parameter is required if enableCAS is set to true. This is the maximum number of worker nodes in ASG"
+						}
+					},
+					{
+						"name": "num_min_workers",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"description": "This parameter is required if enableCAS is set to true. This is the minimum number of worker nodes in ASG"
+						}
+					},
+					{
+						"name": "num_workers",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"description": "Number of worker nodes in the cluster"
+						}
+					},
+					{
+						"name": "private_subnets",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "The private subnet ID to which the cluster is deployed. This parameter is optional if vpc (VPC ID) is set. This parameter is required if vpc (VPC ID) is set and isPrivate is set to true. This parameter is ignored if vpc (VPC ID) is not set"
+						}
+					},
+					{
+						"name": "privileged",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Field is set to 1 if cluster runs privileged containers, 0 otherwise"
+						}
+					},
+					{
+						"name": "quay_private_registry",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) URL of private Quay registry to fetch Platform9 images from"
+						}
+					},
+					{
+						"name": "region",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Cloud provider region in which the cluster was created"
+						}
+					},
+					{
+						"name": "reserved_cpus",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "list of CPUs to be reserved for the system. Ex: 1-3,5"
+						}
+					},
+					{
+						"name": "runtime_config",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Applicable also for manual deploy"
+						}
+					},
+					{
+						"name": "service_fqdn",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "FQDN used to reference cluster services"
+						}
+					},
+					{
+						"name": "services_cidr",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "CIDR used for service IP addresses, applicable also for manual deploy"
+						}
+					},
+					{
+						"name": "ssh_key",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Public SSH key associated with the cluster nodes"
+						}
+					},
+					{
+						"name": "subnets",
+						"list": {
+							"computed_optional_required": "computed_optional",
+							"element_type": {
+								"string": {}
+							}
+						}
+					},
+					{
+						"name": "tags",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"description": "User defined key-value pairs represented as a JSON object"
+						}
+					},
+					{
+						"name": "topology_manager_policy",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "options: none, best-effort, restricted, single-numa-node; default: none"
+						}
+					},
+					{
+						"name": "use_hostname",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "(optional) If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts. This option is ignored when deploying clusters on IPv6 enabled hosts and public clouds - AWS, Azure, etc."
+						}
+					},
+					{
+						"name": "use_pf9domain",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"description": "Set to true if platform9.net domain is used, false otherwise"
+						}
+					},
+					{
+						"name": "vpc",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "If set, creates cluster using this VPC ID. Otherwise, the cluster is deployed on a new VPC. This parameter is required if internalElb is set to true"
+						}
+					},
+					{
+						"name": "worker_flavor",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Node flavor used for worker node"
+						}
+					},
+					{
+						"name": "authz_enabled",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to 1 if authz is enabled, 0 otherwise"
+						}
+					},
+					{
+						"name": "can_upgrade",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to true if the cluster can be upgraded, false otherwise"
+						}
+					},
+					{
+						"name": "cloud_properties",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "ami",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "AMI ID used to provision cluster nodes"
+									}
+								},
+								{
+									"name": "azs",
+									"list": {
+										"computed_optional_required": "computed",
+										"element_type": {
+											"string": {}
+										},
+										"description": "Availability zone(s) the cluster is deployed in"
+									}
+								},
+								{
+									"name": "custom_ami",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "The custom ami name which can be specified by a user"
+									}
+								},
+								{
+									"name": "domain_id",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Domain used for cluster FQDNs"
+									}
+								},
+								{
+									"name": "http_proxy",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "The http proxy used for node communications. This parameter is required when internalElb is set to true and the private subnet selected does not route IP packets to the internet through a VPN"
+									}
+								},
+								{
+									"name": "internal_elb",
+									"bool": {
+										"computed_optional_required": "computed",
+										"description": "Set to true if load balancer is an internal load balancer or false for an Internet-facing load balancer. More information here: https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-internal-load-balancers.html Setting this parameter to true requires that isPrivate is set to true. If the private subnet selected is not configured to route IP packets through a VPN, then an httpProxy is required for node communications to work"
+									}
+								},
+								{
+									"name": "is_private",
+									"bool": {
+										"computed_optional_required": "computed",
+										"description": "Set to true if nodes are deployed using public subnet, false otherwise, applicable also for manual deploy. This parameter is required if internalElb is set to true."
+									}
+								},
+								{
+									"name": "master_flavor",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Node flavor used for master node"
+									}
+								},
+								{
+									"name": "private_subnets",
+									"list": {
+										"computed_optional_required": "computed",
+										"element_type": {
+											"string": {}
+										},
+										"description": "The private subnet ID to which the cluster is deployed. This parameter is optional if vpc (VPC ID) is set. This parameter is required if vpc (VPC ID) is set and isPrivate is set to true. This parameter is ignored if vpc (VPC ID) is not set"
+									}
+								},
+								{
+									"name": "region",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Cloud provider region in which the cluster was created"
+									}
+								},
+								{
+									"name": "service_fqdn",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "FQDN used to reference cluster services"
+									}
+								},
+								{
+									"name": "ssh_key",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Public SSH key associated with the cluster nodes"
+									}
+								},
+								{
+									"name": "subnets",
+									"list": {
+										"computed_optional_required": "computed",
+										"element_type": {
+											"string": {}
+										}
+									}
+								},
+								{
+									"name": "use_pf9domain",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Set to true if platform9.net domain is used, false otherwise"
+									}
+								},
+								{
+									"name": "vpc",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "If set, creates cluster using this VPC ID. Otherwise, the cluster is deployed on a new VPC. This parameter is required if internalElb is set to true"
+									}
+								},
+								{
+									"name": "worker_flavor",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Node flavor used for worker node"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "cloud_provider_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the cloud provider used to create this cluster"
+						}
+					},
+					{
+						"name": "cloud_provider_type",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Type of the cloud provider used to create this cluster"
+						}
+					},
+					{
+						"name": "cloud_provider_uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the cloud provider used to create this cluster"
+						}
+					},
+					{
+						"name": "docker_root",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Root directory for docker"
+						}
+					},
+					{
+						"name": "enable_etcd_encryption",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "States whether tls encryption is enabled on etcd, Default:false"
+						}
+					},
+					{
+						"name": "etcd_data_dir",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Data directory for etcd. The field is applicable to master nodes only"
+						}
+					},
+					{
+						"name": "flannel_iface_label",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The interface used by flannel for interhost communication"
+						}
+					},
+					{
+						"name": "flannel_public_iface_label",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The IP address used as the flannel public IP for the nodes in the cluster"
+						}
+					},
+					{
+						"name": "is_kubernetes",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to 1 if the cluster is a Kubernetes cluster, 0 otherwise"
+						}
+					},
+					{
+						"name": "keystone_enabled",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to 1 if keystone is enabled, 0 otherwise"
+						}
+					},
+					{
+						"name": "last_ok",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The timestamp when the cluster last reported an OK status"
+						}
+					},
+					{
+						"name": "last_op",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The last operation such as node attach or node detach that was performed on the cluster"
+						}
+					},
+					{
+						"name": "master_ip",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Ip of the master node, applicable only for cloud provider type 'openstack'"
+						}
+					},
+					{
+						"name": "master_status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the master nodes. 'healthy' means all masters are healthy. 'partially healthy' means quorum number of masters are healthy, but some are not. 'unhealthy' means quorum number of master are unhealthy"
+						}
+					},
+					{
+						"name": "master_vip_vrouter_id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Virtual router id choosen for the cluster. Range: 0-254. Emptry string if masterVipIpv4 not specified"
+						}
+					},
+					{
+						"name": "node_pool_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the node pool used for the cluster"
+						}
+					},
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the project the cluster belongs to"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the cluster"
+						}
+					},
+					{
+						"name": "task_error",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Error details if the last task on cluster did not succeed"
+						}
+					},
+					{
+						"name": "task_status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the last task that run on the cluster."
+						}
+					},
+					{
+						"name": "uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the cluster"
+						}
+					},
+					{
+						"name": "worker_status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the worker nodes. 'healthy' means all workers are healthy. 'partially healthy' means more than 50% of the workers are healthy, rest are unhealthy. 'unhealthy' means more than 50% of the workers are unhealthy"
+						}
+					},
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "UUID of the cluster"
+						}
+					}
+				]
+			}
+		}
+	],
+	"version": "0.1"
+}

@@ -1,0 +1,2070 @@
+swagger: '2.0'
+info:
+  title: Platform9 Managed Kubernetes
+  version: 4.0.0
+  description: Rest API documentation
+basePath: /qbert
+schemes:
+  - https
+paths:
+  '/v4/{projectId}/clusters':
+    post:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: projectId
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+        - name: cluster
+          schema:
+            $ref: '#/definitions/cluster_details_for_post'
+          in: body
+          required: true
+      responses:
+        '200':
+          description: 'OK, if cluster create request was submitted successfully'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: Creates a cluster using auto deploy or manual mode
+  '/v4/{project_uuid}/clusters/{uuid}/upgrade':
+    post:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cloud provider account belongs to
+          in: path
+          required: true
+          type: string
+        - name: upgradeOptions
+          schema:
+            $ref: '#/definitions/cluster_upgrade_body'
+          in: body
+          required: false
+        - name: type
+          description: Type of upgrade minor or patch
+          in: query
+          required: true
+          type: string
+        - name: force
+          description: (optional)Forcefully upgrade cluster to version. Default is false.
+          in: query
+          type: boolean
+      responses:
+        '200':
+          description: 'OK, if upgrade request is successfully issued'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: 'Upgrade a cluster, identified by the uuid'
+  '/v4/{projectId}/externalClusters/discover':
+    get:
+      produces:
+        - application/json
+      tags:
+        - ExternalCluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: projectId
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'OK, List of external clusters.'
+      summary: >-
+        Provides a list of all the external clusters available to be added to
+        management plane
+  '/v4/{projectId}/externalClusters/register':
+    post:
+      produces:
+        - application/json
+      tags:
+        - ExternalCluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: projectId
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+        - name: cluster
+          schema:
+            $ref: '#/definitions/ext_cluster_register_details_for_post'
+          in: body
+          required: true
+      responses:
+        '200':
+          description: 'OK, if cluster create request was submitted successfully'
+        '403':
+          description: Unauthorized to perform this operation
+        '404':
+          description: Cluster could not be founds
+        '409':
+          description: Cluster already registered
+      summary: Registers an external cluster
+  '/v4/{projectId}/externalClusters/:clusterID/deregister':
+    post:
+      produces:
+        - application/json
+      tags:
+        - ExternalCluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: projectId
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'OK, if cluster create request was submitted successfully'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: Deregister an external cluster
+  '/v4/{projectId}/externalClusters/:clusterID/deploymentYAML':
+    get:
+      produces:
+        - application/octet-stream
+      tags:
+        - ExternalCluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: projectId
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'OK, if cluster create request was submitted successfully'
+        '403':
+          description: Unauthorized to perform this operation
+        '404':
+          description: Cluster or the cluster agent could not be found
+      summary: Get the deployment YAML for a private external cluster
+  '/v4/{projectId}/clusters/{clusterId}/addons':
+    delete:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: clusterId
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: projectId
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'OK, if clusteraddons delete request was submitted successfully'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: >-
+        Delete all cluster addons for a PMK cluster as specified by the cluster
+        UUID
+  '/v4/{projectId}/clusters/{clusterId}/addonversions':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: clusterId
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: projectId
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'OK, List of addon versions.'
+      summary: Provides a list of addon version for pf9-kube role on a cluster.
+  '/v4/{projectId}/clusters/supportedRoleVersions':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: projectId
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'OK, List of supported roles versions.'
+      summary: Provides a list of supported pf9-kube roles for a cluster.
+  '/v4/{project_uuid}/nodes':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Node
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the node belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/node_details'
+        '403':
+          description: unauthorized to perform this operation
+      summary: List all the nodes in a project identified by the project UUID
+  '/v4/{project_uuid}/nodes/{uuid}':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Node
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the node
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the node belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/node_details'
+        '403':
+          description: unauthorized to perform this operation
+      summary: 'Get details of a specific node in project, identified by the UUID'
+    put:
+      produces:
+        - application/json
+      tags:
+        - Node
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the node
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the nodes belongs to
+          in: path
+          required: true
+          type: string
+        - name: cluster
+          schema:
+            $ref: '#/definitions/cluster_uuid_detail'
+          in: body
+          required: true
+      responses:
+        '200':
+          description: 'OK, if the node gets deattached from the cluster'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: Updates the properties of the node specified by the node UUID
+      description: >-
+        Currently, only the cluster property for a node can be modified and its
+        primary usage is to detach a node from a cluster. The node, if needed,
+        can be reattached to another cluster by using the cluster’s attach API
+  '/v4/{project_uuid}/cloudProviders':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Cloud Provider
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cloud provider belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/cloudprovider'
+        '403':
+          description: unauthorized to perform this operation
+      summary: >-
+        Get the list of the cloud provider accounts currently setup in a project
+        identified by project UUID
+    post:
+      produces:
+        - application/json
+      tags:
+        - Cloud Provider
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cloud provider account belongs to
+          in: path
+          required: true
+          type: string
+        - name: Cloud provider
+          schema:
+            $ref: '#/definitions/cloudprovider_for_post'
+          in: body
+          required: true
+      responses:
+        '200':
+          description: 'OK, if the cloud provider gets created successfully'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: Add a cloud provider account
+      description: >-
+        Note that by default, there is one “local” cloud provider, which is used
+        for building clusters manually. Currently, AWS is the only supported
+        cloudProvider, other than the “local” provider.
+  '/v4/{project_uuid}/cloudProvider/types':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Cloud Provider
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cloud provider belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/type_details'
+        '403':
+          description: unauthorized to perform this operation
+      summary: >-
+        Get all available cloud provider types, in a project identified by
+        project UUID
+  '/v4/{project_uuid}/cloudProviders/{uuid}':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Cloud Provider
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cloud provider
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cloud provider belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/provider_details'
+        '403':
+          description: unauthorized to perform this operation
+      summary: >-
+        Get the details for cloud provider account identified by the
+        account_uuid
+      description: This is applicable only for public cloud providers
+    delete:
+      produces:
+        - application/json
+      tags:
+        - Cloud Provider
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cloud provider
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cloud provider account belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'OK, if the cloud provider gets deleted successfully'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: Delete a cloud provider account specified by account uuid
+  '/v4/{project_uuid}/cloudProviders/{uuid}/region/{regionid}':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Cloud Provider
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cloud provider
+          in: path
+          required: true
+          type: string
+        - name: regionid
+          description: Name of the region
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cloud provider belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/region_details'
+        '403':
+          description: unauthorized to perform this operation
+      summary: >-
+        Get the details for a region in a particular cloud provider account
+        identified by the account_uuid
+      description: This is applicable only for public cloud providers
+  '/v4/{project_uuid}/cloudProviders/{uuid}/region/{regionid}/sshKey':
+    post:
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - Cloud Provider
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cloud provider
+          in: path
+          required: true
+          type: string
+        - name: regionid
+          description: Name of the region
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cloud provider belongs to
+          in: path
+          required: true
+          type: string
+        - name: key
+          schema:
+            $ref: '#/definitions/key_details'
+          in: body
+          required: true
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Key is not in valid OpenSSH public key format
+        '403':
+          description: unauthorized to perform this operation
+      summary: Add ssh key to a cloud provider region
+  '/v4/{project_uuid}/clusters':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/cluster_details'
+        '403':
+          description: unauthorized to perform this operation
+      summary: Get the list of clusters currently setup in PMK
+  '/v4/{project_uuid}/clusters/{uuid}':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/cluster_details'
+        '403':
+          description: unauthorized to perform this operation
+      summary: Get details of a cluster
+    put:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+        - name: cluster
+          schema:
+            $ref: '#/definitions/cluster_details_for_put'
+          in: body
+          required: true
+      responses:
+        '200':
+          description: 'OK, if cluster upgrade request was submitted successfully'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: Update the properties of a cluster specified by the cluster_uuid
+    delete:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'OK, if cluster delete request was submitted successfully'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: Delete a cluster from PMK as specified by the cluster UUID
+  '/v4/{project_uuid}/clusters/{uuid}/nodes':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/node_details'
+        '403':
+          description: unauthorized to perform this operation
+      summary: Get nodes of a cluster
+  '/v4/{project_uuid}/kubeconfig/{cluster_uuid}':
+    get:
+      produces:
+        - application/octet-stream
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: cluster_uuid
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+        - name: force_cert_auth
+          description: 'If true, generates certificate based kubeconfig. Default is false.'
+          in: query
+          type: boolean
+      responses:
+        '200':
+          description: >-
+            The response is a blob sent with the Content-Type
+            ‘application/octet-stream’
+        '403':
+          description: Unauthorized to perform this operation
+      summary: Get the kubeconfig blob for the specific cluster
+  '/v4/{project_uuid}/nodePools':
+    get:
+      produces:
+        - application/json
+      tags:
+        - Node pool
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the node pool belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/nodepool'
+        '403':
+          description: unauthorized to perform this operation
+      summary: Get details of all node pools
+  '/v4/{project_uuid}/webcli/{uuid}':
+    post:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/webcli_token'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: Generate token to be used by web cli
+  '/v4/{project_uuid}/clusters/{uuid}/attach':
+    post:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+        - name: nodes
+          schema:
+            $ref: '#/definitions/attach_nodes_array'
+          in: body
+          required: true
+      responses:
+        '200':
+          description: 'OK, if the node get attached to the cluster'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: >-
+        Attach nodes to a cluster. In a manual deployed cluster, nodes can be
+        added to a cluster using this API. If the cluster has no masters,
+        multiple masters can be attached simultaneously.
+  '/v4/{project_uuid}/clusters/{uuid}/detach':
+    post:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+        - name: nodes
+          schema:
+            $ref: '#/definitions/detach_nodes_array'
+          in: body
+          required: true
+      responses:
+        '200':
+          description: 'OK, if the node get attached to the cluster'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: >-
+        Detach nodes from a cluster. In a manual deployed cluster, nodes can be
+        removed from a cluster using this API.
+  '/v4/{project_uuid}/cloudProviders/validate':
+    post:
+      produces:
+        - application/json
+      tags:
+        - Cloud Provider
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: project_uuid
+          description: UUID of the project the cloud provider account belongs to
+          in: path
+          required: true
+          type: string
+        - name: Cloud provider
+          schema:
+            $ref: '#/definitions/cloudprovider_for_post'
+          in: body
+          required: true
+      responses:
+        '200':
+          description: 'OK, if the cloud provider gets created successfully'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: Validate a cloud provider account
+      description: Validate a cloud provider credentials before adding it
+  '/v4/cloudProviders/{uuid}':
+    put:
+      produces:
+        - application/json
+      tags:
+        - Cloud Provider
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: uuid
+          description: UUID of the cloud provider
+          in: path
+          required: true
+          type: string
+        - name: Cloud provider
+          schema:
+            $ref: '#/definitions/cloudprovider_for_put'
+          in: body
+          required: true
+      responses:
+        '200':
+          description: 'OK, if the cloud provider gets upddated successfully'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: Update a cloud provider account specified by account uuid
+  '/v4/{projectId}/clusters/{clusterId}/suppotedaddonversions':
+    delete:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: clusterId
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: projectId
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'OK, if supported addon versions are fetched successfully'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: >-
+        Get all supported cluster addon versions for a PMK cluster as specified
+        by the cluster UUID
+  '/v4/{projectId}/clusters/{clusterId}/supportedaddonoperatorversions':
+    delete:
+      produces:
+        - application/json
+      tags:
+        - Cluster
+      parameters:
+        - name: X-Auth-Token
+          in: header
+          required: true
+          type: string
+        - name: clusterId
+          description: UUID of the cluster
+          in: path
+          required: true
+          type: string
+        - name: projectId
+          description: UUID of the project the cluster belongs to
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: 'OK, if supported addon-operator versions are fetched successfully'
+        '403':
+          description: Unauthorized to perform this operation
+      summary: >-
+        Get all supported addon-operator tags for a PMK cluster as specified by
+        the cluster UUID
+definitions:
+  ext_cluster_deregister_details_for_post:
+    type: object
+    properties:
+      clusterID:
+        description: Cluster UUID to delete
+        type: string
+  ext_cluster_register_details_for_post:
+    type: object
+    properties:
+      id:
+        description: An unique cluster idenfier
+        type: string
+      provider:
+        description: Name of the external K8S cluster provider service
+        type: string
+      cloudProviderID:
+        description: UUID of a cloud provider in PF9
+        type: string
+      providerDetails:
+        description: >-
+          A dynamic field to include cloud specific parameters. For example, for
+          EKS, we need the region to be able to register a cluster
+        type: object
+  cluster_details_for_post:
+    required:
+      - containersCidr
+      - networkPlugin
+      - servicesCidr
+      - kubeRoleVersion
+    type: object
+    properties:
+      allowWorkloadsOnMaster:
+        description: Field is set to 1 if the master nodes can run non-critical workloads
+        type: integer
+      ami:
+        description: AMI ID used to provision cluster nodes
+        type: string
+      appCatalogEnabled:
+        description: >-
+          DEPRECATED. Always disabled now. Field is set to 1 if app catalog is
+          enabled, 0 otherwise, applicable also for manual deploy
+        type: integer
+      azs:
+        description: Availability zone(s) the cluster is deployed in
+        type: array
+        items:
+          type: string
+      calicoV4BlockSize:
+        description: >-
+          Subnet size per node for the Calico network, in CIDR notation (e.g.
+          26)
+        type: string
+      calicoIpIpMode:
+        description: >-
+          IP-IP encapsulation mode for Calico network. Choose: Always, Never,
+          CrossSubnet
+        type: string
+      calicoNatOutgoing:
+        description: >-
+          Field is set to true if Calico nodes need to NAT north-south egress
+          traffic.
+        type: boolean
+      calicoNodeCpuLimit:
+        description: >-
+          Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in
+          Calico.
+        type: string
+      calicoNodeMemoryLimit:
+        description: >-
+          Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in
+          Calico.
+        type: string
+      calicoTyphaCpuLimit:
+        description: >-
+          Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in
+          Calico.
+        type: string
+      calicoTyphaMemoryLimit:
+        description: >-
+          Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in
+          Calico.
+        type: string
+      calicoControllerCpuLimit:
+        description: >-
+          Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in
+          Calico.
+        type: string
+      calicoControllerMemoryLimit:
+        description: >-
+          Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable
+          in Calico.
+        type: string
+      containersCidr:
+        description: >-
+          CIDR used for container IP addresses, applicable also for manual
+          deploy
+        type: string
+      dockerLiveRestoreEnabled:
+        description: >-
+          Enables the use of Docker live restore as described here:
+          https://docs.docker.com/config/containers/live-restore/
+        type: boolean
+      domainId:
+        description: Domain used for cluster FQDNs
+        type: string
+      enableMetallb:
+        description: 'If true, install MetalLB to support the loadbalancer service-type'
+        type: boolean
+      enableCAS:
+        description: 'If true, cluster autoscaling is enabled (only for AWS clusters).'
+        type: boolean
+      etcdBackup:
+        $ref: '#/definitions/etcd_backup'
+      externalDnsName:
+        description: >-
+          Optional DNS name for API endpoint. This field is autogenerated when
+          usePf9Domain is set, also applicable for manual deploy
+        type: string
+      httpProxy:
+        description: >-
+          The http proxy used for node communications. This parameter is
+          required when internalElb is set to true and the private subnet
+          selected does not route IP packets to the internet through a VPN
+        type: string
+      internalElb:
+        description: >-
+          Set to true if load balancer is an internal load balancer or false for
+          an Internet-facing load balancer. More information here:
+          https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-internal-load-balancers.html.
+          Setting this parameter to true requires that isPrivate is set to true.
+          If the private subnet selected is not configured to route IP packets
+          through a VPN, then an httpProxy is required for node communications
+          to work
+        type: boolean
+      isPrivate:
+        description: >-
+          Set to true if nodes are deployed using public subnet, false
+          otherwise, applicable also for manual deploy. This parameter is
+          required if internalElb is set to true.
+        type: boolean
+      k8sApiPort:
+        description: 'Port on which K8S API Server will listen, 443 by default'
+        type: string
+      masterFlavor:
+        description: Node flavor used for master node
+        type: string
+      masterVipIpv4:
+        description: >-
+          API server Virtual IP that provides failover. When specified, deploy
+          keepalived setup to cluster master nodes together
+        type: string
+      masterVipIface:
+        description: >-
+          If masterVipIpv4 is specified, this field is required. Specify the
+          interface that the VIP attaches to
+        type: string
+      metallbCidr:
+        description: >-
+          If enableMetallb is true, specify the comma-separated pools of IPs
+          that MetalLB will manage (for example: A.B.C.D-E.F.G.H,
+          I.J.K.L-M.N.O.P)
+        type: string
+      mtuSize:
+        description: >-
+          MTU for container network interfaces. Optional and used for the Calico
+          network backend
+        type: string
+      name:
+        description: 'Name of the cluster, applicable also for manual deploy'
+        type: string
+      networkPlugin:
+        description: >-
+          Network backend to use for container networking. Defaults to flannel.
+          Supported choices are flannel, calico, noop, weave
+        type: string
+      nodePoolUuid:
+        description: >-
+          UUID of the node pool used for the cluster, applicable also for manual
+          deploy
+        type: string
+      numMasters:
+        description: Number of master nodes in the cluster
+        type: integer
+      numWorkers:
+        description: Number of worker nodes in the cluster
+        type: integer
+      numMinWorkers:
+        description: >-
+          This parameter is required if enableCAS is set to true. This is the
+          minimum number of worker nodes in ASG
+        type: integer
+      numMaxWorkers:
+        description: >-
+          This parameter is required if enableCAS is set to true. This is the
+          maximum number of worker nodes in ASG
+        type: integer
+      privateSubnets:
+        description: >-
+          The private subnet ID to which the cluster is deployed. This parameter
+          is optional if vpc (VPC ID) is set. This parameter is required if vpc
+          (VPC ID) is set and isPrivate is set to true. This parameter is
+          ignored if vpc (VPC ID) is not set
+        type: array
+        items:
+          type: string
+      privileged:
+        description: 'Field is set to 1 if cluster runs privileged containers, 0 otherwise'
+        type: boolean
+      region:
+        description: Cloud provider region in which the cluster was created
+        type: string
+      runtimeConfig:
+        description: Applicable also for manual deploy
+        type: string
+      serviceFqdn:
+        description: FQDN used to reference cluster services
+        type: string
+      servicesCidr:
+        description: 'CIDR used for service IP addresses, applicable also for manual deploy'
+        type: string
+      sshKey:
+        description: Public SSH key associated with the cluster nodes
+        type: string
+      subnets:
+        type: array
+        items:
+          description: >-
+            The public subnet ID to which the cluster is deployed. This
+            parameter is required if vpc (VPC ID) is set and isPrivate is set to
+            false (Public topology). This parameter is required if vpc (VPC ID)
+            is set and isPrivate is set to true (Private topology). This
+            parameter is optional if vpc (VPC ID) is set and isPrivate is set to
+            true and internalElb is set to true (VPN topology). This parameter
+            is ignored if vpc (VPC ID) is not set
+          type: string
+      tags:
+        description: User defined key-value pairs represented as a JSON object
+        type: object
+      usePf9Domain:
+        description: 'Set to true if platform9.net domain is used, false otherwise'
+        type: boolean
+      vpc:
+        description: >-
+          If set, creates cluster using this VPC ID. Otherwise, the cluster is
+          deployed on a new VPC. This parameter is required if internalElb is
+          set to true
+        type: string
+      workerFlavor:
+        description: Node flavor used for worker node
+        type: string
+      kubeRoleVersion:
+        description: Pf9-kube role version to be used when bringing up the cluster.
+        type: string
+      cpuManagerPolicy:
+        description: 'options: none, static; default: none'
+        type: string
+      topologyManagerPolicy:
+        description: >-
+          options: none, best-effort, restricted, single-numa-node; default:
+          none
+        type: string
+      reservedCPUs:
+        description: 'list of CPUs to be reserved for the system. Ex: 1-3,5'
+        type: string
+      dockerPrivateRegistry:
+        description: >-
+          (optional) URL of private Docker registry to fetch Platform9 images
+          from
+        type: string
+      quayPrivateRegistry:
+        description: (optional) URL of private Quay registry to fetch Platform9 images from
+        type: string
+      gcrPrivateRegistry:
+        description: (optional) URL of private GCR registry to fetch Platform9 images from
+        type: string
+      k8sPrivateRegistry:
+        description: (optional) URL of private K8S registry to fetch Platform9 images from
+        type: string
+      useHostname:
+        description: >-
+          (optional) If set to true nodes will be registered in the cluster
+          using hostname instead of IP address. This option is only applicable
+          to IPv4 hosts. This option is ignored when deploying clusters on IPv6
+          enabled hosts and public clouds - AWS, Azure, etc.
+        type: boolean
+      enableProfileAgent:
+        description: >-
+          (optional) If set to true platform9 profile engine agent will be
+          deployed on the cluster. This agent is required to be able to use
+          profiles.
+        type: boolean
+      enableCatapultMonitoring:
+        description: >-
+          (optional) If set to true (default value) platform9 Catapult
+          monitoring will be deployed on the cluster
+        type: boolean
+      dockerCentosPackageRepoUrl:
+        description: >-
+          (optional) URL of the centos repo to be used for docker installation,
+          this URL is added as a first mirror optiopn
+        type: string
+      dockerUbuntuPackageRepoUrl:
+        description: >-
+          (optional) URL of the ubuntu repo to be used for docker installation,
+          this URL is added as a first mirror option
+        type: string
+      containerRuntime:
+        description: >-
+          (optional) Container runtime for this cluster. Valid values: [docker,
+          containerd]
+        type: string
+      certExpiryHrs:
+        description: >-
+          (optional) Number of hours before user certificates in kubeconfig
+          expires, should be greater than 0 if set. Default is 24hrs.
+        type: integer
+      addonOperatorImageTag:
+        description: (optional) addon operator image tag for this cluster.
+        type: string
+      addonVersions:
+        type: object
+        properties:
+          coredns:
+            description: coredns version
+            type: string
+          dashboard:
+            description: dashboard version
+            type: string
+          dns-autoscaler:
+            description: dns-autoscaler version
+            type: string
+          kubevirt:
+            description: kubevirt version
+            type: string
+          luigi:
+            description: luigi version
+            type: string
+          metal3:
+            description: metal3 version
+            type: string
+          metallb:
+            description: metallb version
+            type: string
+          metricsserver:
+            description: metricsserver version
+            type: string
+          monitoring:
+            description: monitoring version
+            type: string
+          profileagent:
+            description: profileagent version
+            type: string
+          cluster-autoscaler-aws:
+            description: cluster-autoscaler-aws version
+            type: string
+          cluster-autoscaler-azure:
+            description: cluster-autoscaler-azure version
+            type: string
+  etcd_backup:
+    properties:
+      isEtcdBackupEnabled:
+        description: 'Set to true if etcd backup should be enabled, false otherwise'
+        type: boolean
+      intervalInMins:
+        description: >-
+          etcd backup interval, specified in minutes. intervalInMins and
+          intervalInHours are mutually exclusive
+        type: integer
+      intervalInHours:
+        description: >-
+          etcd backup interval, specified in Hours. intervalInMins and
+          intervalInHours are mutually exclusive
+        type: integer
+      dailyBackupTime:
+        description: 'etcd backup Timestamp for daily backup, specified in format ''HH:MM'' '
+        type: string
+      maxIntervalBackupCount:
+        description: >-
+          max number of Backups retention for interval type backups, required if
+          intervalInMins or intervalInHours is provided
+        type: integer
+      maxTimestampBackupCount:
+        description: >-
+          max number of Backups retention for Timestamp type backups, required
+          if dailyBackupTime is provided
+        type: integer
+      storageType:
+        description: >-
+          Storage type for the etcd backup. Only 'local' is current supported
+          type. 'local' saves backup to the node's local disk
+        type: string
+      storageProperties:
+        $ref: '#/definitions/etcdbackup_storageproperties'
+  etcdbackup_storageproperties:
+    properties:
+      localPath:
+        description: >-
+          Path on the local filesystem where the etcd backup should be stored.
+          For 'local' storage type only.
+        type: string
+  cluster_upgrade_body:
+    type: object
+    properties:
+      batchUpgradePercent:
+        description: >-
+          Number between 1-100 which represents the percent of worker nodes to
+          upgrade in parallel at once during an upgrade
+        type: number
+      batchUpgradeNodes:
+        description: >-
+          List of worker nodes uuids to upgrade in parallel at once during an
+          upgrade
+        type: array
+        items:
+          type: string
+      containerRuntime:
+        description: >-
+          (optional) Container runtime for this cluster. Valid values: [docker,
+          containerd]
+        type: string
+      addonOperatorImageTag:
+        description: (optional) addon operator image tag for this cluster.
+        type: string
+      addonVersions:
+        type: object
+        properties:
+          coredns:
+            description: coredns version
+            type: string
+          dashboard:
+            description: dashboard version
+            type: string
+          dns-autoscaler:
+            description: dns-autoscaler version
+            type: string
+          kubevirt:
+            description: kubevirt version
+            type: string
+          luigi:
+            description: luigi version
+            type: string
+          metal3:
+            description: metal3 version
+            type: string
+          metallb:
+            description: metallb version
+            type: string
+          metricsserver:
+            description: metricsserver version
+            type: string
+          monitoring:
+            description: monitoring version
+            type: string
+          profileagent:
+            description: profileagent version
+            type: string
+          cluster-autoscaler-aws:
+            description: cluster-autoscaler-aws version
+            type: string
+          cluster-autoscaler-azure:
+            description: cluster-autoscaler-azure version
+            type: string
+  node_details:
+    properties:
+      cloudProviderType:
+        description: >-
+          Type of cloud provider, such as local or aws used to create the
+          cluster
+        type: string
+      clusterName:
+        description: Name of the cluster the node belongs to
+        type: string
+      clusterUuid:
+        description: UUID of the cluster the node belongs to
+        type: string
+      name:
+        description: Host name of the node
+        type: string
+      uuid:
+        description: UUID of the node
+        type: string
+      api_responding:
+        description: >-
+          1 indicates the API server on this node is running. 0 otherwise.
+          Applicable only if isMaster is 1
+        type: integer
+      primaryIp:
+        description: IP address of the node
+        type: string
+      status:
+        description: >-
+          Status of the node. States include “ok”, ”converging”, “failed”. These
+          states indicate the current state of kubernetes setup on the host.
+        type: string
+      isMaster:
+        description: 1 if this node is a master of a custer. 0 otherwise.
+        type: integer
+      nodePoolName:
+        description: 'Name of the node pool, the node belongs to'
+        type: string
+      nodePoolUuid:
+        description: 'UUID of the node pool, the node belongs to'
+        type: string
+      projectId:
+        description: UUID of the project the node belongs to
+        type: string
+  region:
+    properties:
+      Endpoint:
+        description: endpoint of the region
+        type: string
+      RegionName:
+        description: name of the region
+        type: string
+  provider_details:
+    properties:
+      Regions:
+        description: Regions belonging to the provider
+        type: array
+        items:
+          $ref: '#/definitions/region'
+  type_details:
+    properties:
+      type:
+        description: 'Cloud provider type. Examples are ''aws'',''local'''
+        type: string
+  region_details:
+    properties:
+      azs:
+        description: The list of availability zones in the region
+        type: array
+        items:
+          type: object
+      domains:
+        description: The list of hosting domains
+        type: array
+        items:
+          type: object
+      flavors:
+        description: The list of instance flavors supported in the region
+        type: array
+        items:
+          type: object
+      keyPairs:
+        description: The list of ssh key pairs in the region
+        type: array
+        items:
+          type: object
+      operatingSystems:
+        description: The list of operating systems available in the region
+        type: array
+        items:
+          type: object
+      vpcs:
+        description: The list of virtual private networks available in the region
+        type: array
+        items:
+          type: object
+  key_details:
+    type: object
+    properties:
+      name:
+        description: Name of the key
+        type: string
+      key:
+        description: Contents of the key
+        type: string
+  cluster_details:
+    properties:
+      name:
+        description: Name of the cluster
+        type: string
+      uuid:
+        description: UUID of the cluster
+        type: string
+      containersCidr:
+        description: CIDR used for container IP addresses
+        type: string
+      servicesCidr:
+        description: CIDR used for service IP addresses
+        type: string
+      isKubernetes:
+        description: 'Field is set to 1 if the cluster is a Kubernetes cluster, 0 otherwise'
+        type: integer
+      externalDnsName:
+        description: >-
+          Optional DNS name for API endpoint. This field is autogenerated when
+          pf9 domain is used.
+        type: string
+      masterIp:
+        description: >-
+          Ip of the master node, applicable only for cloud provider type
+          'openstack'
+        type: string
+      status:
+        description: Status of the cluster
+        type: string
+      masterStatus:
+        description: >-
+          Status of the master nodes. 'healthy' means all masters are healthy.
+          'partially healthy' means quorum number of masters are healthy, but
+          some are not. 'unhealthy' means quorum number of master are unhealthy
+        type: string
+      workerStatus:
+        description: >-
+          Status of the worker nodes. 'healthy' means all workers are healthy.
+          'partially healthy' means more than 50% of the workers are healthy,
+          rest are unhealthy. 'unhealthy' means more than 50% of the workers are
+          unhealthy
+        type: string
+      flannelIfaceLabel:
+        description: The interface used by flannel for interhost communication
+        type: string
+      flannelPublicIfaceLabel:
+        description: >-
+          The IP address used as the flannel public IP for the nodes in the
+          cluster
+        type: string
+      dockerRoot:
+        description: Root directory for docker
+        type: string
+      etcdDataDir:
+        description: Data directory for etcd. The field is applicable to master nodes only
+        type: string
+      lastOp:
+        description: >-
+          The last operation such as node attach or node detach that was
+          performed on the cluster
+        type: string
+      lastOk:
+        description: The timestamp when the cluster last reported an OK status
+        type: string
+      keystoneEnabled:
+        description: 'Field is set to 1 if keystone is enabled, 0 otherwise'
+        type: integer
+      authzEnabled:
+        description: 'Field is set to 1 if authz is enabled, 0 otherwise'
+        type: integer
+      taskStatus:
+        description: Status of the last task that run on the cluster.
+        type: string
+      taskError:
+        description: Error details if the last task on cluster did not succeed
+        type: string
+      numMasters:
+        description: Number of master nodes in the cluster
+        type: integer
+      numWorkers:
+        description: Number of worker nodes in the cluster
+        type: integer
+      privileged:
+        description: 'Field is set to 1 if cluster runs privileged containers, 0 otherwise'
+        type: integer
+      appCatalogEnabled:
+        description: >-
+          DEPRECATED. Field doesn't lead to any action on the cluster now. Field
+          is set to 1 if app catalog is enabled, 0 otherwise
+        type: integer
+      projectId:
+        description: UUID of the Keystone project that this cluster is part of
+        type: string
+      runtimeConfig:
+        description: ''
+        type: string
+      etcdBackup:
+        $ref: '#/definitions/etcd_backup_for_get'
+      nodePoolUuid:
+        description: UUID of the node pool used for the cluster
+        type: string
+      nodePoolName:
+        description: Name of the node pool used for the cluster
+        type: string
+      cloudProviderUuid:
+        description: UUID of the cloud provider used to create this cluster
+        type: string
+      cloudProviderName:
+        description: Name of the cloud provider used to create this cluster
+        type: string
+      cloudProviderType:
+        description: Type of the cloud provider used to create this cluster
+        type: string
+      cloudProperties:
+        $ref: '#/definitions/cloud_properties'
+      canUpgrade:
+        description: 'Field is set to true if the cluster can be upgraded, false otherwise'
+        type: boolean
+      networkPlugin:
+        description: >-
+          Network backend to use for container networking. Defaults to flannel.
+          Supported choices are flannel, calico, noop, weave
+        type: string
+      allowWorkloadsOnMaster:
+        description: Field is set to 1 if the master nodes can run non-critical workloads
+        type: integer
+      tags:
+        description: User defined key-value pairs represented as a JSON object
+        type: object
+      k8sApiPort:
+        description: 'Port on which K8S API Server will listen, 443 by default'
+        type: string
+      masterVipIpv4:
+        description: >-
+          API server Virtual IP that provides failover if specified for the
+          cluster. Defaults to empty string
+        type: string
+      masterVipIface:
+        description: >-
+          The interface that VIP attaches to if specified. Defaults to empty
+          string
+        type: string
+      enableMetallb:
+        description: 1 if metallb enabled. Defaults to 0
+        type: boolean
+      metallbCidr:
+        description: >-
+          Comma separated pools of IPs like A.B.C.D-E.F.G.H, I.J.K.L-M.N.O.P
+          that metallb will manage if specified
+        type: string
+      masterVipVrouterId:
+        description: >-
+          Virtual router id choosen for the cluster. Range: 0-254. Emptry string
+          if masterVipIpv4 not specified
+        type: string
+      calicoV4BlockSize:
+        description: >-
+          Subnet size per node for the Calico network, in CIDR notation (e.g.
+          26)
+        type: string
+      calicoIpIpMode:
+        description: >-
+          IP-IP encapsulation mode for Calico network. Choose: Always, Never,
+          CrossSubnet
+        type: string
+      calicoNatOutgoing:
+        description: >-
+          Field is set to true if Calico nodes need to NAT north-south egress
+          traffic.
+        type: boolean
+      calicoNodeCpuLimit:
+        description: >-
+          Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in
+          Calico.
+        type: string
+      calicoNodeMemoryLimit:
+        description: >-
+          Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in
+          Calico.
+        type: string
+      calicoTyphaCpuLimit:
+        description: >-
+          Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in
+          Calico.
+        type: string
+      calicoTyphaMemoryLimit:
+        description: >-
+          Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in
+          Calico.
+        type: string
+      calicoControllerCpuLimit:
+        description: >-
+          Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in
+          Calico.
+        type: string
+      calicoControllerMemoryLimit:
+        description: >-
+          Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable
+          in Calico.
+        type: string
+      mtuSize:
+        description: >-
+          MTU for container network interfaces. Optional and used for the Calico
+          network backend
+        type: string
+      cpuManagerPolicy:
+        description: 'options: none, static; default: none'
+        type: string
+      topologyManagerPolicy:
+        description: >-
+          options: none, best-effort, restricted, single-numa-node; default:
+          none
+        type: string
+      reservedCPUs:
+        description: 'list of CPUs to be reserved for the system. Ex: 1-3,5'
+        type: string
+      dockerPrivateRegistry:
+        description: >-
+          (optional) URL of private Docker registry to fetch Platform9 images
+          from
+        type: string
+      quayPrivateRegistry:
+        description: (optional) URL of private Quay registry to fetch Platform9 images from
+        type: string
+      gcrPrivateRegistry:
+        description: (optional) URL of private GCR registry to fetch Platform9 images from
+        type: string
+      k8sPrivateRegistry:
+        description: (optional) URL of private K8S registry to fetch Platform9 images from
+        type: string
+      useHostname:
+        description: >-
+          (optioanl) If set to true nodes will be registered in the cluster
+          using hostname instead of IP address. This option is only applicable
+          to IPv4 hosts. This option is ignored when deploying clusters on IPv6
+          enabled hosts and public clouds - AWS, Azure, etc.
+        type: boolean
+      enableProfileAgent:
+        description: >-
+          (optional) If set to true platform9 profile engine agent will be
+          deployed on the cluster. This agent is required to be able to use
+          profiles.
+        type: boolean
+      dockerCentosPackageRepoUrl:
+        description: (optional) URL of the centos repo to be used for docker installation
+        type: string
+      dockerUbuntuPackageRepoUrl:
+        description: (optional) URL of the ubuntu repo to be used for docker installation
+        type: string
+      containerRuntime:
+        description: >-
+          (optional) Container runtime for this cluster. Valid values: [docker,
+          containerd]
+        type: string
+      certExpiryHrs:
+        description: >-
+          (optional) Number of hours before user certificates in kubeconfig
+          expires, should be greater than 0 if set. Default is 24hrs.
+        type: integer
+      addonOperatorImageTag:
+        description: (optional) addon operator image tag for this cluster.
+        type: string
+      enableEtcdEncryption:
+        description: 'States whether tls encryption is enabled on etcd, Default:false'
+        type: string
+  cluster_details_for_put:
+    type: object
+    properties:
+      numWorkers:
+        description: >-
+          Number of worker nodes in the cluster. For AWS cluster, this parameter
+          is relevant only if cluster autoscaling is disabled
+        type: integer
+      numMinWorkers:
+        description: >-
+          Minimum number of worker nodes in ASG for AWS cluster. This parameter
+          is relevant only if cluster autoscaling is enabled
+        type: integer
+      numMaxWorkers:
+        description: >-
+          Maximum number of worker nodes in ASG for AWS cluster. This parameter
+          is relevant only if cluster autoscaling is enabled
+        type: integer
+      etcdBackup:
+        $ref: '#/definitions/etcd_backup'
+      tags:
+        description: User defined key-value pairs represented as a JSON object
+        type: object
+      customAmi:
+        description: The custom ami name which can be specified by a user
+        type: string
+      enableProfileAgent:
+        description: >-
+          (optional) If set to true platform9 profile engine agent will be
+          deployed on the cluster. This agent is required to be able to use
+          profiles.
+        type: boolean
+      dockerCentosPackageRepoUrl:
+        description: (optional) URL of the centos repo to be used for docker installation
+        type: string
+      dockerUbuntuPackageRepoUrl:
+        description: (optional) URL of the ubuntu repo to be used for docker installation
+        type: string
+      certExpiryHrs:
+        description: >-
+          (optional) Number of hours before user certificates in kubeconfig
+          expires, should be greater than 0 if set. Default is 24hrs.
+        type: integer
+      addonOperatorImageTag:
+        description: (optional) addon operator image tag for this cluster.
+        type: string
+  cloud_properties:
+    properties:
+      region:
+        description: Cloud provider region in which the cluster was created
+        type: string
+      masterFlavor:
+        description: Node flavor used for master node
+        type: string
+      workerFlavor:
+        description: Node flavor used for worker node
+        type: string
+      sshKey:
+        description: Public SSH key associated with the cluster nodes
+        type: string
+      serviceFqdn:
+        description: FQDN used to reference cluster services
+        type: string
+      ami:
+        description: AMI ID used to provision cluster nodes
+        type: string
+      domainId:
+        description: Domain used for cluster FQDNs
+        type: string
+      isPrivate:
+        description: >-
+          Set to true if nodes are deployed using public subnet, false
+          otherwise, applicable also for manual deploy. This parameter is
+          required if internalElb is set to true.
+        type: boolean
+      usePf9Domain:
+        description: 'Set to true if platform9.net domain is used, false otherwise'
+        type: string
+      internalElb:
+        description: >-
+          Set to true if load balancer is an internal load balancer or false for
+          an Internet-facing load balancer. More information here:
+          https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-internal-load-balancers.html
+          Setting this parameter to true requires that isPrivate is set to true.
+          If the private subnet selected is not configured to route IP packets
+          through a VPN, then an httpProxy is required for node communications
+          to work
+        type: boolean
+      azs:
+        description: Availability zone(s) the cluster is deployed in
+        type: array
+        items:
+          type: string
+      httpProxy:
+        description: >-
+          The http proxy used for node communications. This parameter is
+          required when internalElb is set to true and the private subnet
+          selected does not route IP packets to the internet through a VPN
+        type: string
+      privateSubnets:
+        description: >-
+          The private subnet ID to which the cluster is deployed. This parameter
+          is optional if vpc (VPC ID) is set. This parameter is required if vpc
+          (VPC ID) is set and isPrivate is set to true. This parameter is
+          ignored if vpc (VPC ID) is not set
+        type: array
+        items:
+          type: string
+      subnets:
+        type: array
+        items:
+          description: >-
+            The public subnet ID to which the cluster is deployed. This
+            parameter is required if vpc (VPC ID) is set and isPrivate is set to
+            false (Public topology). This parameter is required if vpc (VPC ID)
+            is set and isPrivate is set to true (Private topology). This
+            parameter is optional if vpc (VPC ID) is set and isPrivate is set to
+            true and internalElb is set to true (VPN topology). This parameter
+            is ignored if vpc (VPC ID) is not set
+          type: string
+      vpc:
+        description: >-
+          If set, creates cluster using this VPC ID. Otherwise, the cluster is
+          deployed on a new VPC. This parameter is required if internalElb is
+          set to true
+        type: string
+      customAmi:
+        description: The custom ami name which can be specified by a user
+        type: string
+  nodepool:
+    properties:
+      name:
+        description: Name of the node pool
+        type: string
+      uuid:
+        description: UUID of the node pool
+        type: string
+      cloudProviderUuid:
+        description: UUID of the associated cloud provider
+        type: string
+      cloudProviderName:
+        description: Name of the associated cloud provider
+        type: string
+  cloudprovider:
+    properties:
+      name:
+        description: Name of the cloud provider account
+        type: string
+      uuid:
+        description: UUID of the cloud provider account
+        type: string
+      type:
+        description: Type of the cloud provider account
+        type: string
+      nodePoolUuid:
+        description: UUID of the associated node pool
+        type: string
+  cloudprovider_for_post:
+    type: object
+    properties:
+      name:
+        description: Name of the cloud provider account
+        type: string
+      type:
+        description: Type of the cloud provider account
+        type: string
+      key:
+        description: Cloud access key
+        type: string
+      secret:
+        description: Cloud secret key
+        type: string
+  cloudprovider_for_put:
+    type: object
+    properties:
+      name:
+        description: Name of the cloud provider account
+        type: string
+      key:
+        description: Cloud access key
+        type: string
+      secret:
+        description: Cloud secret key
+        type: string
+  cluster_uuid_detail:
+    type: object
+    properties:
+      clusterUuid:
+        description: Value of this field must be set to null to detach the node
+        type: string
+  rolling_restart_details:
+    properties:
+      name:
+        description: UUID of the node
+        type: string
+      runState:
+        description: True if the node is up
+        type: boolean
+  webcli_token:
+    properties:
+      token:
+        description: Web cli token
+        type: string
+  attach_nodes_array:
+    type: array
+    items:
+      required:
+        - uuid
+      type: object
+      properties:
+        uuid:
+          description: UUID of the node
+          type: string
+        isMaster:
+          description: 'true if the node should be attached as master, false otherwise.'
+          type: boolean
+  detach_nodes_array:
+    type: array
+    items:
+      required:
+        - uuid
+      type: object
+      properties:
+        uuid:
+          description: UUID of the node
+          type: string
+        isMaster:
+          description: 'true if the node should be attached as master, false otherwise.'
+          type: boolean
+  etcd_backup_for_get:
+    properties:
+      isEtcdBackupEnabled:
+        description: 'Set to true if etcd backup should be enabled, false otherwise'
+        type: boolean
+      intervalInMins:
+        description: 'etcd backup interval, specified in minutes'
+        type: integer
+      intervalInHours:
+        description: 'etcd backup interval, specified in Hours'
+        type: integer
+      dailyBackupTime:
+        description: 'etcd backup Timestamp for daily backup, specified in format ''HH:MM'' '
+        type: string
+      maxIntervalBackupCount:
+        description: max number of Backups retention for interval type backups
+        type: integer
+      maxTimestampBackupCount:
+        description: max number of Backups retention for Timestamp type backups
+        type: integer
+      storageType:
+        description: >-
+          Storage type for the etcd backup. Only 'local' is current supported
+          type. 'local' saves backup to the node's local disk
+        type: string
+      storageProperties:
+        $ref: '#/definitions/etcdbackup_storageproperties'
+      taskStatus:
+        description: >-
+          Status indicating whether the backup cron job on the Kubernetes
+          cluster was successfully setup. Can be 'success' or 'error'
+        type: string
+      taskErrorDetail:
+        description: Details of the error occurred of the taskStatus returned is 'error'
+        type: string
+securityDefinitions: {}
