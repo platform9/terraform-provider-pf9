@@ -6,29 +6,28 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+
 	"github.com/platform9/terraform-provider-pf9/internal/provider"
 )
 
-// Run "go generate" to format example terraform files and generate the docs for the registry/website
+// Format example terraform files
+//go:generate terraform fmt -recursive ./examples/
 
-// If you do not have terraform installed, you can remove the formatting command, but its suggested to
-// ensure the documentation is formatted properly.
-//// go:generate terraform fmt -recursive ./examples/
+// TODO: How to ensure version of tools(tfplugondocs and tfplugin-framework) should be same as that of go.mod or
+// tools.go. IOW, how can we prevent this from running latest version of tools?
 
-// Run the docs generation tool, check its repository for more information on how it works and how docs
-// can be customized.
-////go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
-
-// Run the docs generation tool, check its repository for more information on how it works and how docs
-// can be customized.
+// Install the codegen tool
 //go:generate go install github.com/hashicorp/terraform-plugin-codegen-framework/cmd/tfplugingen-framework
+
+// Generate resource, datasource, provider schema from provider_code_spec.json using codegen tool
+//go:generate tfplugingen-framework generate all --input ./provider_code_spec.json --output internal/provider
+
+// Run the docs generation tool
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
 var (
 	// these will be set by the goreleaser configuration
-	// to appropriate values for the compiled binary.
 	version string = "dev"
-
-	// goreleaser can pass other information to the main package, such as the specific commit
 	// https://goreleaser.com/cookbooks/using-main.version/
 )
 
@@ -39,13 +38,11 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		// TODO: Should we rename it to registry.terraform.io/platform9/pf9
-		Address: "github.com/platform9/pf9",
+		Address: "registry.terraform.io/platform9/pf9",
 		Debug:   debug,
 	}
-	// TODO: User version to init provider
-	err := providerserver.Serve(context.Background(), provider.New(), opts)
 
+	err := providerserver.Serve(context.Background(), provider.New(version), opts)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

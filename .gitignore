@@ -15,9 +15,13 @@
 # vendor/
 
 # Terraform resources
-terraform-provider-pf9
+terraform-provider-*
 .terraform/
 *.tfstate
 *.backup
-crash.log
-workspace.code-workspace
+*.log
+*.code-workspace
+bin/
+*.env
+TODO.md
+.vscode/launch.json

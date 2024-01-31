@@ -1,0 +1,73 @@
+# These variable values are loaded from a .env file in the same directory.
+@DU_FQDN = {{$dotenv DU_FQDN}}
+@DU_USERNAME = {{$dotenv DU_USERNAME}}
+@DU_PASSWORD = {{$dotenv DU_PASSWORD}}
+@DU_TENANT = {{$dotenv DU_TENANT}}
+@DU_REGION = {{$dotenv DU_REGION}}
+
+###
+
+# @name keystoneAuth
+POST {{DU_FQDN}}/keystone/v3/auth/tokens?nocatalog
+Content-Type: application/json
+
+{
+  "auth": {
+    "identity": {
+      "methods": [
+        "password"
+      ],
+      "password": {
+        "user": {
+          "domain": {
+            "id": "default"
+          },
+          "password": "{{DU_PASSWORD}}",
+          "name": "{{DU_USERNAME}}"
+        }
+      }
+    },
+    "scope": {
+      "project": {
+        "name": "{{DU_TENANT}}",
+        "domain": {
+          "id": "default"
+        }
+      }
+    }
+  }
+}
+
+###
+
+@token = {{keystoneAuth.response.headers.x-subject-token}}
+@projectID = {{keystoneAuth.response.body.token.project.id}}
+
+###
+
+# @name clusters
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters
+Content-Type: application/json
+X-Auth-Token: {{token}}
+
+###
+@clusterID = {{clusters.response.body.0.uuid}}
+# @clusterID = d545d1ac-3ca3-a3ec-388b-54f58fb8b3e9
+###
+
+# @name cluster
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}
+Content-Type: application/json
+X-Auth-Token: {{token}}
+
+###
+
+# @name deleteCluster
+DELETE {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}
+X-Auth-Token: {{token}}
+
+###
+
+# @name getKubeconfig
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/kubeconfig/{{clusterID}}?force_cert_auth=false
+X-Auth-Token: {{token}}

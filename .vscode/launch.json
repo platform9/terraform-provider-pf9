@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Terraform Provider",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "env": {
+                "DU_FQDN": "",
+                "DU_USERNAME": "",
+                "DU_PASSWORD": "",
+                "TF_LOG": "DEBUG",
+            },
+            "args": [
+                "-debug",
+            ],
+        }
+    ]
+}

@@ -1,69 +1,39 @@
-# Konform Terraform Provider
+# Terraform Provider for Platform9
 
-Available in the [Terraform Registry](https://registry.terraform.io/namespaces/platform9).
-
-[Terraform](https://www.terraform.io/) has been widely regarded by the industry as a leader in the “infrastructure-as-code” space. With konform, we now enable customers to create and manage their PMK clusters with terraform, allowing them to integrate this with other components that they may already be managing with terraform, like AWS, openstack, etc.
-
-## Requirements
-
-- [Terraform](https://www.terraform.io/downloads.html) >= 0.12.x
+The Platform9 Provider is a solution for creating and managing multiple clusters, attaching and detaching nodes, and managing the lifecycle of the clusters. The provider is built on top of the Platform9 Managed Kubernetes (PMK) platform, which is a managed Kubernetes service that provides a single pane of glass for managing multiple clusters.
 
 ## Using the Provider
 
-See the [Konform Provider documentation](https://registry.terraform.io/providers/platform9/pf9/latest/docs) to lean about using the provider.
+Refer to the [documentation](https://registry.terraform.io/providers/platform9/pf9/latest/docs) on the Terraform Registry for detailed instructions on how to use this provier. You can also refer to the [docs](./docs/index.md) for documentation of the development version.
 
-### Getting Started
+## Development Setup
 
-Please set the following values in your environment or source them from a script.
+Terraform allows you to use local provider builds by setting a `dev_overrides` block in a configuration file called `~/.terraformrc`. First, find the GOBIN path where Go installs your binaries. Your path may vary depending on how your Go environment variables are configured.
 
-```shell
-export DU_USERNAME=<Platform9 Username>
-export DU_PASSWORD=<Platform9 Password>
-export DU_FQDN=<Platform9 DU FQDN>
-export DU_TENANT=<Platform9 Tenant Name>
+```console
+$ go env GOBIN
+/home/<Username>/go/bin
 ```
 
-Cluster configuration options should be added to the terraform script. An example .tf using your AWS account as the cloud provider is below.
+If the `GOBIN` go environment variable is not set, use the default path, `/home/<Username>/go/bin`. Create a new file called `.terraformrc` in your home directory, then add the `dev_overrides` block below.
 
 ```terraform
-terraform {
-  required_providers {
-    pf9 = {
-      source = "platform9/pf9"
-      version = "0.1.5"
-    }
+provider_installation {
+  dev_overrides {
+    "platform9/pf9" = "/home/<username>>/go/bin"
   }
-}
-
-provider "pf9" {}
-
-resource "pf9_aws_cloud_provider" "sample_aws_prov" {
-    name                = "sample_aws_provider"
-    type                = "aws"
-    key                 = "<YOUR_AWS_KEY>"
-    secret              = "<YOUR_AWS_SECRET>"
-    project_uuid        = "<YOUR_P9_PROJECT_UUID>"
-}
-
-resource "pf9_cluster" "cluster_1" {
-  project_uuid        = "<YOUR_P9_PROJECT_UUID>"
-  cloud_provider_uuid = ""
-  name                = "some-memorable-cluster-name"
-  ami                 = "ubuntu"
-  azs                 = ["us-east-1b"]
-  region              = "us-east-1"
-  containers_cidr     = "10.20.0.0/16"
-  services_cidr       = "10.21.0.0/16"
-  worker_flavor       = "t2.medium"
-  master_flavor       = "t2.medium"
-  ssh_key             = "<MY_AWS_KEY_PAIR>"
-  num_masters         = 1
-  num_workers         = 1
+  direct {}
 }
 ```
 
-With that in place `terraform init` to initalize the plugin.
-Then `terraform apply` to run.
+After this follow the following steps in vscode:
+
+0. Open [launch.json](.vscode/launch.json) add necessary environment variable values. DO NOT COMMIT THIS FILE!
+0. Add breakpoints and launch Debugging configuration.
+0. On Debug Console in VS Code, you should see instruction to export an environment variable
+0. Export the variable `TF_REATTACH_PROVIDERS` with the value printed on `Debug Console`.
+0. Run `terraform apply --auto-approve` on `main.tf`
+
 
 ## Contributing
 

@@ -6,7 +6,7 @@ PATH := $(GOBIN):$(PATH)
 .PHONY: generate generate-code scaffold-ds scaffold-rs scaffold-provider build install apply destroy clean uninstall test fmt lint check-versions docs
 
 generate:
-	go generate ./...
+	@go generate ./...
 
 generate-code:
 	@echo "Generating provider, resources, data-sources schema files from provider_code_spec.json..."
@@ -21,7 +21,7 @@ apply:
 	cd _examples/cluster && terraform apply -auto-approve && cd ../..
 
 destroy:
-	@echo "Applying example terraform config..."
+	@echo "Destroying example terraform config..."
 	cd _examples/cluster && terraform destroy -auto-approve && cd ../..
 
 clean:
@@ -50,18 +50,16 @@ lint:
 	go vet ./...
 
 scaffold-ds:
-	@echo "Scaffolding data-source code..."
 	@if [ -z "$(NAME)" ]; then \
-		echo "Error: Data-source name not provided. Usage: make scaffold NAME=<data-source-name>"; \
+		echo "Error: Data-source name not provided. Usage: NAME=<data-source-name> make scaffold-ds"; \
 		exit 1; \
 	fi
 	@echo "Scaffolding code for data-source $(NAME)..."
 	tfplugingen-framework scaffold data-source --name $(NAME) --output-dir ./internal/provider --force
 
 scaffold-rs:
-	@echo "Scaffolding resource code..."
 	@if [ -z "$(NAME)" ]; then \
-		echo "Error: resource name not provided. Usage: make scaffold NAME=<resource-name>"; \
+		echo "Error: resource name not provided. Usage: NAME=<resource-name> make scaffold-rs"; \
 		exit 1; \
 	fi
 	@echo "Scaffolding code for resource $(NAME)..."
