@@ -10,7 +10,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -35,7 +37,10 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet",
 				MarkdownDescription: "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet",
-				Default:             stringdefault.StaticString("Always"),
+				Validators: []validator.String{
+					stringvalidator.OneOf("Always", "Never", "CrossSubnet"),
+				},
+				Default: stringdefault.StaticString("Always"),
 			},
 			"calico_ipv4_detection_method": schema.StringAttribute{
 				Optional:            true,
@@ -71,14 +76,20 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "CIDR used for pod IP addresses, applicable also for manual deploy",
 				MarkdownDescription: "CIDR used for pod IP addresses, applicable also for manual deploy",
-				Default:             stringdefault.StaticString("10.20.0.0/16"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Default: stringdefault.StaticString("10.20.0.0/16"),
 			},
 			"cpu_manager_policy": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "options: none, static; default: none",
 				MarkdownDescription: "options: none, static; default: none",
-				Default:             stringdefault.StaticString("none"),
+				Validators: []validator.String{
+					stringvalidator.OneOf("none", "static"),
+				},
+				Default: stringdefault.StaticString("none"),
 			},
 			"deploy_luigi_operator": schema.BoolAttribute{
 				Optional:            true,
@@ -142,25 +153,38 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "Method to detect the interface",
 				MarkdownDescription: "Method to detect the interface",
-				Default:             stringdefault.StaticString("FirstFound"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Default: stringdefault.StaticString("first-found"),
 			},
 			"interface_name": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Name of the interface",
 				MarkdownDescription: "Name of the interface",
-				Default:             stringdefault.StaticString(""),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Default: stringdefault.StaticString(""),
 			},
 			"kube_role_version": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "kube role version to be used when bringing up the cluster.",
 				MarkdownDescription: "kube role version to be used when bringing up the cluster.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"master_ip": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
 				Description:         "IP of master node",
 				MarkdownDescription: "IP of master node",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"master_nodes": schema.SetAttribute{
 				ElementType:         types.StringType,
@@ -170,13 +194,21 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"master_vip_iface": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
 				Description:         "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to",
 				MarkdownDescription: "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"master_vip_ipv4": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
 				Description:         "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
 				MarkdownDescription: "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"monitoring": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
@@ -206,6 +238,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Required:            true,
 				Description:         "Name of the cluster, applicable also for manual deploy",
 				MarkdownDescription: "Name of the cluster, applicable also for manual deploy",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"network_plugin": schema.StringAttribute{
 				Optional:            true,
@@ -222,6 +257,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "UUID of the node pool used for the cluster, applicable also for manual deploy",
 				MarkdownDescription: "UUID of the node pool used for the cluster, applicable also for manual deploy",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"privileged": schema.BoolAttribute{
 				Optional:            true,
@@ -240,7 +278,10 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "CIDR used for service IP addresses, applicable also for manual deploy",
 				MarkdownDescription: "CIDR used for service IP addresses, applicable also for manual deploy",
-				Default:             stringdefault.StaticString("10.21.0.0/16"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Default: stringdefault.StaticString("10.21.0.0/16"),
 			},
 			"tags": schema.MapAttribute{
 				ElementType:         types.StringType,
@@ -253,13 +294,16 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "options: none, best-effort, restricted, single-numa-node; default: none",
 				MarkdownDescription: "options: none, best-effort, restricted, single-numa-node; default: none",
-				Default:             stringdefault.StaticString("none"),
+				Validators: []validator.String{
+					stringvalidator.OneOf("none", "best-effort", "restricted", "single-numa-node"),
+				},
+				Default: stringdefault.StaticString("none"),
 			},
 			"use_hostname": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts. This option is ignored when deploying clusters on IPv6 enabled hosts and public clouds - AWS, Azure, etc.",
-				MarkdownDescription: "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts. This option is ignored when deploying clusters on IPv6 enabled hosts and public clouds - AWS, Azure, etc.",
+				Description:         "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts.",
+				MarkdownDescription: "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts.",
 				Default:             booldefault.StaticBool(false),
 			},
 			"worker_nodes": schema.SetAttribute{

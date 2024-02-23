@@ -42,7 +42,7 @@ output "foobar" {
 <a id="nestedatt--filter"></a>
 ### Nested Schema for `filter`
 
-Optional:
+Required:
 
 - `name` (String) Name of the attribute on which this filter is applied
 - `values` (List of String)
@@ -51,10 +51,6 @@ Optional:
 <a id="nestedatt--nodes"></a>
 ### Nested Schema for `nodes`
 
-Required:
-
-- `name` (String) Host name of the node
-
 Read-Only:
 
 - `api_responding` (Boolean) Indicates the API server on this node is running
@@ -62,6 +58,7 @@ Read-Only:
 - `cluster_uuid` (String) UUID of the cluster the node belongs to
 - `id` (String) UUID of the cluster
 - `is_master` (Boolean) true if this node is a master of a cluster.
+- `name` (String) Host name of the node
 - `node_pool_name` (String) Name of the node pool, the node belongs to
 - `node_pool_uuid` (String) UUID of the node pool, the node belongs to
 - `primary_ip` (String) IP address of the node

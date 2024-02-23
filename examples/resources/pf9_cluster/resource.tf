@@ -22,7 +22,6 @@ resource "pf9_cluster" "example" {
   use_hostname                 = false
   interface_detection_method   = "InterfaceName"
   interface_name               = "ens3"
-  node_pool_uuid               = "21d5325c-d47e-47e7-bb78-517e0eef34e8"
   cpu_manager_policy           = "none"
   topology_manager_policy      = "none"
   calico_ip_ip_mode            = "Always"

@@ -21,13 +21,13 @@ func NodesDataSourceSchema(ctx context.Context) schema.Schema {
 			"filter": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"name": schema.StringAttribute{
-						Optional:            true,
+						Required:            true,
 						Description:         "Name of the attribute on which this filter is applied",
 						MarkdownDescription: "Name of the attribute on which this filter is applied",
 					},
 					"values": schema.ListAttribute{
 						ElementType: types.StringType,
-						Optional:    true,
+						Required:    true,
 					},
 				},
 				CustomType: FilterType{
@@ -71,7 +71,7 @@ func NodesDataSourceSchema(ctx context.Context) schema.Schema {
 							MarkdownDescription: "true if this node is a master of a cluster.",
 						},
 						"name": schema.StringAttribute{
-							Required:            true,
+							Computed:            true,
 							Description:         "Host name of the node",
 							MarkdownDescription: "Host name of the node",
 						},

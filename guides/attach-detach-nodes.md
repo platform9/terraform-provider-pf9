@@ -33,24 +33,28 @@ To attach nodes to your PMK cluster as master or worker nodes, you can use the n
 
 
 ```terraform
-data "pf9_nodes" "mynodes" {
+data "pf9_nodes" "master" {
   filter = {
     name = "primary_ip"
     values = ["192.168.1.25"]
   }
 }
 
+data "pf9_nodes" "workers" {
+  filter = {
+    name = "primary_ip"
+    values = ["192.168.1.26", "192.168.1.27", "192.168.1.28"]
+  }
+}
+
 resource "pf9_cluster" "example" {
   name = "example"
   master_nodes = [
-    data.pf9_nodes.mynodes[0].id
+    data.pf9_nodes.master.nodes[0].id
   ]
   allow_workloads_on_master = false
-  worker_nodes = [
-    "2bfbc40e-1d72-4bfc-a46b-56b674862cc7",
-    "bbbd1c20-3cda-405d-ae4b-d0337fffd6e1"
-  ]
-  master_ip    = data.pf9_nodes.mynodes[0].primary_ip
+  worker_nodes = data.pf9_nodes.workers.nodes[*].id
+  master_ip    = data.pf9_nodes.master.nodes[0].id
   etcd_backup = {
     is_etcd_backup_enabled = true
   }

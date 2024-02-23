@@ -175,7 +175,7 @@
 									{
 										"name": "name",
 										"string": {
-											"computed_optional_required": "required",
+											"computed_optional_required": "computed",
 											"description": "Host name of the node"
 										}
 									},
@@ -247,14 +247,14 @@
 								{
 									"name": "name",
 									"string": {
-										"computed_optional_required": "optional",
+										"computed_optional_required": "required",
 										"description": "Name of the attribute on which this filter is applied"
 									}
 								},
 								{
 									"name": "values",
 									"list": {
-										"computed_optional_required": "optional",
+										"computed_optional_required": "required",
 										"element_type": {
 											"string": {}
 										}
@@ -318,7 +318,19 @@
 						"name": "name",
 						"string": {
 							"computed_optional_required": "required",
-							"description": "Name of the cluster, applicable also for manual deploy"
+							"description": "Name of the cluster, applicable also for manual deploy",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -354,22 +366,58 @@
 					{
 						"name": "master_vip_iface",
 						"string": {
-							"computed_optional_required": "optional",
-							"description": "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to"
+							"computed_optional_required": "computed_optional",
+							"description": "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
 						}
 					},
 					{
 						"name": "master_ip",
 						"string": {
-							"computed_optional_required": "optional",
-							"description": "IP of master node"
+							"computed_optional_required": "computed_optional",
+							"description": "IP of master node",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
 						}
 					},
 					{
 						"name": "master_vip_ipv4",
 						"string": {
-							"computed_optional_required": "optional",
-							"description": "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together"
+							"computed_optional_required": "computed_optional",
+							"description": "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -379,7 +427,19 @@
 								"static": "10.20.0.0/16"
 							},
 							"computed_optional_required": "computed_optional",
-							"description": "CIDR used for pod IP addresses, applicable also for manual deploy"
+							"description": "CIDR used for pod IP addresses, applicable also for manual deploy",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -389,7 +449,19 @@
 								"static": "10.21.0.0/16"
 							},
 							"computed_optional_required": "computed_optional",
-							"description": "CIDR used for service IP addresses, applicable also for manual deploy"
+							"description": "CIDR used for service IP addresses, applicable also for manual deploy",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -429,17 +501,29 @@
 								"static": false
 							},
 							"computed_optional_required": "computed_optional",
-							"description": "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts. This option is ignored when deploying clusters on IPv6 enabled hosts and public clouds - AWS, Azure, etc."
+							"description": "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts."
 						}
 					},
 					{
 						"name": "interface_detection_method",
 						"string": {
 							"default": {
-								"static": "FirstFound"
+								"static": "first-found"
 							},
 							"computed_optional_required": "computed_optional",
-							"description": "Method to detect the interface"
+							"description": "Method to detect the interface",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -449,21 +533,57 @@
 								"static": ""
 							},
 							"computed_optional_required": "computed_optional",
-							"description": "Name of the interface"
+							"description": "Name of the interface",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
 						}
 					},
 					{
 						"name": "node_pool_uuid",
 						"string": {
 							"computed_optional_required": "computed_optional",
-							"description": "UUID of the node pool used for the cluster, applicable also for manual deploy"
+							"description": "UUID of the node pool used for the cluster, applicable also for manual deploy",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
 						}
 					},
 					{
 						"name": "kube_role_version",
 						"string": {
 							"computed_optional_required": "computed_optional",
-							"description": "kube role version to be used when bringing up the cluster."
+							"description": "kube role version to be used when bringing up the cluster.",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -473,7 +593,19 @@
 								"static": "none"
 							},
 							"computed_optional_required": "computed_optional",
-							"description": "options: none, static; default: none"
+							"description": "options: none, static; default: none",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"none\",\"static\")"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -483,7 +615,19 @@
 								"static": "none"
 							},
 							"computed_optional_required": "computed_optional",
-							"description": "options: none, best-effort, restricted, single-numa-node; default: none"
+							"description": "options: none, best-effort, restricted, single-numa-node; default: none",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"none\",\"best-effort\",\"restricted\",\"single-numa-node\")"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -493,7 +637,19 @@
 								"static": "Always"
 							},
 							"computed_optional_required": "computed_optional",
-							"description": "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet"
+							"description": "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"Always\",\"Never\",\"CrossSubnet\")"
+									}
+								}
+							]
 						}
 					},
 					{

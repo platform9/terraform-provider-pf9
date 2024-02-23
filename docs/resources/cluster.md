@@ -37,7 +37,6 @@ resource "pf9_cluster" "example" {
   use_hostname                 = false
   interface_detection_method   = "InterfaceName"
   interface_name               = "ens3"
-  node_pool_uuid               = "21d5325c-d47e-47e7-bb78-517e0eef34e8"
   cpu_manager_policy           = "none"
   topology_manager_policy      = "none"
   calico_ip_ip_mode            = "Always"
@@ -94,7 +93,7 @@ resource "pf9_cluster" "example" {
 - `services_cidr` (String) CIDR used for service IP addresses, applicable also for manual deploy
 - `tags` (Map of String) User defined key-value pairs represented as a JSON object
 - `topology_manager_policy` (String) options: none, best-effort, restricted, single-numa-node; default: none
-- `use_hostname` (Boolean) If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts. This option is ignored when deploying clusters on IPv6 enabled hosts and public clouds - AWS, Azure, etc.
+- `use_hostname` (Boolean) If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts.
 - `worker_nodes` (Set of String) List of uuid of worker nodes
 
 ### Read-Only

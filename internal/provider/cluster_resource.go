@@ -74,8 +74,15 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Failed to convert", err.Error())
 		return
 	}
-	tflog.Debug(ctx, "Creating a cluster: %v", map[string]interface{}{"createClusterReq": createClusterReq})
-	clusterID, err := r.client.Qbert().CreateCluster(*createClusterReq, projectID, qbert.CreateClusterOptions{})
+	qbertClient := r.client.Qbert()
+	reqBody, err := json.Marshal(createClusterReq)
+	if err != nil {
+		tflog.Error(ctx, "Failed to marshal create cluster request", map[string]interface{}{"error": err})
+		resp.Diagnostics.AddError("Failed to marshal create cluster request", err.Error())
+		return
+	}
+	tflog.Debug(ctx, "Creating a cluster: %v", map[string]interface{}{"createClusterReq": string(reqBody)})
+	clusterID, err := qbertClient.CreateCluster(*createClusterReq, projectID, qbert.CreateClusterOptions{})
 	if err != nil {
 		tflog.Error(ctx, "Failed to create cluster", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to create cluster", err.Error())
@@ -109,7 +116,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		})
 	}
 	tflog.Debug(ctx, "Attaching nodes", map[string]interface{}{"nodeList": nodeList})
-	err = r.client.Qbert().AttachNodes(clusterID, nodeList)
+	err = qbertClient.AttachNodes(clusterID, nodeList)
 	if err != nil {
 		tflog.Error(ctx, "Failed to attach nodes", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to attach nodes", err.Error())
@@ -117,7 +124,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	tflog.Debug(ctx, "Attached nodes, saving state", map[string]interface{}{"nodeList": nodeList})
 	data.Id = types.StringValue(clusterID)
-	cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
+	cluster, err := qbertClient.GetCluster(ctx, projectID, clusterID)
 	if err != nil {
 		tflog.Error(ctx, "Failed to get cluster", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to get cluster", err.Error())
@@ -190,7 +197,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 	projectID := authInfo.ProjectID
-	clusterID := plan.Id.ValueString()
+	clusterID := state.Id.ValueString()
 	if !plan.WorkerNodes.Equal(state.WorkerNodes) || !plan.MasterNodes.Equal(state.MasterNodes) {
 		tflog.Debug(ctx, "Change in nodes detected, attaching/detaching nodes")
 		resp.Diagnostics.Append(r.attachDetachNodes(ctx, plan, state)...)
@@ -199,28 +206,29 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	}
 
-	// editClusterReq, d := ToEditClusterReq(ctx, plan)
-	// resp.Diagnostics.Append(d...)
-	// if resp.Diagnostics.HasError() {
-	// 	return
-	// }
-	// // TODO: Why update is failing with method not allowed?
-	// err = r.client.Qbert().EditCluster(editClusterReq, clusterID, projectID)
-	// if err != nil {
-	// 	resp.Diagnostics.AddError("Failed to update cluster", err.Error())
-	// 	return
-	// }
+	if !plan.Tags.Equal(state.Tags) || !plan.Name.Equal(state.Name) || !plan.EtcdBackup.Equal(state.EtcdBackup) {
+		editClusterReq, d := ToEditClusterReq(ctx, plan)
+		resp.Diagnostics.Append(d...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		err = r.client.Qbert().EditCluster(editClusterReq, clusterID, projectID)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to update cluster", err.Error())
+			return
+		}
 
-	cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to get cluster", err.Error())
-		return
-	}
+		cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to get cluster", err.Error())
+			return
+		}
 
-	diags := qbertClusterToTerraformCluster(ctx, cluster, &state)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
+		diags := qbertClusterToTerraformCluster(ctx, cluster, &state)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
 	}
 
 	// Save updated data into Terraform state
@@ -433,15 +441,18 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 	req.UseHostname = in.UseHostname.ValueBoolPointer()
 	req.InterfaceDetectionMethod = in.InterfaceDetectionMethod.ValueStringPointer()
 	req.InterfaceName = in.InterfaceName.ValueStringPointer()
-	if in.NodePoolUuid.IsNull() {
+	if in.NodePoolUuid.IsNull() || in.NodePoolUuid.ValueString() == "" {
+		tflog.Debug(ctx, "Node pool UUID not provided, getting default node pool")
 		localNodePoolUUID, err := r.client.Qbert().GetNodePoolID(projectID)
 		if err != nil {
 			tflog.Error(ctx, "Failed to get node pool", map[string]interface{}{"error": err})
 			diags.AddError("Failed to get node pool", err.Error())
 			return nil, diags
 		}
+		tflog.Debug(ctx, "Got default node pool", map[string]interface{}{"nodePoolUUID": localNodePoolUUID})
 		req.NodePoolUUID = ptr.To(localNodePoolUUID)
 	} else {
+		tflog.Debug(ctx, "Node pool UUID provided", map[string]interface{}{"nodePoolUUID": in.NodePoolUuid.ValueString()})
 		req.NodePoolUUID = in.NodePoolUuid.ValueStringPointer()
 	}
 	if !in.KubeRoleVersion.IsNull() {
@@ -511,10 +522,7 @@ func getDefaultCreateClusterReq() qbert.CreateClusterRequest {
 
 func ToEditClusterReq(ctx context.Context, plan resource_cluster.ClusterModel) (qbert.EditClusterRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
-
 	eReq := qbert.EditClusterRequest{}
-	eReq.Name = plan.Name.ValueStringPointer()
-	eReq.ContainersCidr = plan.ContainersCidr.ValueStringPointer()
 	var etcdConfig qbert.EtcdBackupConfig
 	etcdConfig.DailyBackupTime = plan.EtcdBackup.DailyBackupTime.ValueStringPointer()
 	if plan.EtcdBackup.IsEtcdBackupEnabled.ValueBool() {
@@ -526,6 +534,7 @@ func ToEditClusterReq(ctx context.Context, plan resource_cluster.ClusterModel) (
 	etcdConfig.StorageProperties.LocalPath = plan.EtcdBackup.StorageLocalPath.ValueStringPointer()
 	etcdConfig.StorageType = plan.EtcdBackup.StorageType.ValueStringPointer()
 	eReq.EtcdBackup = &etcdConfig
+	// eReq.ContainersCidr = plan.ContainersCidr.ValueStringPointer()
 	// TODO: Add following fields to provider_code_spec.json
 	// eReq.CertExpiryHrs = plan.CertExpiryHrs.ValueStringPointer()
 	// eReq.EnableProfileAgent = plan.EnableProfileAgent.ValueBoolPointer()
@@ -537,7 +546,7 @@ func ToEditClusterReq(ctx context.Context, plan resource_cluster.ClusterModel) (
 	// eReq.NumMaxWorkers = plan.NumMaxWorkers.ValueInt64Pointer()
 	// eReq.NumMinWorkers = plan.NumMinWorkers.ValueInt64Pointer()
 	// eReq.NumWorkers = plan.NumWorkers.ValueInt64Pointer()
-	eReq.ServicesCidr = plan.ServicesCidr.ValueStringPointer()
+	// eReq.ServicesCidr = plan.ServicesCidr.ValueStringPointer()
 	eReq.Tags = map[string]string{}
 	tagsGoMap := map[string]string{}
 	diags = plan.Tags.ElementsAs(ctx, &tagsGoMap, false)
