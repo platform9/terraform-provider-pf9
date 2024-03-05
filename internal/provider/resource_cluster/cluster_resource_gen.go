@@ -11,7 +11,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -32,25 +35,37 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "If the master nodes can run non-critical workloads",
 				MarkdownDescription: "If the master nodes can run non-critical workloads",
-				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+				Default: booldefault.StaticBool(false),
 			},
 			"calico_controller_cpu_limit": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.",
 				MarkdownDescription: "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"calico_controller_memory_limit": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.",
 				MarkdownDescription: "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"calico_ip_ip_mode": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet",
 				MarkdownDescription: "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("Always", "Never", "CrossSubnet"),
 				},
@@ -66,44 +81,65 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "Field is set to true if Calico nodes need to NAT north-south egress traffic.",
 				MarkdownDescription: "Field is set to true if Calico nodes need to NAT north-south egress traffic.",
-				Default:             booldefault.StaticBool(true),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+				Default: booldefault.StaticBool(true),
 			},
 			"calico_node_cpu_limit": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico.",
 				MarkdownDescription: "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"calico_node_memory_limit": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico.",
 				MarkdownDescription: "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"calico_typha_cpu_limit": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico.",
 				MarkdownDescription: "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"calico_typha_memory_limit": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico.",
 				MarkdownDescription: "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"calico_v4_block_size": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Subnet size per node for the Calico network, in CIDR notation (e.g. 26)",
 				MarkdownDescription: "Subnet size per node for the Calico network, in CIDR notation (e.g. 26)",
-				Default:             stringdefault.StaticString("26"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Default: stringdefault.StaticString("26"),
 			},
 			"cert_expiry_hrs": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Number of hours before user certificates in kubeconfig expires, should be greater than 0 if set",
 				MarkdownDescription: "Number of hours before user certificates in kubeconfig expires, should be greater than 0 if set",
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 				Validators: []validator.Int64{
 					int64validator.AtLeast(1),
 				},
@@ -114,6 +150,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "Container runtime used by this cluster",
 				MarkdownDescription: "Container runtime used by this cluster",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("containerd"),
 				},
@@ -125,7 +164,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "CIDR used for pod IP addresses, applicable also for manual deploy",
 				MarkdownDescription: "CIDR used for pod IP addresses, applicable also for manual deploy",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Default: stringdefault.StaticString("10.20.0.0/16"),
 			},
@@ -134,6 +173,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "options: none, static; default: none",
 				MarkdownDescription: "options: none, static; default: none",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("none", "static"),
 				},
@@ -144,51 +186,70 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "If set to true, deploy Luigi operator on the cluster",
 				MarkdownDescription: "If set to true, deploy Luigi operator on the cluster",
-				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+				Default: booldefault.StaticBool(false),
 			},
 			"enable_metallb": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "If true, install MetalLB to support the loadbalancer service-type",
 				MarkdownDescription: "If true, install MetalLB to support the loadbalancer service-type",
-				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+				Default: booldefault.StaticBool(false),
 			},
 			"etcd_backup": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"daily_backup_time": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "etcd backup Timestamp for daily backup, specified in format 'HH:MM' ",
-						MarkdownDescription: "etcd backup Timestamp for daily backup, specified in format 'HH:MM' ",
-						Default:             stringdefault.StaticString("02:00"),
+						Description:         "etcd backup Timestamp for daily backup, specified in format 'HH:MM'",
+						MarkdownDescription: "etcd backup Timestamp for daily backup, specified in format 'HH:MM'",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+						Default: stringdefault.StaticString("02:00"),
 					},
 					"is_etcd_backup_enabled": schema.BoolAttribute{
-						Optional:            true,
-						Computed:            true,
+						Required:            true,
 						Description:         "Set to true if etcd backup should be enabled, false otherwise",
 						MarkdownDescription: "Set to true if etcd backup should be enabled, false otherwise",
-						Default:             booldefault.StaticBool(true),
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"max_timestamp_backup_count": schema.Int64Attribute{
 						Optional:            true,
 						Computed:            true,
 						Description:         "max number of Backups retention for Timestamp type backups, required if dailyBackupTime is provided",
 						MarkdownDescription: "max number of Backups retention for Timestamp type backups, required if dailyBackupTime is provided",
-						Default:             int64default.StaticInt64(3),
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
+						Default: int64default.StaticInt64(3),
 					},
 					"storage_local_path": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
 						Description:         "Path on the local filesystem where the etcd backup should be stored. For 'local' storage type only.",
 						MarkdownDescription: "Path on the local filesystem where the etcd backup should be stored. For 'local' storage type only.",
-						Default:             stringdefault.StaticString("/etc/pf9/etcd-backup"),
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+						Default: stringdefault.StaticString("/etc/pf9/etcd-backup"),
 					},
 					"storage_type": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
 						Description:         "Type of storage to be used for etcd backup. Supported choices are local, s3, gcs",
 						MarkdownDescription: "Type of storage to be used for etcd backup. Supported choices are local, s3, gcs",
-						Default:             stringdefault.StaticString("local"),
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+						Default: stringdefault.StaticString("local"),
 					},
 				},
 				CustomType: EtcdBackupType{
@@ -196,19 +257,27 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 						AttrTypes: EtcdBackupValue{}.AttributeTypes(ctx),
 					},
 				},
-				Optional: true,
-				Computed: true,
+				Required: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"external_dns_name": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Optional DNS name for API endpoint. This field is autogenerated when usePf9Domain is set, also applicable for manual deploy",
 				MarkdownDescription: "Optional DNS name for API endpoint. This field is autogenerated when usePf9Domain is set, also applicable for manual deploy",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
 				Description:         "UUID of the cluster",
 				MarkdownDescription: "UUID of the cluster",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"interface_detection_method": schema.StringAttribute{
 				Optional:            true,
@@ -216,7 +285,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "Method to detect the interface",
 				MarkdownDescription: "Method to detect the interface",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Default: stringdefault.StaticString("first-found"),
 			},
@@ -225,10 +294,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "Name of the interface",
 				MarkdownDescription: "Name of the interface",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-				Default: stringdefault.StaticString(""),
+				Default:             stringdefault.StaticString(""),
 			},
 			"kube_role_version": schema.StringAttribute{
 				Optional:            true,
@@ -236,7 +302,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "kube role version to be used when bringing up the cluster.",
 				MarkdownDescription: "kube role version to be used when bringing up the cluster.",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"master_ip": schema.StringAttribute{
@@ -245,7 +311,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "IP of master node",
 				MarkdownDescription: "IP of master node",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"master_nodes": schema.SetAttribute{
@@ -256,27 +322,22 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"master_vip_iface": schema.StringAttribute{
 				Optional:            true,
-				Computed:            true,
 				Description:         "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to",
 				MarkdownDescription: "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"master_vip_ipv4": schema.StringAttribute{
 				Optional:            true,
-				Computed:            true,
 				Description:         "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
 				MarkdownDescription: "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"metallb_cidr": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Comma-separated pools of IPs that MetalLB will manage (for example: A.B.C.D-E.F.G.H, I.J.K.L-M.N.O.P)",
 				MarkdownDescription: "Comma-separated pools of IPs that MetalLB will manage (for example: A.B.C.D-E.F.G.H, I.J.K.L-M.N.O.P)",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 				Validators: []validator.String{
 					stringvalidator.AlsoRequires(path.MatchRelative().AtName("enable_metallb")),
 				},
@@ -303,21 +364,24 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "MTU for container network interfaces. Optional and used for the Calico network backend",
 				MarkdownDescription: "MTU for container network interfaces. Optional and used for the Calico network backend",
-				Default:             int64default.StaticInt64(1440),
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
+				Default: int64default.StaticInt64(1440),
 			},
 			"name": schema.StringAttribute{
 				Required:            true,
 				Description:         "Name of the cluster, applicable also for manual deploy",
 				MarkdownDescription: "Name of the cluster, applicable also for manual deploy",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"network_plugin": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Network backend to use for container networking. Defaults to flannel. Supported choices are flannel, calico",
 				MarkdownDescription: "Network backend to use for container networking. Defaults to flannel. Supported choices are flannel, calico",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("calico", "flannel"),
 				},
@@ -329,7 +393,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "Optional. UUID of the node pool used for the cluster. Defaults to the first node pool of the local cloud provider type",
 				MarkdownDescription: "Optional. UUID of the node pool used for the cluster. Defaults to the first node pool of the local cloud provider type",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"privileged": schema.BoolAttribute{
@@ -337,13 +401,19 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "True if cluster runs privileged containers",
 				MarkdownDescription: "True if cluster runs privileged containers",
-				Default:             booldefault.StaticBool(true),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+				Default: booldefault.StaticBool(true),
 			},
 			"runtime_config": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Applicable also for manual deploy",
 				MarkdownDescription: "Applicable also for manual deploy",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"services_cidr": schema.StringAttribute{
 				Optional:            true,
@@ -351,7 +421,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "CIDR used for service IP addresses, applicable also for manual deploy",
 				MarkdownDescription: "CIDR used for service IP addresses, applicable also for manual deploy",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Default: stringdefault.StaticString("10.21.0.0/16"),
 			},
@@ -366,6 +436,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "options: none, best-effort, restricted, single-numa-node; default: none",
 				MarkdownDescription: "options: none, best-effort, restricted, single-numa-node; default: none",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("none", "best-effort", "restricted", "single-numa-node"),
 				},
@@ -376,7 +449,10 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts.",
 				MarkdownDescription: "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts.",
-				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+				Default: booldefault.StaticBool(false),
 			},
 			"worker_nodes": schema.SetAttribute{
 				ElementType:         types.StringType,

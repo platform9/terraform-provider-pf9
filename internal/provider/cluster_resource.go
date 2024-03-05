@@ -212,10 +212,6 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	editClusterReq := qbert.EditClusterRequest{}
-	if !plan.Name.Equal(state.Name) {
-		editClusterReq.Name = plan.Name.ValueStringPointer()
-	}
-
 	var editRequired bool
 	if !plan.EtcdBackup.Equal(state.EtcdBackup) {
 		editRequired = true
@@ -292,8 +288,8 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	// editClusterReq.NumMinWorkers = plan.NumMinWorkers.ValueInt64Pointer()
 	// editClusterReq.NumWorkers = plan.NumWorkers.ValueInt64Pointer()
 
-	if !plan.Tags.Equal(state.Tags) {
-		editRequired = true
+	if editRequired {
+		// qberty API replaces tags with empty map if tags are not provided
 		editClusterReq.Tags = map[string]string{}
 		tagsGoMap := map[string]string{}
 		resp.Diagnostics.Append(plan.Tags.ElementsAs(ctx, &tagsGoMap, false)...)
@@ -301,8 +297,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 			return
 		}
 		editClusterReq.Tags = tagsGoMap
-	}
-	if editRequired {
+
 		err = r.client.Qbert().EditCluster(editClusterReq, clusterID, projectID)
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to update cluster", err.Error())
