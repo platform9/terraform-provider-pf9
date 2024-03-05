@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -67,14 +66,23 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	createClusterReq, d := r.CreateCreateClusterRequest(ctx, authInfo.ProjectID, &data)
 	resp.Diagnostics.Append(d...)
 	if resp.Diagnostics.HasError() {
+		tflog.Error(ctx, "Failed to create create cluster object")
 		return
 	}
-	if resp.Diagnostics.HasError() {
-		tflog.Error(ctx, "Failed to convert to domain object", map[string]interface{}{"error": err})
-		resp.Diagnostics.AddError("Failed to convert", err.Error())
-		return
+	if createClusterReq.KubeRoleVersion == "" {
+		krVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
+		if err != nil {
+			tflog.Error(ctx, "Failed to get supported versions", map[string]interface{}{"error": err})
+			resp.Diagnostics.AddError("Failed to get supported versions", err.Error())
+			return
+		}
+		tflog.Debug(ctx, "Supported versions", map[string]interface{}{"krVersions": krVersions})
+		if len(krVersions.Roles) > 0 {
+			// TODO: How to identify the default role version? How UI does it?
+			createClusterReq.KubeRoleVersion = krVersions.Roles[len(krVersions.Roles)-1].RoleVersion
+		}
 	}
-	qbertClient := r.client.Qbert()
+
 	reqBody, err := json.Marshal(createClusterReq)
 	if err != nil {
 		tflog.Error(ctx, "Failed to marshal create cluster request", map[string]interface{}{"error": err})
@@ -82,6 +90,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 	tflog.Debug(ctx, "Creating a cluster: %v", map[string]interface{}{"createClusterReq": string(reqBody)})
+	qbertClient := r.client.Qbert()
 	clusterID, err := qbertClient.CreateCluster(*createClusterReq, projectID, qbert.CreateClusterOptions{})
 	if err != nil {
 		tflog.Error(ctx, "Failed to create cluster", map[string]interface{}{"error": err})
@@ -92,8 +101,6 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	var masterNodeIDs []string
 	resp.Diagnostics.Append(data.MasterNodes.ElementsAs(ctx, &masterNodeIDs, false)...)
 	if resp.Diagnostics.HasError() {
-		tflog.Error(ctx, "Failed to convert master nodes to domain object", map[string]interface{}{"error": err.Error()})
-		resp.Diagnostics.AddError("Failed to convert master nodes to domain object", err.Error())
 		return
 	}
 	for _, nodeID := range masterNodeIDs {
@@ -105,8 +112,6 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	var workerNodeIDs []string
 	resp.Diagnostics.Append(data.WorkerNodes.ElementsAs(ctx, &workerNodeIDs, false)...)
 	if resp.Diagnostics.HasError() {
-		tflog.Error(ctx, "Failed to convert worker nodes to domain object", map[string]interface{}{"error": err.Error()})
-		resp.Diagnostics.AddError("Failed to convert worker nodes to domain object", err.Error())
 		return
 	}
 	for _, nodeID := range workerNodeIDs {
@@ -206,29 +211,118 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	}
 
-	if !plan.Tags.Equal(state.Tags) || !plan.Name.Equal(state.Name) || !plan.EtcdBackup.Equal(state.EtcdBackup) {
-		editClusterReq, d := ToEditClusterReq(ctx, plan)
-		resp.Diagnostics.Append(d...)
+	editClusterReq := qbert.EditClusterRequest{}
+	if !plan.Name.Equal(state.Name) {
+		editClusterReq.Name = plan.Name.ValueStringPointer()
+	}
+
+	var editRequired bool
+	if !plan.EtcdBackup.Equal(state.EtcdBackup) {
+		editRequired = true
+		var etcdConfig qbert.EtcdBackupConfig
+		etcdConfig.DailyBackupTime = plan.EtcdBackup.DailyBackupTime.ValueStringPointer()
+		if plan.EtcdBackup.IsEtcdBackupEnabled.ValueBool() {
+			etcdConfig.IsEtcdBackupEnabled = ptr.To(1)
+		} else {
+			etcdConfig.IsEtcdBackupEnabled = ptr.To(0)
+		}
+		etcdConfig.MaxTimestampBackupCount = ptr.To(int(plan.EtcdBackup.MaxTimestampBackupCount.ValueInt64()))
+		etcdConfig.StorageProperties.LocalPath = plan.EtcdBackup.StorageLocalPath.ValueStringPointer()
+		etcdConfig.StorageType = plan.EtcdBackup.StorageType.ValueStringPointer()
+		editClusterReq.EtcdBackup = &etcdConfig
+	}
+
+	if !plan.CertExpiryHrs.Equal(state.CertExpiryHrs) {
+		editRequired = true
+		editClusterReq.CertExpiryHrs = ptr.To(int(plan.CertExpiryHrs.ValueInt64()))
+	}
+	if !plan.ExternalDnsName.Equal(state.ExternalDnsName) {
+		editRequired = true
+		editClusterReq.ExternalDnsName = plan.ExternalDnsName.ValueStringPointer()
+	}
+	if !plan.MasterIp.Equal(state.MasterIp) {
+		editRequired = true
+		editClusterReq.MasterIp = plan.MasterIp.ValueStringPointer()
+	}
+	if !plan.EnableMetallb.Equal(state.EnableMetallb) {
+		editRequired = true
+		editClusterReq.EnableMetalLb = plan.EnableMetallb.ValueBoolPointer()
+	}
+	if !plan.MetallbCidr.Equal(state.MetallbCidr) {
+		editClusterReq.MetallbCidr = plan.MetallbCidr.ValueStringPointer()
+	}
+	if !plan.CalicoNodeCpuLimit.Equal(state.CalicoNodeCpuLimit) {
+		editRequired = true
+		editClusterReq.CalicoNodeCpuLimit = plan.CalicoNodeCpuLimit.ValueString()
+	}
+	if !plan.CalicoNodeMemoryLimit.Equal(state.CalicoNodeMemoryLimit) {
+		editRequired = true
+		editClusterReq.CalicoNodeMemoryLimit = plan.CalicoNodeMemoryLimit.ValueString()
+	}
+	if !plan.CalicoTyphaCpuLimit.Equal(state.CalicoTyphaCpuLimit) {
+		editRequired = true
+		editClusterReq.CalicoTyphaCpuLimit = plan.CalicoTyphaCpuLimit.ValueString()
+	}
+	if !plan.CalicoTyphaMemoryLimit.Equal(state.CalicoTyphaMemoryLimit) {
+		editRequired = true
+		editClusterReq.CalicoTyphaMemoryLimit = plan.CalicoTyphaMemoryLimit.ValueString()
+	}
+	if !plan.CalicoControllerCpuLimit.Equal(state.CalicoControllerCpuLimit) {
+		editRequired = true
+		editClusterReq.CalicoControllerCpuLimit = plan.CalicoControllerCpuLimit.ValueString()
+	}
+	if !plan.CalicoControllerMemoryLimit.Equal(state.CalicoControllerMemoryLimit) {
+		editRequired = true
+		editClusterReq.CalicoControllerMemoryLimit = plan.CalicoControllerMemoryLimit.ValueString()
+	}
+	if !plan.ContainersCidr.Equal(state.ContainersCidr) {
+		editRequired = true
+		editClusterReq.ContainersCidr = plan.ContainersCidr.ValueStringPointer()
+	}
+	if !plan.ServicesCidr.Equal(state.ServicesCidr) {
+		editRequired = true
+		editClusterReq.ServicesCidr = plan.ServicesCidr.ValueStringPointer()
+	}
+
+	// TODO: Add following fields to provider_code_spec.json
+	// editClusterReq.KubeProxyMode = plan.KubeProxyMode.ValueStringPointer()
+	// editClusterReq.EnableProfileAgent = plan.EnableProfileAgent.ValueBoolPointer()
+	// editClusterReq.EnableCatapultMonitoring = plan.EnableCatapultMonitoring.ValueBoolPointer()
+	// editClusterReq.NumMaxWorkers = plan.NumMaxWorkers.ValueInt64Pointer()
+	// editClusterReq.NumMinWorkers = plan.NumMinWorkers.ValueInt64Pointer()
+	// editClusterReq.NumWorkers = plan.NumWorkers.ValueInt64Pointer()
+
+	if !plan.Tags.Equal(state.Tags) {
+		editRequired = true
+		editClusterReq.Tags = map[string]string{}
+		tagsGoMap := map[string]string{}
+		resp.Diagnostics.Append(plan.Tags.ElementsAs(ctx, &tagsGoMap, false)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
+		editClusterReq.Tags = tagsGoMap
+	}
+	if editRequired {
 		err = r.client.Qbert().EditCluster(editClusterReq, clusterID, projectID)
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to update cluster", err.Error())
 			return
 		}
+	} else {
+		tflog.Debug(ctx, "No change detected, skipping update")
 
-		cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to get cluster", err.Error())
-			return
-		}
+	}
 
-		diags := qbertClusterToTerraformCluster(ctx, cluster, &state)
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
+	cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get cluster", err.Error())
+		return
+	}
+
+	diags := qbertClusterToTerraformCluster(ctx, cluster, &state)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
 	}
 
 	// Save updated data into Terraform state
@@ -359,14 +453,33 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.CalicoIpv4DetectionMethod = types.StringValue(in.CalicoIPv4DetectionMethod)
 	out.NetworkPlugin = types.StringValue(in.NetworkPlugin)
 	out.RuntimeConfig = types.StringValue(in.RuntimeConfig)
+
+	out.ExternalDnsName = types.StringValue(in.ExternalDnsName)
+	out.CertExpiryHrs = types.Int64Value(int64(in.CertExpiryHrs))
+	out.CalicoNodeCpuLimit = types.StringValue(in.CalicoNodeCpuLimit)
+	out.CalicoNodeMemoryLimit = types.StringValue(in.CalicoNodeMemoryLimit)
+	out.CalicoTyphaCpuLimit = types.StringValue(in.CalicoTyphaCpuLimit)
+	out.CalicoTyphaMemoryLimit = types.StringValue(in.CalicoTyphaMemoryLimit)
+	out.CalicoControllerCpuLimit = types.StringValue(in.CalicoControllerCpuLimit)
+	out.CalicoControllerMemoryLimit = types.StringValue(in.CalicoControllerMemoryLimit)
+	out.EnableMetallb = types.BoolValue(in.EnableMetallb != 0)
+	out.MetallbCidr = types.StringValue(in.MetallbCidr)
+
 	if in.EtcdBackup != nil {
+		var localPathVal types.String
+		storageProps := in.EtcdBackup.StorageProperties
+		if storageProps.LocalPath != nil {
+			localPathVal = types.StringValue(*in.EtcdBackup.StorageProperties.LocalPath)
+		} else {
+			localPathVal = types.StringNull()
+		}
 		etcdBackup, d := resource_cluster.NewEtcdBackupValue(
 			resource_cluster.EtcdBackupValue{}.AttributeTypes(ctx),
 			map[string]attr.Value{
 				"is_etcd_backup_enabled":     types.BoolValue(*in.EtcdBackup.IsEtcdBackupEnabled != 0),
 				"storage_type":               types.StringValue(*in.EtcdBackup.StorageType),
 				"max_timestamp_backup_count": types.Int64Value(int64(*in.EtcdBackup.MaxTimestampBackupCount)),
-				"storage_local_path":         types.StringValue(*in.EtcdBackup.StorageProperties.LocalPath),
+				"storage_local_path":         localPathVal,
 				"daily_backup_time":          types.StringValue(*in.EtcdBackup.DailyBackupTime),
 			},
 		)
@@ -392,56 +505,39 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projectID string, in *resource_cluster.ClusterModel) (*qbert.CreateClusterRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	clusterID, err := uuid.GenerateUUID()
-	if err != nil {
-		tflog.Error(ctx, "Failed to generate UUID", map[string]interface{}{"error": err})
-		diags.AddError("Failed to generate UUID", err.Error())
-		return nil, diags
-	}
-
 	req := getDefaultCreateClusterReq()
 	req.Name = in.Name.ValueString()
-	req.UUID = ptr.To(clusterID)
 	req.Privileged = in.Privileged.ValueBoolPointer()
-	req.MasterIP = in.MasterIp.ValueStringPointer()
-	if !in.MasterNodes.IsNull() {
-		masterNodes := []string{}
-		diags.Append(in.MasterNodes.ElementsAs(ctx, &masterNodes, false)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		req.MasterNodes = masterNodes
+	req.MasterIP = in.MasterIp.ValueString()
+	masterNodes := []string{}
+	diags.Append(in.MasterNodes.ElementsAs(ctx, &masterNodes, false)...)
+	if diags.HasError() {
+		return nil, diags
 	}
+	req.MasterNodes = masterNodes
 
-	if !in.WorkerNodes.IsNull() {
+	if !in.WorkerNodes.IsNull() && !in.WorkerNodes.IsUnknown() {
+		// if allow_workloads_on_master is true, then we dont need to add worker nodes
 		workerNodes := []string{}
 		diags.Append(in.WorkerNodes.ElementsAs(ctx, &workerNodes, false)...)
 		if diags.HasError() {
 			return nil, diags
 		}
 		req.WorkerNodes = workerNodes
+		//TODO: Validate worker nodes and master nodes are mutually exclusive
 	}
-
 	req.AllowWorkloadOnMaster = in.AllowWorkloadsOnMaster.ValueBoolPointer()
-	if !in.MasterVipIface.IsNull() {
-		req.MasterVirtualIPIface = in.MasterVipIface.ValueStringPointer()
-	}
-	if !in.MasterVipIpv4.IsNull() {
-		req.MasterVirtualIP = in.MasterVipIpv4.ValueStringPointer()
-	}
-	req.ContainerCIDR = in.ContainersCidr.ValueStringPointer()
-	req.ServiceCIDR = in.ServicesCidr.ValueStringPointer()
+	req.MasterVirtualIPIface = in.MasterVipIface.ValueString()
+	req.MasterVirtualIP = in.MasterVipIpv4.ValueString()
+	req.ContainerCIDR = in.ContainersCidr.ValueString()
+	req.ServiceCIDR = in.ServicesCidr.ValueString()
 	req.MTUSize = ptr.To(int(in.MtuSize.ValueInt64()))
 	req.Privileged = in.Privileged.ValueBoolPointer()
-	var deployLuigiOperatorInt int
-	if in.DeployLuigiOperator.ValueBool() {
-		deployLuigiOperatorInt = 1
-	}
-	req.DeployLuigiOperator = ptr.To(deployLuigiOperatorInt)
+	req.DeployLuigiOperator = in.DeployLuigiOperator.ValueBoolPointer()
 	req.UseHostname = in.UseHostname.ValueBoolPointer()
-	req.InterfaceDetectionMethod = in.InterfaceDetectionMethod.ValueStringPointer()
-	req.InterfaceName = in.InterfaceName.ValueStringPointer()
-	if in.NodePoolUuid.IsNull() || in.NodePoolUuid.ValueString() == "" {
+	req.InterfaceDetectionMethod = in.InterfaceDetectionMethod.ValueString()
+	req.InterfaceName = in.InterfaceName.ValueString()
+	if in.NodePoolUuid.IsNull() || in.NodePoolUuid.IsUnknown() || in.NodePoolUuid.ValueString() == "" {
 		tflog.Debug(ctx, "Node pool UUID not provided, getting default node pool")
 		localNodePoolUUID, err := r.client.Qbert().GetNodePoolID(projectID)
 		if err != nil {
@@ -450,34 +546,48 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 			return nil, diags
 		}
 		tflog.Debug(ctx, "Got default node pool", map[string]interface{}{"nodePoolUUID": localNodePoolUUID})
-		req.NodePoolUUID = ptr.To(localNodePoolUUID)
+		req.NodePoolUUID = localNodePoolUUID
 	} else {
 		tflog.Debug(ctx, "Node pool UUID provided", map[string]interface{}{"nodePoolUUID": in.NodePoolUuid.ValueString()})
-		req.NodePoolUUID = in.NodePoolUuid.ValueStringPointer()
+		req.NodePoolUUID = in.NodePoolUuid.ValueString()
 	}
-	if !in.KubeRoleVersion.IsNull() {
-		req.KubeRoleVersion = in.KubeRoleVersion.ValueStringPointer()
-	}
-	req.CPUManagerPolicy = in.CpuManagerPolicy.ValueStringPointer()
-	req.TopologyManagerPolicy = in.TopologyManagerPolicy.ValueStringPointer()
-	req.CalicoIPIPMode = in.CalicoIpIpMode.ValueStringPointer()
+	req.KubeRoleVersion = in.KubeRoleVersion.ValueString()
+	req.CPUManagerPolicy = in.CpuManagerPolicy.ValueString()
+	req.ExternalDNSName = in.ExternalDnsName.ValueString()
+	req.TopologyManagerPolicy = in.TopologyManagerPolicy.ValueString()
+	req.CalicoIPIPMode = in.CalicoIpIpMode.ValueString()
 	req.CalicoNatOutgoing = in.CalicoNatOutgoing.ValueBoolPointer()
-	req.CalicoV4BlockSize = in.CalicoV4BlockSize.ValueStringPointer()
-	req.CalicoIpv4DetectionMethod = in.CalicoIpv4DetectionMethod.ValueStringPointer()
-	req.NetworkPlugin = ptr.To(qbert.CNIBackend(in.NetworkPlugin.ValueString()))
-	req.RunTimeConfig = in.RuntimeConfig.ValueStringPointer()
-	var etcdConfig qbert.EtcdBackupConfig
-	etcdConfig.DailyBackupTime = in.EtcdBackup.DailyBackupTime.ValueStringPointer()
+	req.CalicoV4BlockSize = in.CalicoV4BlockSize.ValueString()
+	req.CalicoIpv4DetectionMethod = in.CalicoIpv4DetectionMethod.ValueString()
+	req.NetworkPlugin = qbert.CNIBackend(in.NetworkPlugin.ValueString())
+	req.RuntimeConfig = in.RuntimeConfig.ValueString()
+	req.EtcdBackup.DailyBackupTime = in.EtcdBackup.DailyBackupTime.ValueStringPointer()
 	if in.EtcdBackup.IsEtcdBackupEnabled.ValueBool() {
-		etcdConfig.IsEtcdBackupEnabled = ptr.To(1)
+		req.EtcdBackup.IsEtcdBackupEnabled = ptr.To(1)
 	} else {
-		etcdConfig.IsEtcdBackupEnabled = ptr.To(0)
+		req.EtcdBackup.IsEtcdBackupEnabled = ptr.To(0)
 	}
-	etcdConfig.MaxTimestampBackupCount = ptr.To(int(in.EtcdBackup.MaxTimestampBackupCount.ValueInt64()))
-	etcdConfig.StorageProperties.LocalPath = in.EtcdBackup.StorageLocalPath.ValueStringPointer()
-	etcdConfig.StorageType = in.EtcdBackup.StorageType.ValueStringPointer()
-	req.EtcdBackup = &etcdConfig
+	req.EtcdBackup.MaxTimestampBackupCount = ptr.To(int(in.EtcdBackup.MaxTimestampBackupCount.ValueInt64()))
+	req.EtcdBackup.StorageProperties.LocalPath = in.EtcdBackup.StorageLocalPath.ValueStringPointer()
+	req.EtcdBackup.StorageType = in.EtcdBackup.StorageType.ValueStringPointer()
 	req.Monitoring.RetentionTime = in.Monitoring.RetentionTime.ValueStringPointer()
+
+	req.ExternalDNSName = in.ExternalDnsName.ValueString()
+	req.CertExpiryHrs = ptr.To(int(in.CertExpiryHrs.ValueInt64()))
+
+	req.CalicoNodeCpuLimit = in.CalicoNodeCpuLimit.ValueString()
+	req.CalicoNodeMemoryLimit = in.CalicoNodeMemoryLimit.ValueString()
+	req.CalicoTyphaCpuLimit = in.CalicoTyphaCpuLimit.ValueString()
+	req.CalicoTyphaMemoryLimit = in.CalicoTyphaMemoryLimit.ValueString()
+	req.CalicoControllerCpuLimit = in.CalicoControllerCpuLimit.ValueString()
+	req.CalicoControllerMemoryLimit = in.CalicoControllerMemoryLimit.ValueString()
+
+	// If user has not included the attribute then it should not be sent to the API
+	if in.EnableMetallb.IsNull() {
+		req.EnableMetalLb = in.EnableMetallb.ValueBoolPointer()
+	}
+	req.MetallbCidr = in.MetallbCidr.ValueString()
+
 	tagsGoMap := map[string]string{}
 	diags = in.Tags.ElementsAs(ctx, &tagsGoMap, false)
 	if diags.HasError() {
@@ -489,72 +599,29 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 
 func getDefaultCreateClusterReq() qbert.CreateClusterRequest {
 	return qbert.CreateClusterRequest{
-		// Masterless:                ptr.To(true),
-		Privileged:       ptr.To(true),
-		ContainerRuntime: ptr.To(qbert.ContainerRuntimeContainerd),
-		ContainerCIDR:    ptr.To("10.20.0.0/16"),
-		ServiceCIDR:      ptr.To("10.21.0.0/16"),
-		// NumMaxWorkers:             ptr.To(100),
-		// NumMinWorkers:             ptr.To(1),
-		NumMasters:                ptr.To(0),
-		NumWorkers:                ptr.To(0),
-		CalicoIPIPMode:            ptr.To("Always"),
-		MTUSize:                   ptr.To(1440),
-		CalicoNatOutgoing:         ptr.To(true),
-		CalicoV4BlockSize:         ptr.To("24"),
-		CalicoIpv4DetectionMethod: ptr.To("can-reach=8.8.8.8"),
-		DeployLuigiOperator:       ptr.To(0), // We deploy a custom version of Luigi
-		DeployKubevirt:            ptr.To(0),
-		EnableCAS:                 ptr.To(false),
-		EnableEtcdEncryption:      ptr.To("true"), // Dont know why this is string type in API
+		// Privileged:                ptr.To(true),
+		// ContainerRuntime:          qbert.ContainerRuntimeContainerd,
+		// ContainerCIDR:             "10.20.0.0/16",
+		// ServiceCIDR:               "10.21.0.0/16",
+		// CalicoIPIPMode:            "Always",
+		// MTUSize:                   ptr.To(1440),
+		// CalicoNatOutgoing:         ptr.To(true),
+		// CalicoV4BlockSize:         "24",
+		// CalicoIpv4DetectionMethod: "can-reach=8.8.8.8",
+		// DeployLuigiOperator:       ptr.To(false), // We deploy a custom version of Luigi
+		// // EnableCAS:                 ptr.To(false),
+		// // EnableEtcdEncryption: "true", // Dont know why this is string type in API
 		EtcdBackup: &qbert.EtcdBackupConfig{
-			IsEtcdBackupEnabled: ptr.To(1),
-			StorageType:         ptr.To("local"),
-			StorageProperties: qbert.StorageProperties{
-				LocalPath: ptr.To("/etc/pf9/etcd-backup"),
-			},
+			// IsEtcdBackupEnabled: ptr.To(1),
+			// StorageType:         ptr.To("local"),
+			// StorageProperties: qbert.StorageProperties{
+			// 	LocalPath: ptr.To("/etc/pf9/etcd-backup"),
+			// },
 		},
 		Monitoring: &qbert.MonitoringConfig{
-			RetentionTime: ptr.To("7d"),
+			// RetentionTime: ptr.To("7d"),
 		},
 	}
-}
-
-func ToEditClusterReq(ctx context.Context, plan resource_cluster.ClusterModel) (qbert.EditClusterRequest, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	eReq := qbert.EditClusterRequest{}
-	var etcdConfig qbert.EtcdBackupConfig
-	etcdConfig.DailyBackupTime = plan.EtcdBackup.DailyBackupTime.ValueStringPointer()
-	if plan.EtcdBackup.IsEtcdBackupEnabled.ValueBool() {
-		etcdConfig.IsEtcdBackupEnabled = ptr.To(1)
-	} else {
-		etcdConfig.IsEtcdBackupEnabled = ptr.To(0)
-	}
-	etcdConfig.MaxTimestampBackupCount = ptr.To(int(plan.EtcdBackup.MaxTimestampBackupCount.ValueInt64()))
-	etcdConfig.StorageProperties.LocalPath = plan.EtcdBackup.StorageLocalPath.ValueStringPointer()
-	etcdConfig.StorageType = plan.EtcdBackup.StorageType.ValueStringPointer()
-	eReq.EtcdBackup = &etcdConfig
-	// eReq.ContainersCidr = plan.ContainersCidr.ValueStringPointer()
-	// TODO: Add following fields to provider_code_spec.json
-	// eReq.CertExpiryHrs = plan.CertExpiryHrs.ValueStringPointer()
-	// eReq.EnableProfileAgent = plan.EnableProfileAgent.ValueBoolPointer()
-	// eReq.EnableCatapultMonitoring = plan.EnableCatapultMonitoring.ValueBoolPointer()
-	// eReq.ExternalDnsName = plan.ExternalDnsName.ValueStringPointer()
-	// eReq.KubeProxyMode = plan.KubeProxyMode.ValueStringPointer()
-	// eReq.MasterIp = plan.MasterIp.ValueStringPointer()
-	// eReq.MetallbCidr = plan.MetallbCidr.ValueStringPointer()
-	// eReq.NumMaxWorkers = plan.NumMaxWorkers.ValueInt64Pointer()
-	// eReq.NumMinWorkers = plan.NumMinWorkers.ValueInt64Pointer()
-	// eReq.NumWorkers = plan.NumWorkers.ValueInt64Pointer()
-	// eReq.ServicesCidr = plan.ServicesCidr.ValueStringPointer()
-	eReq.Tags = map[string]string{}
-	tagsGoMap := map[string]string{}
-	diags = plan.Tags.ElementsAs(ctx, &tagsGoMap, false)
-	if diags.HasError() {
-		return eReq, diags
-	}
-	eReq.Tags = tagsGoMap
-	return eReq, diags
 }
 
 func (r *clusterResource) attachDetachNodes(ctx context.Context, plan resource_cluster.ClusterModel, state resource_cluster.ClusterModel) diag.Diagnostics {

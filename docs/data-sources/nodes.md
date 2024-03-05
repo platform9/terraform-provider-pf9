@@ -62,4 +62,4 @@ Read-Only:
 - `node_pool_name` (String) Name of the node pool, the node belongs to
 - `node_pool_uuid` (String) UUID of the node pool, the node belongs to
 - `primary_ip` (String) IP address of the node
-- `status` (String) Status of the node. States include “ok”, ”converging”, “failed”. These states indicate the current state of kubernetes setup on the host.
+- `status` (String) Status of the node. States include ok, converging, failed. These states indicate the current state of kubernetes setup on the host.

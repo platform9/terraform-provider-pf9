@@ -14,6 +14,7 @@ import (
 )
 
 var _ datasource.DataSource = (*nodesDataSource)(nil)
+var _ datasource.DataSourceWithConfigure = (*nodesDataSource)(nil)
 
 func NewNodesDataSource() datasource.DataSource {
 	return &nodesDataSource{}

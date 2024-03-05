@@ -5,9 +5,11 @@ package resource_cluster
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -32,6 +34,18 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "If the master nodes can run non-critical workloads",
 				Default:             booldefault.StaticBool(false),
 			},
+			"calico_controller_cpu_limit": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.",
+			},
+			"calico_controller_memory_limit": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.",
+			},
 			"calico_ip_ip_mode": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -54,12 +68,46 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "Field is set to true if Calico nodes need to NAT north-south egress traffic.",
 				Default:             booldefault.StaticBool(true),
 			},
+			"calico_node_cpu_limit": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico.",
+			},
+			"calico_node_memory_limit": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico.",
+			},
+			"calico_typha_cpu_limit": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico.",
+			},
+			"calico_typha_memory_limit": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico.",
+			},
 			"calico_v4_block_size": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "Subnet size per node for the Calico network, in CIDR notation (e.g. 26)",
 				MarkdownDescription: "Subnet size per node for the Calico network, in CIDR notation (e.g. 26)",
 				Default:             stringdefault.StaticString("26"),
+			},
+			"cert_expiry_hrs": schema.Int64Attribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Number of hours before user certificates in kubeconfig expires, should be greater than 0 if set",
+				MarkdownDescription: "Number of hours before user certificates in kubeconfig expires, should be greater than 0 if set",
+				Validators: []validator.Int64{
+					int64validator.AtLeast(1),
+				},
+				Default: int64default.StaticInt64(24),
 			},
 			"container_runtime": schema.StringAttribute{
 				Optional:            true,
@@ -96,6 +144,13 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "If set to true, deploy Luigi operator on the cluster",
 				MarkdownDescription: "If set to true, deploy Luigi operator on the cluster",
+				Default:             booldefault.StaticBool(false),
+			},
+			"enable_metallb": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "If true, install MetalLB to support the loadbalancer service-type",
+				MarkdownDescription: "If true, install MetalLB to support the loadbalancer service-type",
 				Default:             booldefault.StaticBool(false),
 			},
 			"etcd_backup": schema.SingleNestedAttribute{
@@ -142,6 +197,13 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					},
 				},
 				Optional: true,
+				Computed: true,
+			},
+			"external_dns_name": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Optional DNS name for API endpoint. This field is autogenerated when usePf9Domain is set, also applicable for manual deploy",
+				MarkdownDescription: "Optional DNS name for API endpoint. This field is autogenerated when usePf9Domain is set, also applicable for manual deploy",
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -188,7 +250,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"master_nodes": schema.SetAttribute{
 				ElementType:         types.StringType,
-				Optional:            true,
+				Required:            true,
 				Description:         "List of uuid of master nodes",
 				MarkdownDescription: "List of uuid of master nodes",
 			},
@@ -208,6 +270,15 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"metallb_cidr": schema.StringAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Comma-separated pools of IPs that MetalLB will manage (for example: A.B.C.D-E.F.G.H, I.J.K.L-M.N.O.P)",
+				MarkdownDescription: "Comma-separated pools of IPs that MetalLB will manage (for example: A.B.C.D-E.F.G.H, I.J.K.L-M.N.O.P)",
+				Validators: []validator.String{
+					stringvalidator.AlsoRequires(path.MatchRelative().AtName("enable_metallb")),
 				},
 			},
 			"monitoring": schema.SingleNestedAttribute{
@@ -255,8 +326,8 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			"node_pool_uuid": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "UUID of the node pool used for the cluster, applicable also for manual deploy",
-				MarkdownDescription: "UUID of the node pool used for the cluster, applicable also for manual deploy",
+				Description:         "Optional. UUID of the node pool used for the cluster. Defaults to the first node pool of the local cloud provider type",
+				MarkdownDescription: "Optional. UUID of the node pool used for the cluster. Defaults to the first node pool of the local cloud provider type",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -270,6 +341,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"runtime_config": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
 				Description:         "Applicable also for manual deploy",
 				MarkdownDescription: "Applicable also for manual deploy",
 			},
@@ -317,36 +389,46 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 }
 
 type ClusterModel struct {
-	AllowWorkloadsOnMaster    types.Bool      `tfsdk:"allow_workloads_on_master"`
-	CalicoIpIpMode            types.String    `tfsdk:"calico_ip_ip_mode"`
-	CalicoIpv4DetectionMethod types.String    `tfsdk:"calico_ipv4_detection_method"`
-	CalicoNatOutgoing         types.Bool      `tfsdk:"calico_nat_outgoing"`
-	CalicoV4BlockSize         types.String    `tfsdk:"calico_v4_block_size"`
-	ContainerRuntime          types.String    `tfsdk:"container_runtime"`
-	ContainersCidr            types.String    `tfsdk:"containers_cidr"`
-	CpuManagerPolicy          types.String    `tfsdk:"cpu_manager_policy"`
-	DeployLuigiOperator       types.Bool      `tfsdk:"deploy_luigi_operator"`
-	EtcdBackup                EtcdBackupValue `tfsdk:"etcd_backup"`
-	Id                        types.String    `tfsdk:"id"`
-	InterfaceDetectionMethod  types.String    `tfsdk:"interface_detection_method"`
-	InterfaceName             types.String    `tfsdk:"interface_name"`
-	KubeRoleVersion           types.String    `tfsdk:"kube_role_version"`
-	MasterIp                  types.String    `tfsdk:"master_ip"`
-	MasterNodes               types.Set       `tfsdk:"master_nodes"`
-	MasterVipIface            types.String    `tfsdk:"master_vip_iface"`
-	MasterVipIpv4             types.String    `tfsdk:"master_vip_ipv4"`
-	Monitoring                MonitoringValue `tfsdk:"monitoring"`
-	MtuSize                   types.Int64     `tfsdk:"mtu_size"`
-	Name                      types.String    `tfsdk:"name"`
-	NetworkPlugin             types.String    `tfsdk:"network_plugin"`
-	NodePoolUuid              types.String    `tfsdk:"node_pool_uuid"`
-	Privileged                types.Bool      `tfsdk:"privileged"`
-	RuntimeConfig             types.String    `tfsdk:"runtime_config"`
-	ServicesCidr              types.String    `tfsdk:"services_cidr"`
-	Tags                      types.Map       `tfsdk:"tags"`
-	TopologyManagerPolicy     types.String    `tfsdk:"topology_manager_policy"`
-	UseHostname               types.Bool      `tfsdk:"use_hostname"`
-	WorkerNodes               types.Set       `tfsdk:"worker_nodes"`
+	AllowWorkloadsOnMaster      types.Bool      `tfsdk:"allow_workloads_on_master"`
+	CalicoControllerCpuLimit    types.String    `tfsdk:"calico_controller_cpu_limit"`
+	CalicoControllerMemoryLimit types.String    `tfsdk:"calico_controller_memory_limit"`
+	CalicoIpIpMode              types.String    `tfsdk:"calico_ip_ip_mode"`
+	CalicoIpv4DetectionMethod   types.String    `tfsdk:"calico_ipv4_detection_method"`
+	CalicoNatOutgoing           types.Bool      `tfsdk:"calico_nat_outgoing"`
+	CalicoNodeCpuLimit          types.String    `tfsdk:"calico_node_cpu_limit"`
+	CalicoNodeMemoryLimit       types.String    `tfsdk:"calico_node_memory_limit"`
+	CalicoTyphaCpuLimit         types.String    `tfsdk:"calico_typha_cpu_limit"`
+	CalicoTyphaMemoryLimit      types.String    `tfsdk:"calico_typha_memory_limit"`
+	CalicoV4BlockSize           types.String    `tfsdk:"calico_v4_block_size"`
+	CertExpiryHrs               types.Int64     `tfsdk:"cert_expiry_hrs"`
+	ContainerRuntime            types.String    `tfsdk:"container_runtime"`
+	ContainersCidr              types.String    `tfsdk:"containers_cidr"`
+	CpuManagerPolicy            types.String    `tfsdk:"cpu_manager_policy"`
+	DeployLuigiOperator         types.Bool      `tfsdk:"deploy_luigi_operator"`
+	EnableMetallb               types.Bool      `tfsdk:"enable_metallb"`
+	EtcdBackup                  EtcdBackupValue `tfsdk:"etcd_backup"`
+	ExternalDnsName             types.String    `tfsdk:"external_dns_name"`
+	Id                          types.String    `tfsdk:"id"`
+	InterfaceDetectionMethod    types.String    `tfsdk:"interface_detection_method"`
+	InterfaceName               types.String    `tfsdk:"interface_name"`
+	KubeRoleVersion             types.String    `tfsdk:"kube_role_version"`
+	MasterIp                    types.String    `tfsdk:"master_ip"`
+	MasterNodes                 types.Set       `tfsdk:"master_nodes"`
+	MasterVipIface              types.String    `tfsdk:"master_vip_iface"`
+	MasterVipIpv4               types.String    `tfsdk:"master_vip_ipv4"`
+	MetallbCidr                 types.String    `tfsdk:"metallb_cidr"`
+	Monitoring                  MonitoringValue `tfsdk:"monitoring"`
+	MtuSize                     types.Int64     `tfsdk:"mtu_size"`
+	Name                        types.String    `tfsdk:"name"`
+	NetworkPlugin               types.String    `tfsdk:"network_plugin"`
+	NodePoolUuid                types.String    `tfsdk:"node_pool_uuid"`
+	Privileged                  types.Bool      `tfsdk:"privileged"`
+	RuntimeConfig               types.String    `tfsdk:"runtime_config"`
+	ServicesCidr                types.String    `tfsdk:"services_cidr"`
+	Tags                        types.Map       `tfsdk:"tags"`
+	TopologyManagerPolicy       types.String    `tfsdk:"topology_manager_policy"`
+	UseHostname                 types.Bool      `tfsdk:"use_hostname"`
+	WorkerNodes                 types.Set       `tfsdk:"worker_nodes"`
 }
 
 var _ basetypes.ObjectTypable = EtcdBackupType{}

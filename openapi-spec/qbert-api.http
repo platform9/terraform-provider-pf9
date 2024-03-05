@@ -51,14 +51,68 @@ Content-Type: application/json
 X-Auth-Token: {{token}}
 
 ###
+
 @clusterID = {{clusters.response.body.0.uuid}}
-# @clusterID = d545d1ac-3ca3-a3ec-388b-54f58fb8b3e9
+
 ###
 
 # @name cluster
 GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}
 Content-Type: application/json
 X-Auth-Token: {{token}}
+
+###
+
+# @name createCluster
+POST {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters
+Content-Type: application/json
+X-Auth-Token: {{token}}
+
+{
+    "name": "api-cluster-1",
+    "masterNodes": [
+        "359cce4a-1839-4b82-8533-8f2761079cd8"
+    ],
+    "allowWorkloadsOnMaster": true,
+    "containersCidr": "10.20.0.0/22",
+    "servicesCidr": "10.21.0.0/22",
+    "mtuSize": 1440,
+    "privileged": true,
+    "useHostname": false,
+    "nodePoolUuid": "21d5325c-d47e-47e7-bb78-517e0eef34e8",
+    "kubeRoleVersion": "1.27.8-pmk.47",
+    "calicoIpIpMode": "Always",
+    "calicoNatOutgoing": true,
+    "calicoV4BlockSize": "26",
+    "calicoIPv4DetectionMethod": "first-found",
+    "networkPlugin": "calico",
+    "runtimeConfig": "",
+    "containerRuntime": "containerd",
+    "etcdBackup": {
+        "storageType": "local",
+        "isEtcdBackupEnabled": 1,
+        "storageProperties": {
+            "localPath": "/etc/pf9/etcd-backup"
+        },
+        "dailyBackupTime": "02:00",
+        "maxTimestampBackupCount": 3
+    },
+    "monitoring": {},
+    "tags": {}
+}
+
+###
+
+@clusterID = {{createCluster.response.body.uuid}}
+
+###
+
+# @name attachNodes
+POST {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}/attach
+Content-Type: application/json
+X-Auth-Token: {{token}}
+
+[{"isMaster":true,"uuid":"359cce4a-1839-4b82-8533-8f2761079cd8"}]
 
 ###
 

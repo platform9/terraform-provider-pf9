@@ -3,7 +3,6 @@ module github.com/platform9/terraform-provider-pf9
 go 1.21.4
 
 require (
-	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/terraform-plugin-codegen-framework v0.3.1
 	github.com/hashicorp/terraform-plugin-docs v0.18.0
 	github.com/hashicorp/terraform-plugin-framework v1.5.0
@@ -15,6 +14,7 @@ require (
 )
 
 require (
+	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/Kunde21/markdownfmt/v3 v3.1.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
