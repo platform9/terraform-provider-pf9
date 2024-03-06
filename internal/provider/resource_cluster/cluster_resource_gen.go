@@ -361,6 +361,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "kube role version to be used when bringing up the cluster.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"master_ip": schema.StringAttribute{

@@ -58,7 +58,7 @@ func (d *clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}
-	tflog.Info(ctx, "AuthInfo: %v", map[string]interface{}{"authInfo": authInfo})
+
 	clusterID := data.Id.ValueString()
 	projectID := authInfo.ProjectID
 	cluster, err := d.client.Qbert().GetCluster(ctx, projectID, clusterID)

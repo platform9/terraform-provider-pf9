@@ -57,7 +57,7 @@ func (d *nodeDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}
-	tflog.Info(ctx, "AuthInfo: %v", map[string]interface{}{"authInfo": authInfo})
+
 	projectID := authInfo.ProjectID
 
 	nodes, err := d.client.Qbert().ListNodes(projectID)

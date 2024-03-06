@@ -60,7 +60,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}
-	tflog.Info(ctx, "AuthInfo: %v", map[string]interface{}{"authInfo": authInfo})
+
 	projectID := authInfo.ProjectID
 
 	// Cluster does not exist yet
@@ -70,17 +70,27 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		tflog.Error(ctx, "Failed to create create cluster object")
 		return
 	}
+	krVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
+	if err != nil {
+		tflog.Error(ctx, "Failed to get supported versions", map[string]interface{}{"error": err})
+		resp.Diagnostics.AddError("Failed to get supported versions", err.Error())
+		return
+	}
 	if createClusterReq.KubeRoleVersion == "" {
-		krVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
-		if err != nil {
-			tflog.Error(ctx, "Failed to get supported versions", map[string]interface{}{"error": err})
-			resp.Diagnostics.AddError("Failed to get supported versions", err.Error())
-			return
-		}
 		tflog.Debug(ctx, "Supported versions", map[string]interface{}{"krVersions": krVersions})
 		if len(krVersions.Roles) > 0 {
 			latestKubeRoleVersion := findLatestKubeRoleVersion(krVersions.Roles)
 			createClusterReq.KubeRoleVersion = latestKubeRoleVersion.RoleVersion
+		}
+	} else {
+		tflog.Debug(ctx, "KubeRoleVersion provided", map[string]interface{}{"kubeRoleVersion": createClusterReq.KubeRoleVersion})
+		allowedKubeRoleVersions := []string{}
+		for _, role := range krVersions.Roles {
+			allowedKubeRoleVersions = append(allowedKubeRoleVersions, role.RoleVersion)
+		}
+		if !StrSliceContains(allowedKubeRoleVersions, createClusterReq.KubeRoleVersion) {
+			resp.Diagnostics.AddError("KubeRoleVersion provided is not supported", fmt.Sprintf("Supported versions: %v", allowedKubeRoleVersions))
+			return
 		}
 	}
 
@@ -424,7 +434,7 @@ func (r *clusterResource) Delete(ctx context.Context, req resource.DeleteRequest
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}
-	tflog.Info(ctx, "AuthInfo: %v", map[string]interface{}{"authInfo": authInfo})
+
 	projectID := authInfo.ProjectID
 	clusterID := data.Id.ValueString()
 	err = r.client.Qbert().DeleteCluster(clusterID, projectID)
