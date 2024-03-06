@@ -104,6 +104,7 @@ X-Auth-Token: {{token}}
 ###
 
 @clusterID = {{createCluster.response.body.uuid}}
+@clusterID = f8e1689e-50a8-4a4e-b4c6-307d9d7ed62d
 
 ###
 
@@ -112,7 +113,20 @@ POST {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}/attach
 Content-Type: application/json
 X-Auth-Token: {{token}}
 
-[{"isMaster":true,"uuid":"359cce4a-1839-4b82-8533-8f2761079cd8"}]
+[{"isMaster":false,"uuid":"fdd6e1ba-7ee3-4399-8d59-6120d75fc11f"}]
+
+###
+
+# @name updateCluster
+PUT {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}
+Content-Type: application/json
+X-Auth-Token: {{token}}
+
+{
+    "tags": {
+      "key1": "value1"
+    }
+}
 
 ###
 
@@ -124,4 +138,18 @@ X-Auth-Token: {{token}}
 
 # @name getKubeconfig
 GET {{DU_FQDN}}/qbert/v4/{{projectID}}/kubeconfig/{{clusterID}}?force_cert_auth=false
+X-Auth-Token: {{token}}
+
+###
+
+# @name getClusterNodes
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}/nodes
+X-Auth-Token: {{token}}
+
+###
+
+# @name getNodes
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/nodes
 X-Auth-Token: {{token}}

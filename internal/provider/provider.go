@@ -116,6 +116,7 @@ func (p *pf9Provider) DataSources(ctx context.Context) []func() datasource.DataS
 		NewClusterDataSource,
 		NewNodeDataSource,
 		NewNodesDataSource,
+		NewNodepoolsDataSource,
 	}
 }
 

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -78,8 +79,8 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 		tflog.Debug(ctx, "Supported versions", map[string]interface{}{"krVersions": krVersions})
 		if len(krVersions.Roles) > 0 {
-			// TODO: How to identify the default role version? How UI does it?
-			createClusterReq.KubeRoleVersion = krVersions.Roles[len(krVersions.Roles)-1].RoleVersion
+			latestKubeRoleVersion := findLatestKubeRoleVersion(krVersions.Roles)
+			createClusterReq.KubeRoleVersion = latestKubeRoleVersion.RoleVersion
 		}
 	}
 
@@ -140,6 +141,31 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics = diags
 		return
 	}
+	clusterNodes, err := r.client.Qbert().ListClusterNodes(ctx, clusterID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get cluster nodes", err.Error())
+		return
+	}
+	masterNodes := []string{}
+	workerNodes := []string{}
+	for _, node := range clusterNodes {
+		if node.IsMaster == 1 {
+			masterNodes = append(masterNodes, node.UUID)
+		} else {
+			workerNodes = append(workerNodes, node.UUID)
+		}
+	}
+	var convertDiags diag.Diagnostics
+	data.MasterNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, masterNodes)
+	resp.Diagnostics.Append(convertDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.WorkerNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, workerNodes)
+	resp.Diagnostics.Append(convertDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -173,6 +199,31 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 	diags := qbertClusterToTerraformCluster(ctx, cluster, &data)
 	if diags.HasError() {
 		resp.Diagnostics = diags
+		return
+	}
+	clusterNodes, err := r.client.Qbert().ListClusterNodes(ctx, clusterID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get cluster nodes", err.Error())
+		return
+	}
+	masterNodes := []string{}
+	workerNodes := []string{}
+	for _, node := range clusterNodes {
+		if node.IsMaster == 1 {
+			masterNodes = append(masterNodes, node.UUID)
+		} else {
+			workerNodes = append(workerNodes, node.UUID)
+		}
+	}
+	var convertDiags diag.Diagnostics
+	data.MasterNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, masterNodes)
+	resp.Diagnostics.Append(convertDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.WorkerNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, workerNodes)
+	resp.Diagnostics.Append(convertDiags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -216,15 +267,19 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	if !plan.EtcdBackup.Equal(state.EtcdBackup) {
 		editRequired = true
 		var etcdConfig qbert.EtcdBackupConfig
-		etcdConfig.DailyBackupTime = plan.EtcdBackup.DailyBackupTime.ValueStringPointer()
+		etcdConfig.DailyBackupTime = plan.EtcdBackup.DailyBackupTime.ValueString()
 		if plan.EtcdBackup.IsEtcdBackupEnabled.ValueBool() {
-			etcdConfig.IsEtcdBackupEnabled = ptr.To(1)
+			etcdConfig.IsEtcdBackupEnabled = 1
 		} else {
-			etcdConfig.IsEtcdBackupEnabled = ptr.To(0)
+			etcdConfig.IsEtcdBackupEnabled = 0
 		}
-		etcdConfig.MaxTimestampBackupCount = ptr.To(int(plan.EtcdBackup.MaxTimestampBackupCount.ValueInt64()))
+		etcdConfig.MaxTimestampBackupCount = int(plan.EtcdBackup.MaxTimestampBackupCount.ValueInt64())
 		etcdConfig.StorageProperties.LocalPath = plan.EtcdBackup.StorageLocalPath.ValueStringPointer()
-		etcdConfig.StorageType = plan.EtcdBackup.StorageType.ValueStringPointer()
+		etcdConfig.StorageType = plan.EtcdBackup.StorageType.ValueString()
+
+		etcdConfig.IntervalInHours = int(plan.EtcdBackup.IntervalInHours.ValueInt64())
+		etcdConfig.IntervalInMins = int(plan.EtcdBackup.IntervalInMins.ValueInt64())
+		etcdConfig.MaxIntervalBackupCount = int(plan.EtcdBackup.MaxIntervalBackupCount.ValueInt64())
 		editClusterReq.EtcdBackup = &etcdConfig
 	}
 
@@ -280,7 +335,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		editClusterReq.ServicesCidr = plan.ServicesCidr.ValueStringPointer()
 	}
 
-	// TODO: Add following fields to provider_code_spec.json
+	// TODO: Add following fields to provider_code_spec.json if they are required
 	// editClusterReq.KubeProxyMode = plan.KubeProxyMode.ValueStringPointer()
 	// editClusterReq.EnableProfileAgent = plan.EnableProfileAgent.ValueBoolPointer()
 	// editClusterReq.EnableCatapultMonitoring = plan.EnableCatapultMonitoring.ValueBoolPointer()
@@ -317,6 +372,34 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	diags := qbertClusterToTerraformCluster(ctx, cluster, &state)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
+		return
+	}
+	// TODO: Use addon api to get addon related attributes
+	// /qbert/v4/projectID/sunpike/apis/sunpike.platform9.com/v1alpha2/namespaces/default/clusteraddons?labelSelector=sunpike.pf9.io%2Fcluster%3D<clusterID>
+
+	clusterNodes, err := r.client.Qbert().ListClusterNodes(ctx, clusterID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get cluster nodes", err.Error())
+		return
+	}
+	masterNodes := []string{}
+	workerNodes := []string{}
+	for _, node := range clusterNodes {
+		if node.IsMaster == 1 {
+			masterNodes = append(masterNodes, node.UUID)
+		} else {
+			workerNodes = append(workerNodes, node.UUID)
+		}
+	}
+	var convertDiags diag.Diagnostics
+	state.MasterNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, masterNodes)
+	resp.Diagnostics.Append(convertDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	state.WorkerNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, workerNodes)
+	resp.Diagnostics.Append(convertDiags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -360,66 +443,6 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 
 	out.Id = types.StringValue(in.UUID)
 	out.Name = types.StringValue(in.Name)
-	if in.CloudProperties != nil {
-		if len(in.CloudProperties.MasterNodes) > 0 {
-			masterNodes := []string{}
-			err := json.Unmarshal([]byte(in.CloudProperties.MasterNodes), &masterNodes)
-			if err != nil {
-				tflog.Error(ctx, "Failed to unmarshal master nodes", map[string]interface{}{"error": err})
-				diags.AddError("Failed to unmarshal master nodes", err.Error())
-				return diags
-			}
-			setVal, d := types.SetValueFrom(ctx, basetypes.StringType{}, masterNodes)
-
-			diags.Append(d...)
-			if diags.HasError() {
-				return diags
-			}
-			out.MasterNodes = setVal
-		}
-		if len(in.CloudProperties.WorkerNodes) > 0 {
-			workerNodes := []string{}
-			err := json.Unmarshal([]byte(in.CloudProperties.WorkerNodes), &workerNodes)
-			if err != nil {
-				tflog.Error(ctx, "Failed to unmarshal worker nodes", map[string]interface{}{"error": err})
-				diags.AddError("Failed to unmarshal worker nodes", err.Error())
-				return diags
-			}
-			setVal, d := types.SetValueFrom(ctx, basetypes.StringType{}, workerNodes)
-			diags.Append(d...)
-			if diags.HasError() {
-				return diags
-			}
-			out.WorkerNodes = setVal
-		}
-		if len(in.CloudProperties.Monitoring) > 0 {
-			var monitoring qbert.MonitoringConfig
-			err := json.Unmarshal([]byte(in.CloudProperties.Monitoring), &monitoring)
-			if err != nil {
-				tflog.Error(ctx, "Failed to unmarshal monitoring", map[string]interface{}{"error": err})
-				diags.AddError("Failed to unmarshal monitoring", err.Error())
-				return diags
-			}
-
-			if monitoring.RetentionTime != nil {
-				mVal, d := resource_cluster.NewMonitoringValue(
-					resource_cluster.MonitoringValue{}.AttributeTypes(ctx),
-					map[string]attr.Value{
-						"retention_time": basetypes.NewStringValue(*monitoring.RetentionTime),
-					},
-				)
-				diags = append(diags, d...)
-				if diags.HasError() {
-					tflog.Error(ctx, "Failed to create monitoring value", map[string]interface{}{"error": d})
-					diags.AddError("Failed to create monitoring value", "Failed to create monitoring value")
-					return diags
-				}
-				out.Monitoring = mVal
-			} else {
-				out.Monitoring = resource_cluster.NewMonitoringValueNull()
-			}
-		}
-	}
 	out.AllowWorkloadsOnMaster = types.BoolValue(in.AllowWorkloadsOnMaster != 0)
 	out.MasterIp = types.StringValue(in.MasterIp)
 	out.MasterVipIface = types.StringValue(in.MasterVipIface)
@@ -460,6 +483,11 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.EnableMetallb = types.BoolValue(in.EnableMetallb != 0)
 	out.MetallbCidr = types.StringValue(in.MetallbCidr)
 
+	if in.EnableEtcdEncryption == "true" {
+		out.EnableEtcdEncryption = types.BoolValue(true)
+	} else {
+		out.EnableEtcdEncryption = types.BoolValue(false)
+	}
 	if in.EtcdBackup != nil {
 		var localPathVal types.String
 		storageProps := in.EtcdBackup.StorageProperties
@@ -471,11 +499,14 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 		etcdBackup, d := resource_cluster.NewEtcdBackupValue(
 			resource_cluster.EtcdBackupValue{}.AttributeTypes(ctx),
 			map[string]attr.Value{
-				"is_etcd_backup_enabled":     types.BoolValue(*in.EtcdBackup.IsEtcdBackupEnabled != 0),
-				"storage_type":               types.StringValue(*in.EtcdBackup.StorageType),
-				"max_timestamp_backup_count": types.Int64Value(int64(*in.EtcdBackup.MaxTimestampBackupCount)),
+				"is_etcd_backup_enabled":     types.BoolValue(in.EtcdBackup.IsEtcdBackupEnabled != 0),
+				"storage_type":               types.StringValue(in.EtcdBackup.StorageType),
+				"max_timestamp_backup_count": getIntOrNullIfZero(in.EtcdBackup.MaxTimestampBackupCount),
 				"storage_local_path":         localPathVal,
-				"daily_backup_time":          types.StringValue(*in.EtcdBackup.DailyBackupTime),
+				"daily_backup_time":          getStrOrNullIfEmpty(in.EtcdBackup.DailyBackupTime),
+				"interval_in_hours":          getIntOrNullIfZero(in.EtcdBackup.IntervalInHours),
+				"interval_in_mins":           getIntOrNullIfZero(in.EtcdBackup.IntervalInMins),
+				"max_interval_backup_count":  getIntOrNullIfZero(in.EtcdBackup.MaxIntervalBackupCount),
 			},
 		)
 		if d.HasError() {
@@ -519,7 +550,10 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 			return nil, diags
 		}
 		req.WorkerNodes = workerNodes
-		//TODO: Validate worker nodes and master nodes are mutually exclusive
+		if areNotMutuallyExclusive(masterNodes, workerNodes) {
+			diags.AddAttributeError(path.Root("worker_nodes"), "worker_nodes and master_nodes should be mutually exclusive", "Same node can not be part of both worker and master nodes")
+			return nil, diags
+		}
 	}
 	req.AllowWorkloadOnMaster = in.AllowWorkloadsOnMaster.ValueBoolPointer()
 	req.MasterVirtualIPIface = in.MasterVipIface.ValueString()
@@ -556,16 +590,20 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 	req.CalicoIpv4DetectionMethod = in.CalicoIpv4DetectionMethod.ValueString()
 	req.NetworkPlugin = qbert.CNIBackend(in.NetworkPlugin.ValueString())
 	req.RuntimeConfig = in.RuntimeConfig.ValueString()
-	req.EtcdBackup.DailyBackupTime = in.EtcdBackup.DailyBackupTime.ValueStringPointer()
+
+	req.EnableEtcdEncryption = fmt.Sprintf("%v", in.EnableEtcdEncryption.ValueBool())
+	req.EtcdBackup.DailyBackupTime = in.EtcdBackup.DailyBackupTime.ValueString()
 	if in.EtcdBackup.IsEtcdBackupEnabled.ValueBool() {
-		req.EtcdBackup.IsEtcdBackupEnabled = ptr.To(1)
+		req.EtcdBackup.IsEtcdBackupEnabled = 1
 	} else {
-		req.EtcdBackup.IsEtcdBackupEnabled = ptr.To(0)
+		req.EtcdBackup.IsEtcdBackupEnabled = 0
 	}
-	req.EtcdBackup.MaxTimestampBackupCount = ptr.To(int(in.EtcdBackup.MaxTimestampBackupCount.ValueInt64()))
+	req.EtcdBackup.MaxTimestampBackupCount = int(in.EtcdBackup.MaxTimestampBackupCount.ValueInt64())
 	req.EtcdBackup.StorageProperties.LocalPath = in.EtcdBackup.StorageLocalPath.ValueStringPointer()
-	req.EtcdBackup.StorageType = in.EtcdBackup.StorageType.ValueStringPointer()
-	req.Monitoring.RetentionTime = in.Monitoring.RetentionTime.ValueStringPointer()
+	req.EtcdBackup.StorageType = in.EtcdBackup.StorageType.ValueString()
+	req.EtcdBackup.IntervalInHours = int(in.EtcdBackup.IntervalInHours.ValueInt64())
+	req.EtcdBackup.IntervalInMins = int(in.EtcdBackup.IntervalInMins.ValueInt64())
+	req.EtcdBackup.MaxIntervalBackupCount = int(in.EtcdBackup.MaxIntervalBackupCount.ValueInt64())
 
 	req.ExternalDNSName = in.ExternalDnsName.ValueString()
 	req.CertExpiryHrs = ptr.To(int(in.CertExpiryHrs.ValueInt64()))
@@ -594,28 +632,8 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 
 func getDefaultCreateClusterReq() qbert.CreateClusterRequest {
 	return qbert.CreateClusterRequest{
-		// Privileged:                ptr.To(true),
-		// ContainerRuntime:          qbert.ContainerRuntimeContainerd,
-		// ContainerCIDR:             "10.20.0.0/16",
-		// ServiceCIDR:               "10.21.0.0/16",
-		// CalicoIPIPMode:            "Always",
-		// MTUSize:                   ptr.To(1440),
-		// CalicoNatOutgoing:         ptr.To(true),
-		// CalicoV4BlockSize:         "24",
-		// CalicoIpv4DetectionMethod: "can-reach=8.8.8.8",
-		// DeployLuigiOperator:       ptr.To(false), // We deploy a custom version of Luigi
-		// // EnableCAS:                 ptr.To(false),
-		// // EnableEtcdEncryption: "true", // Dont know why this is string type in API
-		EtcdBackup: &qbert.EtcdBackupConfig{
-			// IsEtcdBackupEnabled: ptr.To(1),
-			// StorageType:         ptr.To("local"),
-			// StorageProperties: qbert.StorageProperties{
-			// 	LocalPath: ptr.To("/etc/pf9/etcd-backup"),
-			// },
-		},
-		Monitoring: &qbert.MonitoringConfig{
-			// RetentionTime: ptr.To("7d"),
-		},
+		EtcdBackup: &qbert.EtcdBackupConfig{},
+		Monitoring: &qbert.MonitoringConfig{},
 	}
 }
 
@@ -682,6 +700,8 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, plan resource_c
 		tflog.Debug(ctx, "Attaching nodes", map[string]interface{}{"nodeList": nodeList})
 		err := r.client.Qbert().AttachNodes(state.Id.ValueString(), nodeList)
 		if err != nil {
+			// Error: error attaching node <> to cluster <x>: node already attached to cluster <x>
+			// TODO: Ignore the above error if the node is already attached to the same cluster
 			tflog.Error(ctx, "Failed to attach nodes", map[string]interface{}{"error": err})
 			diags.AddError("Failed to attach nodes", err.Error())
 			return diags
@@ -728,4 +748,47 @@ func findDiff(slice1, slice2 []string) Diff {
 	}
 
 	return diff
+}
+
+// getIntOrNullIfZero returns int64 value if i is not zero, else returns null
+// omitempty tag in struct does not work for int64, it returns 0 for null (empty) value
+// This is a helper function to convert 0 to null
+func getIntOrNullIfZero(i int) basetypes.Int64Value {
+	if i == 0 {
+		return types.Int64Null()
+	}
+	return types.Int64Value(int64(i))
+}
+
+func getStrOrNullIfEmpty(s string) basetypes.StringValue {
+	if s == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(s)
+}
+
+func findLatestKubeRoleVersion(roles []qbert.Role) qbert.Role {
+	var latestRole qbert.Role
+	// usually the roles are sorted, so the last one is the latest
+	latestRole = roles[len(roles)-1]
+	for _, role := range roles {
+		if role.K8sMajorVersion > latestRole.K8sMajorVersion ||
+			(role.K8sMajorVersion == latestRole.K8sMajorVersion && role.K8sMinorVersion > latestRole.K8sMinorVersion) ||
+			(role.K8sMajorVersion == latestRole.K8sMajorVersion && role.K8sMinorVersion == latestRole.K8sMinorVersion && role.K8sPatchVersion > latestRole.K8sPatchVersion) ||
+			(role.K8sMajorVersion == latestRole.K8sMajorVersion && role.K8sMinorVersion == latestRole.K8sMinorVersion && role.K8sPatchVersion == latestRole.K8sPatchVersion && role.Pf9PatchVersion > latestRole.Pf9PatchVersion) {
+			latestRole = role
+		}
+	}
+	return latestRole
+}
+
+func areNotMutuallyExclusive(slice1, slice2 []string) bool {
+	for _, s := range slice1 {
+		for _, t := range slice2 {
+			if s == t {
+				return true
+			}
+		}
+	}
+	return false
 }

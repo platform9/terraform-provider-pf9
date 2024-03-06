@@ -6,12 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/platform9/pf9-sdk-go/pf9/keystone"
 	"github.com/platform9/pf9-sdk-go/pf9/pmk"
 	"github.com/platform9/pf9-sdk-go/pf9/qbert"
 	"github.com/platform9/terraform-provider-pf9/internal/provider/datasource_nodepools"
-	"github.com/platform9/terraform-provider-pf9/internal/provider/datasource_nodes"
-	// "github.com/platform9/terraform-provider-pf9/internal/provider/datasource_nodes"
 )
 
 var _ datasource.DataSource = (*nodepoolsDataSource)(nil)
@@ -57,9 +54,7 @@ func (d *nodepoolsDataSource) Read(ctx context.Context, req datasource.ReadReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	authInfo, err := d.client.Authenticator().Auth(ctx, keystone.AuthOptions{
-		PropagateCacheErrors: true,
-	})
+	authInfo, err := d.client.Authenticator().Auth(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
@@ -90,36 +85,36 @@ func (d *nodepoolsDataSource) Read(ctx context.Context, req datasource.ReadReque
 			return
 		}
 	}
-	var tfNodePools []attr.Value
+	tfNodepoolsAttrVals := []attr.Value{}
 	for _, nodepool := range filteredNodePools {
-		tfNodePoolsVal := datasource_nodepools.NodepoolsValue{
+		tfNodepoolsVal := datasource_nodepools.NodepoolsValue{
 			Id:                types.StringValue(nodepool.UUID),
 			Name:              types.StringValue(nodepool.Name),
 			CloudProviderName: types.StringValue(nodepool.CloudProviderName),
 			CloudProviderUuid: types.StringValue(nodepool.CloudProviderUUID),
 		}
-		tfNodesObjVal, diags := tfNodePoolsVal.ToObjectValue(ctx)
+		tfNodepoolsObjVal, diags := tfNodepoolsVal.ToObjectValue(ctx)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		tfNodesAttrVal, diags := datasource_nodepools.NewNodepoolsValue(tfNodesObjVal.AttributeTypes(ctx), tfNodesObjVal.Attributes())
+		tfNodesAttrVal, diags := datasource_nodepools.NewNodepoolsValue(tfNodepoolsObjVal.AttributeTypes(ctx), tfNodepoolsObjVal.Attributes())
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		tfNodePools = append(tfNodePools, tfNodesAttrVal)
+		tfNodepoolsAttrVals = append(tfNodepoolsAttrVals, tfNodesAttrVal)
 	}
 
 	// data value setting
 	state.Id = types.StringValue(data.Id.ValueString())
-	nodePoolsListVal, diags := types.ListValue(datasource_nodes.NodesValue{}.Type(ctx), tfNodePools)
+	nodepoolsListVal, diags := types.ListValue(datasource_nodepools.NodepoolsValue{}.Type(ctx), tfNodepoolsAttrVals)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	state.Nodepools = nodePoolsListVal
+	state.Nodepools = nodepoolsListVal
 
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }

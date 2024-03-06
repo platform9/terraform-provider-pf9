@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -37,6 +38,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "If the master nodes can run non-critical workloads",
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
+					boolplanmodifier.RequiresReplace(),
 				},
 				Default: booldefault.StaticBool(false),
 			},
@@ -191,6 +193,17 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: booldefault.StaticBool(false),
 			},
+			"enable_etcd_encryption": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Enables etcd encryption",
+				MarkdownDescription: "Enables etcd encryption",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+					boolplanmodifier.RequiresReplace(),
+				},
+				Default: booldefault.StaticBool(true),
+			},
 			"enable_metallb": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -211,7 +224,33 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.UseStateForUnknown(),
 						},
+						Validators: []validator.String{
+							stringvalidator.RegexMatches(regexp.MustCompile(`^(?:[0-1][0-9]|2[0-3]):[0-5][0-9]$`), "Must be a valid time in HH:MM format"),
+						},
 						Default: stringdefault.StaticString("02:00"),
+					},
+					"interval_in_hours": schema.Int64Attribute{
+						Optional:            true,
+						Description:         "etcd backup interval, specified in Hours. intervalInMins and intervalInHours are mutually exclusive",
+						MarkdownDescription: "etcd backup interval, specified in Hours. intervalInMins and intervalInHours are mutually exclusive",
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
+						Validators: []validator.Int64{
+							int64validator.ConflictsWith(path.MatchRelative().AtName("interval_in_mins")),
+							int64validator.AtLeast(1),
+						},
+					},
+					"interval_in_mins": schema.Int64Attribute{
+						Optional:            true,
+						Description:         "etcd backup interval, specified in minutes. intervalInMins and intervalInHours are mutually exclusive",
+						MarkdownDescription: "etcd backup interval, specified in minutes. intervalInMins and intervalInHours are mutually exclusive",
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
+						Validators: []validator.Int64{
+							int64validator.AtLeast(1),
+						},
 					},
 					"is_etcd_backup_enabled": schema.BoolAttribute{
 						Required:            true,
@@ -221,6 +260,19 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 							boolplanmodifier.UseStateForUnknown(),
 						},
 					},
+					"max_interval_backup_count": schema.Int64Attribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "max number of Backups retention for interval type backups, required if intervalInMins or intervalInHours is provided",
+						MarkdownDescription: "max number of Backups retention for interval type backups, required if intervalInMins or intervalInHours is provided",
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
+						Validators: []validator.Int64{
+							int64validator.AtLeast(1),
+						},
+						Default: int64default.StaticInt64(3),
+					},
 					"max_timestamp_backup_count": schema.Int64Attribute{
 						Optional:            true,
 						Computed:            true,
@@ -228,6 +280,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 						MarkdownDescription: "max number of Backups retention for Timestamp type backups, required if dailyBackupTime is provided",
 						PlanModifiers: []planmodifier.Int64{
 							int64planmodifier.UseStateForUnknown(),
+						},
+						Validators: []validator.Int64{
+							int64validator.AtLeast(1),
 						},
 						Default: int64default.StaticInt64(3),
 					},
@@ -244,10 +299,13 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					"storage_type": schema.StringAttribute{
 						Optional:            true,
 						Computed:            true,
-						Description:         "Type of storage to be used for etcd backup. Supported choices are local, s3, gcs",
-						MarkdownDescription: "Type of storage to be used for etcd backup. Supported choices are local, s3, gcs",
+						Description:         "Storage type for the etcd backup. Only 'local' is current supported type. 'local' saves backup to the node's local disk",
+						MarkdownDescription: "Storage type for the etcd backup. Only 'local' is current supported type. 'local' saves backup to the node's local disk",
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.UseStateForUnknown(),
+						},
+						Validators: []validator.String{
+							stringvalidator.OneOf("local"),
 						},
 						Default: stringdefault.StaticString("local"),
 					},
@@ -342,23 +400,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					stringvalidator.AlsoRequires(path.MatchRelative().AtName("enable_metallb")),
 				},
 			},
-			"monitoring": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"retention_time": schema.StringAttribute{
-						Optional:            true,
-						Computed:            true,
-						Description:         "Retention time for monitoring data",
-						MarkdownDescription: "Retention time for monitoring data",
-						Default:             stringdefault.StaticString("7d"),
-					},
-				},
-				CustomType: MonitoringType{
-					ObjectType: types.ObjectType{
-						AttrTypes: MonitoringValue{}.AttributeTypes(ctx),
-					},
-				},
-				Optional: true,
-			},
 			"mtu_size": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
@@ -373,6 +414,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Required:            true,
 				Description:         "Name of the cluster, applicable also for manual deploy",
 				MarkdownDescription: "Name of the cluster, applicable also for manual deploy",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"network_plugin": schema.StringAttribute{
 				Optional:            true,
@@ -456,7 +500,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"worker_nodes": schema.SetAttribute{
 				ElementType:         types.StringType,
-				Optional:            true,
+				Required:            true,
 				Description:         "List of uuid of worker nodes",
 				MarkdownDescription: "List of uuid of worker nodes",
 			},
@@ -481,6 +525,7 @@ type ClusterModel struct {
 	ContainersCidr              types.String    `tfsdk:"containers_cidr"`
 	CpuManagerPolicy            types.String    `tfsdk:"cpu_manager_policy"`
 	DeployLuigiOperator         types.Bool      `tfsdk:"deploy_luigi_operator"`
+	EnableEtcdEncryption        types.Bool      `tfsdk:"enable_etcd_encryption"`
 	EnableMetallb               types.Bool      `tfsdk:"enable_metallb"`
 	EtcdBackup                  EtcdBackupValue `tfsdk:"etcd_backup"`
 	ExternalDnsName             types.String    `tfsdk:"external_dns_name"`
@@ -493,7 +538,6 @@ type ClusterModel struct {
 	MasterVipIface              types.String    `tfsdk:"master_vip_iface"`
 	MasterVipIpv4               types.String    `tfsdk:"master_vip_ipv4"`
 	MetallbCidr                 types.String    `tfsdk:"metallb_cidr"`
-	Monitoring                  MonitoringValue `tfsdk:"monitoring"`
 	MtuSize                     types.Int64     `tfsdk:"mtu_size"`
 	Name                        types.String    `tfsdk:"name"`
 	NetworkPlugin               types.String    `tfsdk:"network_plugin"`
@@ -550,6 +594,42 @@ func (t EtcdBackupType) ValueFromObject(ctx context.Context, in basetypes.Object
 			fmt.Sprintf(`daily_backup_time expected to be basetypes.StringValue, was: %T`, dailyBackupTimeAttribute))
 	}
 
+	intervalInHoursAttribute, ok := attributes["interval_in_hours"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`interval_in_hours is missing from object`)
+
+		return nil, diags
+	}
+
+	intervalInHoursVal, ok := intervalInHoursAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`interval_in_hours expected to be basetypes.Int64Value, was: %T`, intervalInHoursAttribute))
+	}
+
+	intervalInMinsAttribute, ok := attributes["interval_in_mins"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`interval_in_mins is missing from object`)
+
+		return nil, diags
+	}
+
+	intervalInMinsVal, ok := intervalInMinsAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`interval_in_mins expected to be basetypes.Int64Value, was: %T`, intervalInMinsAttribute))
+	}
+
 	isEtcdBackupEnabledAttribute, ok := attributes["is_etcd_backup_enabled"]
 
 	if !ok {
@@ -566,6 +646,24 @@ func (t EtcdBackupType) ValueFromObject(ctx context.Context, in basetypes.Object
 		diags.AddError(
 			"Attribute Wrong Type",
 			fmt.Sprintf(`is_etcd_backup_enabled expected to be basetypes.BoolValue, was: %T`, isEtcdBackupEnabledAttribute))
+	}
+
+	maxIntervalBackupCountAttribute, ok := attributes["max_interval_backup_count"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`max_interval_backup_count is missing from object`)
+
+		return nil, diags
+	}
+
+	maxIntervalBackupCountVal, ok := maxIntervalBackupCountAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`max_interval_backup_count expected to be basetypes.Int64Value, was: %T`, maxIntervalBackupCountAttribute))
 	}
 
 	maxTimestampBackupCountAttribute, ok := attributes["max_timestamp_backup_count"]
@@ -628,7 +726,10 @@ func (t EtcdBackupType) ValueFromObject(ctx context.Context, in basetypes.Object
 
 	return EtcdBackupValue{
 		DailyBackupTime:         dailyBackupTimeVal,
+		IntervalInHours:         intervalInHoursVal,
+		IntervalInMins:          intervalInMinsVal,
 		IsEtcdBackupEnabled:     isEtcdBackupEnabledVal,
+		MaxIntervalBackupCount:  maxIntervalBackupCountVal,
 		MaxTimestampBackupCount: maxTimestampBackupCountVal,
 		StorageLocalPath:        storageLocalPathVal,
 		StorageType:             storageTypeVal,
@@ -717,6 +818,42 @@ func NewEtcdBackupValue(attributeTypes map[string]attr.Type, attributes map[stri
 			fmt.Sprintf(`daily_backup_time expected to be basetypes.StringValue, was: %T`, dailyBackupTimeAttribute))
 	}
 
+	intervalInHoursAttribute, ok := attributes["interval_in_hours"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`interval_in_hours is missing from object`)
+
+		return NewEtcdBackupValueUnknown(), diags
+	}
+
+	intervalInHoursVal, ok := intervalInHoursAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`interval_in_hours expected to be basetypes.Int64Value, was: %T`, intervalInHoursAttribute))
+	}
+
+	intervalInMinsAttribute, ok := attributes["interval_in_mins"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`interval_in_mins is missing from object`)
+
+		return NewEtcdBackupValueUnknown(), diags
+	}
+
+	intervalInMinsVal, ok := intervalInMinsAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`interval_in_mins expected to be basetypes.Int64Value, was: %T`, intervalInMinsAttribute))
+	}
+
 	isEtcdBackupEnabledAttribute, ok := attributes["is_etcd_backup_enabled"]
 
 	if !ok {
@@ -733,6 +870,24 @@ func NewEtcdBackupValue(attributeTypes map[string]attr.Type, attributes map[stri
 		diags.AddError(
 			"Attribute Wrong Type",
 			fmt.Sprintf(`is_etcd_backup_enabled expected to be basetypes.BoolValue, was: %T`, isEtcdBackupEnabledAttribute))
+	}
+
+	maxIntervalBackupCountAttribute, ok := attributes["max_interval_backup_count"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`max_interval_backup_count is missing from object`)
+
+		return NewEtcdBackupValueUnknown(), diags
+	}
+
+	maxIntervalBackupCountVal, ok := maxIntervalBackupCountAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`max_interval_backup_count expected to be basetypes.Int64Value, was: %T`, maxIntervalBackupCountAttribute))
 	}
 
 	maxTimestampBackupCountAttribute, ok := attributes["max_timestamp_backup_count"]
@@ -795,7 +950,10 @@ func NewEtcdBackupValue(attributeTypes map[string]attr.Type, attributes map[stri
 
 	return EtcdBackupValue{
 		DailyBackupTime:         dailyBackupTimeVal,
+		IntervalInHours:         intervalInHoursVal,
+		IntervalInMins:          intervalInMinsVal,
 		IsEtcdBackupEnabled:     isEtcdBackupEnabledVal,
+		MaxIntervalBackupCount:  maxIntervalBackupCountVal,
 		MaxTimestampBackupCount: maxTimestampBackupCountVal,
 		StorageLocalPath:        storageLocalPathVal,
 		StorageType:             storageTypeVal,
@@ -872,7 +1030,10 @@ var _ basetypes.ObjectValuable = EtcdBackupValue{}
 
 type EtcdBackupValue struct {
 	DailyBackupTime         basetypes.StringValue `tfsdk:"daily_backup_time"`
+	IntervalInHours         basetypes.Int64Value  `tfsdk:"interval_in_hours"`
+	IntervalInMins          basetypes.Int64Value  `tfsdk:"interval_in_mins"`
 	IsEtcdBackupEnabled     basetypes.BoolValue   `tfsdk:"is_etcd_backup_enabled"`
+	MaxIntervalBackupCount  basetypes.Int64Value  `tfsdk:"max_interval_backup_count"`
 	MaxTimestampBackupCount basetypes.Int64Value  `tfsdk:"max_timestamp_backup_count"`
 	StorageLocalPath        basetypes.StringValue `tfsdk:"storage_local_path"`
 	StorageType             basetypes.StringValue `tfsdk:"storage_type"`
@@ -880,13 +1041,16 @@ type EtcdBackupValue struct {
 }
 
 func (v EtcdBackupValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 5)
+	attrTypes := make(map[string]tftypes.Type, 8)
 
 	var val tftypes.Value
 	var err error
 
 	attrTypes["daily_backup_time"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["interval_in_hours"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["interval_in_mins"] = basetypes.Int64Type{}.TerraformType(ctx)
 	attrTypes["is_etcd_backup_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["max_interval_backup_count"] = basetypes.Int64Type{}.TerraformType(ctx)
 	attrTypes["max_timestamp_backup_count"] = basetypes.Int64Type{}.TerraformType(ctx)
 	attrTypes["storage_local_path"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["storage_type"] = basetypes.StringType{}.TerraformType(ctx)
@@ -895,7 +1059,7 @@ func (v EtcdBackupValue) ToTerraformValue(ctx context.Context) (tftypes.Value, e
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 5)
+		vals := make(map[string]tftypes.Value, 8)
 
 		val, err = v.DailyBackupTime.ToTerraformValue(ctx)
 
@@ -905,6 +1069,22 @@ func (v EtcdBackupValue) ToTerraformValue(ctx context.Context) (tftypes.Value, e
 
 		vals["daily_backup_time"] = val
 
+		val, err = v.IntervalInHours.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["interval_in_hours"] = val
+
+		val, err = v.IntervalInMins.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["interval_in_mins"] = val
+
 		val, err = v.IsEtcdBackupEnabled.ToTerraformValue(ctx)
 
 		if err != nil {
@@ -912,6 +1092,14 @@ func (v EtcdBackupValue) ToTerraformValue(ctx context.Context) (tftypes.Value, e
 		}
 
 		vals["is_etcd_backup_enabled"] = val
+
+		val, err = v.MaxIntervalBackupCount.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["max_interval_backup_count"] = val
 
 		val, err = v.MaxTimestampBackupCount.ToTerraformValue(ctx)
 
@@ -969,14 +1157,20 @@ func (v EtcdBackupValue) ToObjectValue(ctx context.Context) (basetypes.ObjectVal
 	objVal, diags := types.ObjectValue(
 		map[string]attr.Type{
 			"daily_backup_time":          basetypes.StringType{},
+			"interval_in_hours":          basetypes.Int64Type{},
+			"interval_in_mins":           basetypes.Int64Type{},
 			"is_etcd_backup_enabled":     basetypes.BoolType{},
+			"max_interval_backup_count":  basetypes.Int64Type{},
 			"max_timestamp_backup_count": basetypes.Int64Type{},
 			"storage_local_path":         basetypes.StringType{},
 			"storage_type":               basetypes.StringType{},
 		},
 		map[string]attr.Value{
 			"daily_backup_time":          v.DailyBackupTime,
+			"interval_in_hours":          v.IntervalInHours,
+			"interval_in_mins":           v.IntervalInMins,
 			"is_etcd_backup_enabled":     v.IsEtcdBackupEnabled,
+			"max_interval_backup_count":  v.MaxIntervalBackupCount,
 			"max_timestamp_backup_count": v.MaxTimestampBackupCount,
 			"storage_local_path":         v.StorageLocalPath,
 			"storage_type":               v.StorageType,
@@ -1004,7 +1198,19 @@ func (v EtcdBackupValue) Equal(o attr.Value) bool {
 		return false
 	}
 
+	if !v.IntervalInHours.Equal(other.IntervalInHours) {
+		return false
+	}
+
+	if !v.IntervalInMins.Equal(other.IntervalInMins) {
+		return false
+	}
+
 	if !v.IsEtcdBackupEnabled.Equal(other.IsEtcdBackupEnabled) {
+		return false
+	}
+
+	if !v.MaxIntervalBackupCount.Equal(other.MaxIntervalBackupCount) {
 		return false
 	}
 
@@ -1034,323 +1240,12 @@ func (v EtcdBackupValue) Type(ctx context.Context) attr.Type {
 func (v EtcdBackupValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"daily_backup_time":          basetypes.StringType{},
+		"interval_in_hours":          basetypes.Int64Type{},
+		"interval_in_mins":           basetypes.Int64Type{},
 		"is_etcd_backup_enabled":     basetypes.BoolType{},
+		"max_interval_backup_count":  basetypes.Int64Type{},
 		"max_timestamp_backup_count": basetypes.Int64Type{},
 		"storage_local_path":         basetypes.StringType{},
 		"storage_type":               basetypes.StringType{},
-	}
-}
-
-var _ basetypes.ObjectTypable = MonitoringType{}
-
-type MonitoringType struct {
-	basetypes.ObjectType
-}
-
-func (t MonitoringType) Equal(o attr.Type) bool {
-	other, ok := o.(MonitoringType)
-
-	if !ok {
-		return false
-	}
-
-	return t.ObjectType.Equal(other.ObjectType)
-}
-
-func (t MonitoringType) String() string {
-	return "MonitoringType"
-}
-
-func (t MonitoringType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	attributes := in.Attributes()
-
-	retentionTimeAttribute, ok := attributes["retention_time"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`retention_time is missing from object`)
-
-		return nil, diags
-	}
-
-	retentionTimeVal, ok := retentionTimeAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`retention_time expected to be basetypes.StringValue, was: %T`, retentionTimeAttribute))
-	}
-
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return MonitoringValue{
-		RetentionTime: retentionTimeVal,
-		state:         attr.ValueStateKnown,
-	}, diags
-}
-
-func NewMonitoringValueNull() MonitoringValue {
-	return MonitoringValue{
-		state: attr.ValueStateNull,
-	}
-}
-
-func NewMonitoringValueUnknown() MonitoringValue {
-	return MonitoringValue{
-		state: attr.ValueStateUnknown,
-	}
-}
-
-func NewMonitoringValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (MonitoringValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
-	ctx := context.Background()
-
-	for name, attributeType := range attributeTypes {
-		attribute, ok := attributes[name]
-
-		if !ok {
-			diags.AddError(
-				"Missing MonitoringValue Attribute Value",
-				"While creating a MonitoringValue value, a missing attribute value was detected. "+
-					"A MonitoringValue must contain values for all attributes, even if null or unknown. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("MonitoringValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
-			)
-
-			continue
-		}
-
-		if !attributeType.Equal(attribute.Type(ctx)) {
-			diags.AddError(
-				"Invalid MonitoringValue Attribute Type",
-				"While creating a MonitoringValue value, an invalid attribute value was detected. "+
-					"A MonitoringValue must use a matching attribute type for the value. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("MonitoringValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("MonitoringValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
-			)
-		}
-	}
-
-	for name := range attributes {
-		_, ok := attributeTypes[name]
-
-		if !ok {
-			diags.AddError(
-				"Extra MonitoringValue Attribute Value",
-				"While creating a MonitoringValue value, an extra attribute value was detected. "+
-					"A MonitoringValue must not contain values beyond the expected attribute types. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra MonitoringValue Attribute Name: %s", name),
-			)
-		}
-	}
-
-	if diags.HasError() {
-		return NewMonitoringValueUnknown(), diags
-	}
-
-	retentionTimeAttribute, ok := attributes["retention_time"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`retention_time is missing from object`)
-
-		return NewMonitoringValueUnknown(), diags
-	}
-
-	retentionTimeVal, ok := retentionTimeAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`retention_time expected to be basetypes.StringValue, was: %T`, retentionTimeAttribute))
-	}
-
-	if diags.HasError() {
-		return NewMonitoringValueUnknown(), diags
-	}
-
-	return MonitoringValue{
-		RetentionTime: retentionTimeVal,
-		state:         attr.ValueStateKnown,
-	}, diags
-}
-
-func NewMonitoringValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) MonitoringValue {
-	object, diags := NewMonitoringValue(attributeTypes, attributes)
-
-	if diags.HasError() {
-		// This could potentially be added to the diag package.
-		diagsStrings := make([]string, 0, len(diags))
-
-		for _, diagnostic := range diags {
-			diagsStrings = append(diagsStrings, fmt.Sprintf(
-				"%s | %s | %s",
-				diagnostic.Severity(),
-				diagnostic.Summary(),
-				diagnostic.Detail()))
-		}
-
-		panic("NewMonitoringValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
-	}
-
-	return object
-}
-
-func (t MonitoringType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
-	if in.Type() == nil {
-		return NewMonitoringValueNull(), nil
-	}
-
-	if !in.Type().Equal(t.TerraformType(ctx)) {
-		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
-	}
-
-	if !in.IsKnown() {
-		return NewMonitoringValueUnknown(), nil
-	}
-
-	if in.IsNull() {
-		return NewMonitoringValueNull(), nil
-	}
-
-	attributes := map[string]attr.Value{}
-
-	val := map[string]tftypes.Value{}
-
-	err := in.As(&val)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range val {
-		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
-
-		if err != nil {
-			return nil, err
-		}
-
-		attributes[k] = a
-	}
-
-	return NewMonitoringValueMust(MonitoringValue{}.AttributeTypes(ctx), attributes), nil
-}
-
-func (t MonitoringType) ValueType(ctx context.Context) attr.Value {
-	return MonitoringValue{}
-}
-
-var _ basetypes.ObjectValuable = MonitoringValue{}
-
-type MonitoringValue struct {
-	RetentionTime basetypes.StringValue `tfsdk:"retention_time"`
-	state         attr.ValueState
-}
-
-func (v MonitoringValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 1)
-
-	var val tftypes.Value
-	var err error
-
-	attrTypes["retention_time"] = basetypes.StringType{}.TerraformType(ctx)
-
-	objectType := tftypes.Object{AttributeTypes: attrTypes}
-
-	switch v.state {
-	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 1)
-
-		val, err = v.RetentionTime.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["retention_time"] = val
-
-		if err := tftypes.ValidateValue(objectType, vals); err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		return tftypes.NewValue(objectType, vals), nil
-	case attr.ValueStateNull:
-		return tftypes.NewValue(objectType, nil), nil
-	case attr.ValueStateUnknown:
-		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
-	default:
-		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
-	}
-}
-
-func (v MonitoringValue) IsNull() bool {
-	return v.state == attr.ValueStateNull
-}
-
-func (v MonitoringValue) IsUnknown() bool {
-	return v.state == attr.ValueStateUnknown
-}
-
-func (v MonitoringValue) String() string {
-	return "MonitoringValue"
-}
-
-func (v MonitoringValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	objVal, diags := types.ObjectValue(
-		map[string]attr.Type{
-			"retention_time": basetypes.StringType{},
-		},
-		map[string]attr.Value{
-			"retention_time": v.RetentionTime,
-		})
-
-	return objVal, diags
-}
-
-func (v MonitoringValue) Equal(o attr.Value) bool {
-	other, ok := o.(MonitoringValue)
-
-	if !ok {
-		return false
-	}
-
-	if v.state != other.state {
-		return false
-	}
-
-	if v.state != attr.ValueStateKnown {
-		return true
-	}
-
-	if !v.RetentionTime.Equal(other.RetentionTime) {
-		return false
-	}
-
-	return true
-}
-
-func (v MonitoringValue) Type(ctx context.Context) attr.Type {
-	return MonitoringType{
-		basetypes.ObjectType{
-			AttrTypes: v.AttributeTypes(ctx),
-		},
-	}
-}
-
-func (v MonitoringValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
-	return map[string]attr.Type{
-		"retention_time": basetypes.StringType{},
 	}
 }
