@@ -77,10 +77,12 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 	if createClusterReq.KubeRoleVersion == "" {
-		tflog.Debug(ctx, "Supported versions", map[string]interface{}{"krVersions": krVersions})
 		if len(krVersions.Roles) > 0 {
 			latestKubeRoleVersion := findLatestKubeRoleVersion(krVersions.Roles)
 			createClusterReq.KubeRoleVersion = latestKubeRoleVersion.RoleVersion
+			tflog.Debug(ctx, "Kube role version not provided using the latest from supported versions", map[string]interface{}{"latestKubeRoleVersion": latestKubeRoleVersion.RoleVersion})
+		} else {
+			tflog.Error(ctx, "No supported kube role versions found")
 		}
 	} else {
 		tflog.Debug(ctx, "KubeRoleVersion provided", map[string]interface{}{"kubeRoleVersion": createClusterReq.KubeRoleVersion})
