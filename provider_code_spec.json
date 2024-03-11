@@ -501,7 +501,7 @@
 					{
 						"name": "master_vip_iface",
 						"string": {
-							"computed_optional_required": "optional",
+							"computed_optional_required": "computed_optional",
 							"description": "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to"
 						}
 					},
@@ -527,7 +527,7 @@
 					{
 						"name": "master_vip_ipv4",
 						"string": {
-							"computed_optional_required": "optional",
+							"computed_optional_required": "computed_optional",
 							"description": "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together"
 						}
 					},
@@ -855,9 +855,6 @@
 					{
 						"name": "interface_detection_method",
 						"string": {
-							"default": {
-								"static": "first-found"
-							},
 							"computed_optional_required": "computed_optional",
 							"description": "Method to detect the interface",
 							"plan_modifiers": [
@@ -1081,7 +1078,10 @@
 					{
 						"name": "calico_ipv4_detection_method",
 						"string": {
-							"computed_optional_required": "optional",
+							"default": {
+								"static": "first-found"
+							},
+							"computed_optional_required": "computed_optional",
 							"description": "Method to detect the IPv4 address"
 						}
 					},
@@ -1521,6 +1521,428 @@
 								"string": {}
 							},
 							"description": "User defined key-value pairs represented as a JSON object"
+						}
+					},
+					{
+						"name": "can_upgrade",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "Can upgrade"
+						}
+					},
+					{
+						"name": "created_at",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Time at which the cluster was created"
+						}
+					},
+					{
+						"name": "is_kubernetes",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "is_mesos",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "is_swarm",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "debug",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "flannel_iface_label",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "flannel_public_iface_label",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_root",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_data_dir",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "last_op",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "last_ok",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "keystone_enabled",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "authz_enabled",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "task_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "task_error",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "kube_proxy_mode",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "num_masters",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "num_workers",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "app_catalog_enabled",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_vip_vrouter_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "k8s_api_port",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv4",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_detection_method",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_router_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_cidr",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_block_size",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_nat_outgoing",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "felix_ipv6_support",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "masterless",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_version",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "api_server_storage_backend",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "enable_cas",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "num_min_workers",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "num_max_workers",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_heartbeat_interval_ms",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_election_timeout_ms",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "worker_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "ipv6",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "can_minor_upgrade",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "can_patch_upgrade",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "patch_upgrade_role_version",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "node_pool_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_uuid",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_type",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "deploy_kubevirt",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "upgrading_to",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "reserved_cpus",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "quay_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "gcr_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "k8s_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "enable_catapult_monitoring",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_centos_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_ubuntu_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "addon_operator_image_tag",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "is_air_gapped",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "interface_reachable_ip",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_repo_path",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_username",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_password",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_skip_tls",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_self_signed_certs",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_cert_path",
+						"string": {
+							"computed_optional_required": "computed"
 						}
 					}
 				]

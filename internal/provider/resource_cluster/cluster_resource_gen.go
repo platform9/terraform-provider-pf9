@@ -31,6 +31,9 @@ import (
 func ClusterResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"addon_operator_image_tag": schema.StringAttribute{
+				Computed: true,
+			},
 			"allow_workloads_on_master": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -41,6 +44,15 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					boolplanmodifier.RequiresReplace(),
 				},
 				Default: booldefault.StaticBool(false),
+			},
+			"api_server_storage_backend": schema.StringAttribute{
+				Computed: true,
+			},
+			"app_catalog_enabled": schema.BoolAttribute{
+				Computed: true,
+			},
+			"authz_enabled": schema.BoolAttribute{
+				Computed: true,
 			},
 			"calico_controller_cpu_limit": schema.StringAttribute{
 				Optional:            true,
@@ -73,10 +85,30 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: stringdefault.StaticString("Always"),
 			},
+			"calico_ipv4": schema.StringAttribute{
+				Computed: true,
+			},
 			"calico_ipv4_detection_method": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
 				Description:         "Method to detect the IPv4 address",
 				MarkdownDescription: "Method to detect the IPv4 address",
+				Default:             stringdefault.StaticString("first-found"),
+			},
+			"calico_ipv6": schema.StringAttribute{
+				Computed: true,
+			},
+			"calico_ipv6_detection_method": schema.StringAttribute{
+				Computed: true,
+			},
+			"calico_ipv6_pool_block_size": schema.StringAttribute{
+				Computed: true,
+			},
+			"calico_ipv6_pool_cidr": schema.StringAttribute{
+				Computed: true,
+			},
+			"calico_ipv6_pool_nat_outgoing": schema.BoolAttribute{
+				Computed: true,
 			},
 			"calico_nat_outgoing": schema.BoolAttribute{
 				Optional:            true,
@@ -106,6 +138,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"calico_router_id": schema.StringAttribute{
+				Computed: true,
+			},
 			"calico_typha_cpu_limit": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -134,6 +169,17 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: stringdefault.StaticString("26"),
 			},
+			"can_minor_upgrade": schema.BoolAttribute{
+				Computed: true,
+			},
+			"can_patch_upgrade": schema.BoolAttribute{
+				Computed: true,
+			},
+			"can_upgrade": schema.BoolAttribute{
+				Computed:            true,
+				Description:         "Can upgrade",
+				MarkdownDescription: "Can upgrade",
+			},
 			"cert_expiry_hrs": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
@@ -146,6 +192,15 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					int64validator.AtLeast(1),
 				},
 				Default: int64default.StaticInt64(24),
+			},
+			"cloud_provider_name": schema.StringAttribute{
+				Computed: true,
+			},
+			"cloud_provider_type": schema.StringAttribute{
+				Computed: true,
+			},
+			"cloud_provider_uuid": schema.StringAttribute{
+				Computed: true,
 			},
 			"container_runtime": schema.StringAttribute{
 				Optional:            true,
@@ -183,6 +238,38 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: stringdefault.StaticString("none"),
 			},
+			"created_at": schema.StringAttribute{
+				Computed:            true,
+				Description:         "Time at which the cluster was created",
+				MarkdownDescription: "Time at which the cluster was created",
+			},
+			"custom_registry_cert_path": schema.StringAttribute{
+				Computed: true,
+			},
+			"custom_registry_password": schema.StringAttribute{
+				Computed: true,
+			},
+			"custom_registry_repo_path": schema.StringAttribute{
+				Computed: true,
+			},
+			"custom_registry_self_signed_certs": schema.BoolAttribute{
+				Computed: true,
+			},
+			"custom_registry_skip_tls": schema.BoolAttribute{
+				Computed: true,
+			},
+			"custom_registry_url": schema.StringAttribute{
+				Computed: true,
+			},
+			"custom_registry_username": schema.StringAttribute{
+				Computed: true,
+			},
+			"debug": schema.BoolAttribute{
+				Computed: true,
+			},
+			"deploy_kubevirt": schema.BoolAttribute{
+				Computed: true,
+			},
 			"deploy_luigi_operator": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -192,6 +279,24 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					boolplanmodifier.UseStateForUnknown(),
 				},
 				Default: booldefault.StaticBool(false),
+			},
+			"docker_centos_package_repo_url": schema.StringAttribute{
+				Computed: true,
+			},
+			"docker_private_registry": schema.StringAttribute{
+				Computed: true,
+			},
+			"docker_root": schema.StringAttribute{
+				Computed: true,
+			},
+			"docker_ubuntu_package_repo_url": schema.StringAttribute{
+				Computed: true,
+			},
+			"enable_cas": schema.BoolAttribute{
+				Computed: true,
+			},
+			"enable_catapult_monitoring": schema.BoolAttribute{
+				Computed: true,
 			},
 			"enable_etcd_encryption": schema.BoolAttribute{
 				Optional:            true,
@@ -320,6 +425,18 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					objectplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"etcd_data_dir": schema.StringAttribute{
+				Computed: true,
+			},
+			"etcd_election_timeout_ms": schema.Int64Attribute{
+				Computed: true,
+			},
+			"etcd_heartbeat_interval_ms": schema.Int64Attribute{
+				Computed: true,
+			},
+			"etcd_version": schema.StringAttribute{
+				Computed: true,
+			},
 			"external_dns_name": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -328,6 +445,18 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"felix_ipv6_support": schema.BoolAttribute{
+				Computed: true,
+			},
+			"flannel_iface_label": schema.StringAttribute{
+				Computed: true,
+			},
+			"flannel_public_iface_label": schema.StringAttribute{
+				Computed: true,
+			},
+			"gcr_private_registry": schema.StringAttribute{
+				Computed: true,
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -345,7 +474,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				Default: stringdefault.StaticString("first-found"),
 			},
 			"interface_name": schema.StringAttribute{
 				Optional:            true,
@@ -353,6 +481,36 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "Name of the interface",
 				MarkdownDescription: "Name of the interface",
 				Default:             stringdefault.StaticString(""),
+			},
+			"interface_reachable_ip": schema.StringAttribute{
+				Computed: true,
+			},
+			"ipv6": schema.BoolAttribute{
+				Computed: true,
+			},
+			"is_air_gapped": schema.BoolAttribute{
+				Computed: true,
+			},
+			"is_kubernetes": schema.BoolAttribute{
+				Computed: true,
+			},
+			"is_mesos": schema.BoolAttribute{
+				Computed: true,
+			},
+			"is_swarm": schema.BoolAttribute{
+				Computed: true,
+			},
+			"k8s_api_port": schema.StringAttribute{
+				Computed: true,
+			},
+			"k8s_private_registry": schema.StringAttribute{
+				Computed: true,
+			},
+			"keystone_enabled": schema.BoolAttribute{
+				Computed: true,
+			},
+			"kube_proxy_mode": schema.StringAttribute{
+				Computed: true,
 			},
 			"kube_role_version": schema.StringAttribute{
 				Optional:            true,
@@ -363,6 +521,12 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 					stringplanmodifier.RequiresReplace(),
 				},
+			},
+			"last_ok": schema.StringAttribute{
+				Computed: true,
+			},
+			"last_op": schema.StringAttribute{
+				Computed: true,
 			},
 			"master_ip": schema.StringAttribute{
 				Optional:            true,
@@ -379,15 +543,26 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "List of uuid of master nodes",
 				MarkdownDescription: "List of uuid of master nodes",
 			},
+			"master_status": schema.StringAttribute{
+				Computed: true,
+			},
 			"master_vip_iface": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
 				Description:         "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to",
 				MarkdownDescription: "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to",
 			},
 			"master_vip_ipv4": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
 				Description:         "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
 				MarkdownDescription: "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
+			},
+			"master_vip_vrouter_id": schema.StringAttribute{
+				Computed: true,
+			},
+			"masterless": schema.BoolAttribute{
+				Computed: true,
 			},
 			"metallb_cidr": schema.StringAttribute{
 				Optional:            true,
@@ -432,6 +607,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: stringdefault.StaticString("calico"),
 			},
+			"node_pool_name": schema.StringAttribute{
+				Computed: true,
+			},
 			"node_pool_uuid": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -440,6 +618,21 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"num_masters": schema.Int64Attribute{
+				Computed: true,
+			},
+			"num_max_workers": schema.Int64Attribute{
+				Computed: true,
+			},
+			"num_min_workers": schema.Int64Attribute{
+				Computed: true,
+			},
+			"num_workers": schema.Int64Attribute{
+				Computed: true,
+			},
+			"patch_upgrade_role_version": schema.StringAttribute{
+				Computed: true,
 			},
 			"privileged": schema.BoolAttribute{
 				Optional:            true,
@@ -450,6 +643,15 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					boolplanmodifier.UseStateForUnknown(),
 				},
 				Default: booldefault.StaticBool(true),
+			},
+			"project_id": schema.StringAttribute{
+				Computed: true,
+			},
+			"quay_private_registry": schema.StringAttribute{
+				Computed: true,
+			},
+			"reserved_cpus": schema.StringAttribute{
+				Computed: true,
 			},
 			"runtime_config": schema.StringAttribute{
 				Optional:            true,
@@ -470,11 +672,20 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: stringdefault.StaticString("10.21.0.0/16"),
 			},
+			"status": schema.StringAttribute{
+				Computed: true,
+			},
 			"tags": schema.MapAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
 				Description:         "User defined key-value pairs represented as a JSON object",
 				MarkdownDescription: "User defined key-value pairs represented as a JSON object",
+			},
+			"task_error": schema.StringAttribute{
+				Computed: true,
+			},
+			"task_status": schema.StringAttribute{
+				Computed: true,
 			},
 			"topology_manager_policy": schema.StringAttribute{
 				Optional:            true,
@@ -488,6 +699,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					stringvalidator.OneOf("none", "best-effort", "restricted", "single-numa-node"),
 				},
 				Default: stringdefault.StaticString("none"),
+			},
+			"upgrading_to": schema.StringAttribute{
+				Computed: true,
 			},
 			"use_hostname": schema.BoolAttribute{
 				Optional:            true,
@@ -505,51 +719,124 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "List of uuid of worker nodes",
 				MarkdownDescription: "List of uuid of worker nodes",
 			},
+			"worker_status": schema.StringAttribute{
+				Computed: true,
+			},
 		},
 	}
 }
 
 type ClusterModel struct {
-	AllowWorkloadsOnMaster      types.Bool      `tfsdk:"allow_workloads_on_master"`
-	CalicoControllerCpuLimit    types.String    `tfsdk:"calico_controller_cpu_limit"`
-	CalicoControllerMemoryLimit types.String    `tfsdk:"calico_controller_memory_limit"`
-	CalicoIpIpMode              types.String    `tfsdk:"calico_ip_ip_mode"`
-	CalicoIpv4DetectionMethod   types.String    `tfsdk:"calico_ipv4_detection_method"`
-	CalicoNatOutgoing           types.Bool      `tfsdk:"calico_nat_outgoing"`
-	CalicoNodeCpuLimit          types.String    `tfsdk:"calico_node_cpu_limit"`
-	CalicoNodeMemoryLimit       types.String    `tfsdk:"calico_node_memory_limit"`
-	CalicoTyphaCpuLimit         types.String    `tfsdk:"calico_typha_cpu_limit"`
-	CalicoTyphaMemoryLimit      types.String    `tfsdk:"calico_typha_memory_limit"`
-	CalicoV4BlockSize           types.String    `tfsdk:"calico_v4_block_size"`
-	CertExpiryHrs               types.Int64     `tfsdk:"cert_expiry_hrs"`
-	ContainerRuntime            types.String    `tfsdk:"container_runtime"`
-	ContainersCidr              types.String    `tfsdk:"containers_cidr"`
-	CpuManagerPolicy            types.String    `tfsdk:"cpu_manager_policy"`
-	DeployLuigiOperator         types.Bool      `tfsdk:"deploy_luigi_operator"`
-	EnableEtcdEncryption        types.Bool      `tfsdk:"enable_etcd_encryption"`
-	EnableMetallb               types.Bool      `tfsdk:"enable_metallb"`
-	EtcdBackup                  EtcdBackupValue `tfsdk:"etcd_backup"`
-	ExternalDnsName             types.String    `tfsdk:"external_dns_name"`
-	Id                          types.String    `tfsdk:"id"`
-	InterfaceDetectionMethod    types.String    `tfsdk:"interface_detection_method"`
-	InterfaceName               types.String    `tfsdk:"interface_name"`
-	KubeRoleVersion             types.String    `tfsdk:"kube_role_version"`
-	MasterIp                    types.String    `tfsdk:"master_ip"`
-	MasterNodes                 types.Set       `tfsdk:"master_nodes"`
-	MasterVipIface              types.String    `tfsdk:"master_vip_iface"`
-	MasterVipIpv4               types.String    `tfsdk:"master_vip_ipv4"`
-	MetallbCidr                 types.String    `tfsdk:"metallb_cidr"`
-	MtuSize                     types.Int64     `tfsdk:"mtu_size"`
-	Name                        types.String    `tfsdk:"name"`
-	NetworkPlugin               types.String    `tfsdk:"network_plugin"`
-	NodePoolUuid                types.String    `tfsdk:"node_pool_uuid"`
-	Privileged                  types.Bool      `tfsdk:"privileged"`
-	RuntimeConfig               types.String    `tfsdk:"runtime_config"`
-	ServicesCidr                types.String    `tfsdk:"services_cidr"`
-	Tags                        types.Map       `tfsdk:"tags"`
-	TopologyManagerPolicy       types.String    `tfsdk:"topology_manager_policy"`
-	UseHostname                 types.Bool      `tfsdk:"use_hostname"`
-	WorkerNodes                 types.Set       `tfsdk:"worker_nodes"`
+	AddonOperatorImageTag         types.String    `tfsdk:"addon_operator_image_tag"`
+	AllowWorkloadsOnMaster        types.Bool      `tfsdk:"allow_workloads_on_master"`
+	ApiServerStorageBackend       types.String    `tfsdk:"api_server_storage_backend"`
+	AppCatalogEnabled             types.Bool      `tfsdk:"app_catalog_enabled"`
+	AuthzEnabled                  types.Bool      `tfsdk:"authz_enabled"`
+	CalicoControllerCpuLimit      types.String    `tfsdk:"calico_controller_cpu_limit"`
+	CalicoControllerMemoryLimit   types.String    `tfsdk:"calico_controller_memory_limit"`
+	CalicoIpIpMode                types.String    `tfsdk:"calico_ip_ip_mode"`
+	CalicoIpv4                    types.String    `tfsdk:"calico_ipv4"`
+	CalicoIpv4DetectionMethod     types.String    `tfsdk:"calico_ipv4_detection_method"`
+	CalicoIpv6                    types.String    `tfsdk:"calico_ipv6"`
+	CalicoIpv6DetectionMethod     types.String    `tfsdk:"calico_ipv6_detection_method"`
+	CalicoIpv6PoolBlockSize       types.String    `tfsdk:"calico_ipv6_pool_block_size"`
+	CalicoIpv6PoolCidr            types.String    `tfsdk:"calico_ipv6_pool_cidr"`
+	CalicoIpv6PoolNatOutgoing     types.Bool      `tfsdk:"calico_ipv6_pool_nat_outgoing"`
+	CalicoNatOutgoing             types.Bool      `tfsdk:"calico_nat_outgoing"`
+	CalicoNodeCpuLimit            types.String    `tfsdk:"calico_node_cpu_limit"`
+	CalicoNodeMemoryLimit         types.String    `tfsdk:"calico_node_memory_limit"`
+	CalicoRouterId                types.String    `tfsdk:"calico_router_id"`
+	CalicoTyphaCpuLimit           types.String    `tfsdk:"calico_typha_cpu_limit"`
+	CalicoTyphaMemoryLimit        types.String    `tfsdk:"calico_typha_memory_limit"`
+	CalicoV4BlockSize             types.String    `tfsdk:"calico_v4_block_size"`
+	CanMinorUpgrade               types.Bool      `tfsdk:"can_minor_upgrade"`
+	CanPatchUpgrade               types.Bool      `tfsdk:"can_patch_upgrade"`
+	CanUpgrade                    types.Bool      `tfsdk:"can_upgrade"`
+	CertExpiryHrs                 types.Int64     `tfsdk:"cert_expiry_hrs"`
+	CloudProviderName             types.String    `tfsdk:"cloud_provider_name"`
+	CloudProviderType             types.String    `tfsdk:"cloud_provider_type"`
+	CloudProviderUuid             types.String    `tfsdk:"cloud_provider_uuid"`
+	ContainerRuntime              types.String    `tfsdk:"container_runtime"`
+	ContainersCidr                types.String    `tfsdk:"containers_cidr"`
+	CpuManagerPolicy              types.String    `tfsdk:"cpu_manager_policy"`
+	CreatedAt                     types.String    `tfsdk:"created_at"`
+	CustomRegistryCertPath        types.String    `tfsdk:"custom_registry_cert_path"`
+	CustomRegistryPassword        types.String    `tfsdk:"custom_registry_password"`
+	CustomRegistryRepoPath        types.String    `tfsdk:"custom_registry_repo_path"`
+	CustomRegistrySelfSignedCerts types.Bool      `tfsdk:"custom_registry_self_signed_certs"`
+	CustomRegistrySkipTls         types.Bool      `tfsdk:"custom_registry_skip_tls"`
+	CustomRegistryUrl             types.String    `tfsdk:"custom_registry_url"`
+	CustomRegistryUsername        types.String    `tfsdk:"custom_registry_username"`
+	Debug                         types.Bool      `tfsdk:"debug"`
+	DeployKubevirt                types.Bool      `tfsdk:"deploy_kubevirt"`
+	DeployLuigiOperator           types.Bool      `tfsdk:"deploy_luigi_operator"`
+	DockerCentosPackageRepoUrl    types.String    `tfsdk:"docker_centos_package_repo_url"`
+	DockerPrivateRegistry         types.String    `tfsdk:"docker_private_registry"`
+	DockerRoot                    types.String    `tfsdk:"docker_root"`
+	DockerUbuntuPackageRepoUrl    types.String    `tfsdk:"docker_ubuntu_package_repo_url"`
+	EnableCas                     types.Bool      `tfsdk:"enable_cas"`
+	EnableCatapultMonitoring      types.Bool      `tfsdk:"enable_catapult_monitoring"`
+	EnableEtcdEncryption          types.Bool      `tfsdk:"enable_etcd_encryption"`
+	EnableMetallb                 types.Bool      `tfsdk:"enable_metallb"`
+	EtcdBackup                    EtcdBackupValue `tfsdk:"etcd_backup"`
+	EtcdDataDir                   types.String    `tfsdk:"etcd_data_dir"`
+	EtcdElectionTimeoutMs         types.Int64     `tfsdk:"etcd_election_timeout_ms"`
+	EtcdHeartbeatIntervalMs       types.Int64     `tfsdk:"etcd_heartbeat_interval_ms"`
+	EtcdVersion                   types.String    `tfsdk:"etcd_version"`
+	ExternalDnsName               types.String    `tfsdk:"external_dns_name"`
+	FelixIpv6Support              types.Bool      `tfsdk:"felix_ipv6_support"`
+	FlannelIfaceLabel             types.String    `tfsdk:"flannel_iface_label"`
+	FlannelPublicIfaceLabel       types.String    `tfsdk:"flannel_public_iface_label"`
+	GcrPrivateRegistry            types.String    `tfsdk:"gcr_private_registry"`
+	Id                            types.String    `tfsdk:"id"`
+	InterfaceDetectionMethod      types.String    `tfsdk:"interface_detection_method"`
+	InterfaceName                 types.String    `tfsdk:"interface_name"`
+	InterfaceReachableIp          types.String    `tfsdk:"interface_reachable_ip"`
+	Ipv6                          types.Bool      `tfsdk:"ipv6"`
+	IsAirGapped                   types.Bool      `tfsdk:"is_air_gapped"`
+	IsKubernetes                  types.Bool      `tfsdk:"is_kubernetes"`
+	IsMesos                       types.Bool      `tfsdk:"is_mesos"`
+	IsSwarm                       types.Bool      `tfsdk:"is_swarm"`
+	K8sApiPort                    types.String    `tfsdk:"k8s_api_port"`
+	K8sPrivateRegistry            types.String    `tfsdk:"k8s_private_registry"`
+	KeystoneEnabled               types.Bool      `tfsdk:"keystone_enabled"`
+	KubeProxyMode                 types.String    `tfsdk:"kube_proxy_mode"`
+	KubeRoleVersion               types.String    `tfsdk:"kube_role_version"`
+	LastOk                        types.String    `tfsdk:"last_ok"`
+	LastOp                        types.String    `tfsdk:"last_op"`
+	MasterIp                      types.String    `tfsdk:"master_ip"`
+	MasterNodes                   types.Set       `tfsdk:"master_nodes"`
+	MasterStatus                  types.String    `tfsdk:"master_status"`
+	MasterVipIface                types.String    `tfsdk:"master_vip_iface"`
+	MasterVipIpv4                 types.String    `tfsdk:"master_vip_ipv4"`
+	MasterVipVrouterId            types.String    `tfsdk:"master_vip_vrouter_id"`
+	Masterless                    types.Bool      `tfsdk:"masterless"`
+	MetallbCidr                   types.String    `tfsdk:"metallb_cidr"`
+	MtuSize                       types.Int64     `tfsdk:"mtu_size"`
+	Name                          types.String    `tfsdk:"name"`
+	NetworkPlugin                 types.String    `tfsdk:"network_plugin"`
+	NodePoolName                  types.String    `tfsdk:"node_pool_name"`
+	NodePoolUuid                  types.String    `tfsdk:"node_pool_uuid"`
+	NumMasters                    types.Int64     `tfsdk:"num_masters"`
+	NumMaxWorkers                 types.Int64     `tfsdk:"num_max_workers"`
+	NumMinWorkers                 types.Int64     `tfsdk:"num_min_workers"`
+	NumWorkers                    types.Int64     `tfsdk:"num_workers"`
+	PatchUpgradeRoleVersion       types.String    `tfsdk:"patch_upgrade_role_version"`
+	Privileged                    types.Bool      `tfsdk:"privileged"`
+	ProjectId                     types.String    `tfsdk:"project_id"`
+	QuayPrivateRegistry           types.String    `tfsdk:"quay_private_registry"`
+	ReservedCpus                  types.String    `tfsdk:"reserved_cpus"`
+	RuntimeConfig                 types.String    `tfsdk:"runtime_config"`
+	ServicesCidr                  types.String    `tfsdk:"services_cidr"`
+	Status                        types.String    `tfsdk:"status"`
+	Tags                          types.Map       `tfsdk:"tags"`
+	TaskError                     types.String    `tfsdk:"task_error"`
+	TaskStatus                    types.String    `tfsdk:"task_status"`
+	TopologyManagerPolicy         types.String    `tfsdk:"topology_manager_policy"`
+	UpgradingTo                   types.String    `tfsdk:"upgrading_to"`
+	UseHostname                   types.Bool      `tfsdk:"use_hostname"`
+	WorkerNodes                   types.Set       `tfsdk:"worker_nodes"`
+	WorkerStatus                  types.String    `tfsdk:"worker_status"`
 }
 
 var _ basetypes.ObjectTypable = EtcdBackupType{}

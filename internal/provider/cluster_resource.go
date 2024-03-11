@@ -480,6 +480,7 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.CalicoV4BlockSize = types.StringValue(in.CalicoV4BlockSize)
 	out.CalicoIpv4DetectionMethod = types.StringValue(in.CalicoIPv4DetectionMethod)
 	out.NetworkPlugin = types.StringValue(in.NetworkPlugin)
+	out.ContainerRuntime = types.StringValue(in.ContainerRuntime)
 	out.RuntimeConfig = types.StringValue(in.RuntimeConfig)
 
 	out.ExternalDnsName = types.StringValue(in.ExternalDnsName)
@@ -492,6 +493,98 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.CalicoControllerMemoryLimit = types.StringValue(in.CalicoControllerMemoryLimit)
 	out.EnableMetallb = types.BoolValue(in.EnableMetallb != 0)
 	out.MetallbCidr = types.StringValue(in.MetallbCidr)
+
+	// Computed attributes
+	out.CanUpgrade = types.BoolValue(in.CanUpgrade)
+	out.CreatedAt = types.StringValue(in.CreatedAt)
+	out.IsKubernetes = types.BoolValue(in.IsKubernetes != 0)
+	out.IsMesos = types.BoolValue(in.IsMesos != 0)
+	out.IsSwarm = types.BoolValue(in.IsSwarm != 0)
+	out.Debug = types.BoolValue(in.Debug == "true")
+	out.Status = types.StringValue(in.Status)
+	out.FlannelIfaceLabel = types.StringValue(in.FlannelIfaceLabel)
+	out.FlannelPublicIfaceLabel = types.StringValue(in.FlannelPublicIfaceLabel)
+	out.DockerRoot = types.StringValue(in.DockerRoot)
+	out.EtcdDataDir = types.StringValue(in.EtcdDataDir)
+	out.LastOp = types.StringValue(in.LastOp)
+	out.LastOk = types.StringValue(in.LastOk)
+	out.KeystoneEnabled = types.BoolValue(in.KeystoneEnabled != 0)
+	out.AuthzEnabled = types.BoolValue(in.AuthzEnabled != 0)
+	out.TaskStatus = types.StringValue(in.TaskStatus)
+	out.TaskError = types.StringValue(in.TaskError)
+	out.KubeProxyMode = types.StringValue(in.KubeProxyMode)
+	out.NumMasters = types.Int64Value(int64(in.NumMasters))
+	out.NumWorkers = types.Int64Value(int64(in.NumWorkers))
+	out.AppCatalogEnabled = types.BoolValue(in.AppCatalogEnabled != 0)
+	out.ProjectId = types.StringValue(in.ProjectId)
+	out.MasterVipVrouterId = types.StringValue(in.MasterVipVrouterId)
+	out.K8sApiPort = types.StringValue(in.K8sApiPort)
+	out.CalicoIpv4 = types.StringValue(in.CalicoIPv4)
+	out.CalicoIpv6 = types.StringValue(in.CalicoIPv6)
+	out.CalicoIpv6DetectionMethod = types.StringValue(in.CalicoIPv6DetectionMethod)
+	out.CalicoRouterId = types.StringValue(in.CalicoRouterID)
+	out.CalicoIpv6PoolCidr = types.StringValue(in.CalicoIPv6PoolCidr)
+	out.CalicoIpv6PoolBlockSize = types.StringValue(in.CalicoIPv6PoolBlockSize)
+	out.CalicoIpv6PoolNatOutgoing = types.BoolValue(in.CalicoIPv6PoolNatOutgoing != 0)
+	out.FelixIpv6Support = types.BoolValue(in.FelixIPv6Support != 0)
+	out.Masterless = types.BoolValue(in.Masterless != 0)
+	out.EtcdVersion = types.StringValue(in.EtcdVersion)
+	out.ApiServerStorageBackend = types.StringValue(in.ApiserverStorageBackend)
+	out.EnableCas = types.BoolValue(in.EnableCAS != 0)
+	out.NumMinWorkers = types.Int64Value(int64(in.NumMinWorkers))
+	out.NumMaxWorkers = types.Int64Value(int64(in.NumMaxWorkers))
+	if in.EtcdHeartbeatIntervalMs == "" {
+		out.EtcdHeartbeatIntervalMs = types.Int64Null()
+	} else {
+		etcdHeartbeatIntervalMs, err := strconv.Atoi(in.EtcdHeartbeatIntervalMs)
+		if err != nil {
+			tflog.Error(ctx, "Failed to parse etcd heartbeat interval", map[string]interface{}{"error": err})
+			diags.AddError("Failed to parse etcd heartbeat interval", err.Error())
+			return diags
+		}
+		out.EtcdHeartbeatIntervalMs = types.Int64Value(int64(etcdHeartbeatIntervalMs))
+	}
+	if in.EtcdElectionTimeoutMs == "" {
+		out.EtcdElectionTimeoutMs = types.Int64Null()
+	} else {
+		etcdElectionTimeoutMs, err := strconv.Atoi(in.EtcdElectionTimeoutMs)
+		if err != nil {
+			tflog.Error(ctx, "Failed to parse etcd election timeout", map[string]interface{}{"error": err})
+			diags.AddError("Failed to parse etcd election timeout", err.Error())
+			return diags
+		}
+		out.EtcdElectionTimeoutMs = types.Int64Value(int64(etcdElectionTimeoutMs))
+	}
+	out.MasterStatus = types.StringValue(in.MasterStatus)
+	out.WorkerStatus = types.StringValue(in.WorkerStatus)
+	out.Ipv6 = types.BoolValue(in.IPv6 != 0)
+	out.CanMinorUpgrade = types.BoolValue(in.CanMinorUpgrade != 0)
+	out.CanPatchUpgrade = types.BoolValue(in.CanPatchUpgrade != 0)
+	out.PatchUpgradeRoleVersion = types.StringValue(in.PatchUpgradeRoleVersion)
+	out.NodePoolName = types.StringValue(in.NodePoolName)
+	out.CloudProviderUuid = types.StringValue(in.CloudProviderUuid)
+	out.CloudProviderName = types.StringValue(in.CloudProviderName)
+	out.CloudProviderType = types.StringValue(in.CloudProviderType)
+	out.DeployKubevirt = types.BoolValue(in.DeployKubevirt != 0)
+	out.UpgradingTo = types.StringValue(in.UpgradingTo)
+	out.ReservedCpus = types.StringValue(in.ReservedCPUs)
+	out.DockerPrivateRegistry = types.StringValue(in.DockerPrivateRegistry)
+	out.QuayPrivateRegistry = types.StringValue(in.QuayPrivateRegistry)
+	out.GcrPrivateRegistry = types.StringValue(in.GcrPrivateRegistry)
+	out.K8sPrivateRegistry = types.StringValue(in.K8sPrivateRegistry)
+	out.EnableCatapultMonitoring = types.BoolValue(in.EnableCatapultMonitoring)
+	out.DockerCentosPackageRepoUrl = types.StringValue(in.DockerCentosPackageRepoUrl)
+	out.DockerUbuntuPackageRepoUrl = types.StringValue(in.DockerUbuntuPackageRepoUrl)
+	out.AddonOperatorImageTag = types.StringValue(in.AddonOperatorImageTag)
+	out.IsAirGapped = types.BoolValue(in.IsAirgapped != 0)
+	out.InterfaceReachableIp = types.StringValue(in.InterfaceReachableIP)
+	out.CustomRegistryUrl = types.StringValue(in.CustomRegistryUrl)
+	out.CustomRegistryRepoPath = types.StringValue(in.CustomRegistryRepoPath)
+	out.CustomRegistryUsername = types.StringValue(in.CustomRegistryUsername)
+	out.CustomRegistryPassword = types.StringValue(in.CustomRegistryPassword)
+	out.CustomRegistrySkipTls = types.BoolValue(in.CustomRegistrySkipTls != 0)
+	out.CustomRegistrySelfSignedCerts = types.BoolValue(in.CustomRegistrySelfSignedCerts != 0)
+	out.CustomRegistryCertPath = types.StringValue(in.CustomRegistryCertPath)
 
 	if in.EnableEtcdEncryption == "true" {
 		out.EnableEtcdEncryption = types.BoolValue(true)
@@ -524,16 +617,20 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 		}
 		out.EtcdBackup = etcdBackup
 	}
-	tagsGoMap := map[string]attr.Value{}
-	for key, val := range in.Tags {
-		tagsGoMap[key] = types.StringValue(val)
+	if len(in.Tags) == 0 {
+		out.Tags = types.MapNull(basetypes.StringType{})
+	} else {
+		tagsGoMap := map[string]attr.Value{}
+		for key, val := range in.Tags {
+			tagsGoMap[key] = types.StringValue(val)
+		}
+		tfMap, d := types.MapValueFrom(ctx, types.StringType, tagsGoMap)
+		diags.Append(d...)
+		if diags.HasError() {
+			return diags
+		}
+		out.Tags = tfMap
 	}
-	tfMap, d := types.MapValueFrom(ctx, types.StringType, tagsGoMap)
-	diags.Append(d...)
-	if diags.HasError() {
-		return diags
-	}
-	out.Tags = tfMap
 
 	return diags
 }
@@ -574,7 +671,15 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 	req.Privileged = in.Privileged.ValueBoolPointer()
 	req.DeployLuigiOperator = in.DeployLuigiOperator.ValueBoolPointer()
 	req.UseHostname = in.UseHostname.ValueBoolPointer()
-	req.InterfaceDetectionMethod = in.InterfaceDetectionMethod.ValueString()
+	if !in.InterfaceDetectionMethod.IsUnknown() {
+		req.InterfaceDetectionMethod = in.InterfaceDetectionMethod.ValueString()
+	} else {
+		if len(req.WorkerNodes) > 0 {
+			// For non SingleNode clusters the default InterfaceDetectionMethod should be FirstFound as per UI
+			// Non single node clusters are the Multi Master and Single Master clusters
+			req.InterfaceDetectionMethod = "FirstFound"
+		}
+	}
 	req.InterfaceName = in.InterfaceName.ValueString()
 	if in.NodePoolUuid.IsNull() || in.NodePoolUuid.IsUnknown() || in.NodePoolUuid.ValueString() == "" {
 		tflog.Debug(ctx, "Node pool UUID not provided, getting default node pool")
@@ -600,8 +705,11 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 	req.CalicoIpv4DetectionMethod = in.CalicoIpv4DetectionMethod.ValueString()
 	req.NetworkPlugin = qbert.CNIBackend(in.NetworkPlugin.ValueString())
 	req.RuntimeConfig = in.RuntimeConfig.ValueString()
+	req.ContainerRuntime = qbert.ContainerRuntime(in.ContainerRuntime.ValueString())
 
-	req.EnableEtcdEncryption = fmt.Sprintf("%v", in.EnableEtcdEncryption.ValueBool())
+	if !in.EnableEtcdEncryption.IsUnknown() {
+		req.EnableEtcdEncryption = fmt.Sprintf("%v", in.EnableEtcdEncryption.ValueBool())
+	}
 	req.EtcdBackup.DailyBackupTime = in.EtcdBackup.DailyBackupTime.ValueString()
 	if in.EtcdBackup.IsEtcdBackupEnabled.ValueBool() {
 		req.EtcdBackup.IsEtcdBackupEnabled = 1
@@ -613,8 +721,9 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 	req.EtcdBackup.StorageType = in.EtcdBackup.StorageType.ValueString()
 	req.EtcdBackup.IntervalInHours = int(in.EtcdBackup.IntervalInHours.ValueInt64())
 	req.EtcdBackup.IntervalInMins = int(in.EtcdBackup.IntervalInMins.ValueInt64())
-	req.EtcdBackup.MaxIntervalBackupCount = int(in.EtcdBackup.MaxIntervalBackupCount.ValueInt64())
-
+	if !in.EtcdBackup.MaxIntervalBackupCount.IsUnknown() {
+		req.EtcdBackup.MaxIntervalBackupCount = int(in.EtcdBackup.MaxIntervalBackupCount.ValueInt64())
+	}
 	req.ExternalDNSName = in.ExternalDnsName.ValueString()
 	req.CertExpiryHrs = ptr.To(int(in.CertExpiryHrs.ValueInt64()))
 
