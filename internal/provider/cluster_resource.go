@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,6 +17,9 @@ import (
 	"github.com/platform9/pf9-sdk-go/pf9/pmk"
 	"github.com/platform9/pf9-sdk-go/pf9/qbert"
 	"github.com/platform9/terraform-provider-pf9/internal/provider/resource_cluster"
+
+	sunpikev1alpha2 "github.com/platform9/pf9-sdk-go/pf9/apis/sunpike/v1alpha2"
+	// sunpikev1alpha2 "github.com/platform9/pf9-sdk-go/pf9/apis/sunpike/v1alpha2"
 	"k8s.io/utils/ptr"
 )
 
@@ -45,7 +49,7 @@ func (r *clusterResource) Configure(ctx context.Context, req resource.ConfigureR
 }
 
 func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data resource_cluster.ClusterModel
+	var data, state resource_cluster.ClusterModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
@@ -96,6 +100,66 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
+	var addonsValues []resource_cluster.AddonsValue
+	resp.Diagnostics.Append(data.Addons.ElementsAs(ctx, &addonsValues, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// qbert API is so complicated; some addons can be enabled through flags in create cluster req
+	// This code-block maps the addon values to the flags
+	addonsValueMap := make(map[string]resource_cluster.AddonsValue, len(addonsValues))
+	for _, addonValue := range addonsValues {
+		addonsValueMap[addonValue.Name.ValueString()] = addonValue
+		if addonValue.Enabled.IsNull() {
+			tflog.Error(ctx, "Enabled field is required for addon", map[string]interface{}{"addon": addonValue})
+			resp.Diagnostics.AddError("Enabled field is required for addon", fmt.Sprintf("addon: %v", addonValue))
+			return
+		}
+		if addonValue.Enabled.IsUnknown() {
+			tflog.Error(ctx, "Enabled field is unknown", map[string]interface{}{"addon": addonValue})
+			resp.Diagnostics.AddError("Enabled field is unknown", fmt.Sprintf("addon: %v", addonValue))
+			return
+		}
+		if addonValue.Enabled.ValueBool() {
+			addonConfig := map[string]string{}
+			if !addonValue.Config.IsNull() && !addonValue.Config.IsUnknown() {
+				resp.Diagnostics.Append(addonValue.Config.ElementsAs(ctx, &addonConfig, false)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+			}
+			switch addonValue.Name.ValueString() {
+			case "kubevirt":
+				createClusterReq.DeployKubevirt = true
+			case "luigi":
+				createClusterReq.DeployLuigiOperator = true
+			case "metallb":
+				createClusterReq.EnableMetalLb = true
+				if metallbCidr, found := addonConfig["MetallbIpRange"]; found {
+					createClusterReq.MetallbCidr = metallbCidr
+				} else {
+					resp.Diagnostics.AddAttributeError(path.Root("addons"), "MetallbIpRange is required for metallb addon", "MetallbIpRange is required for metallb addon")
+					return
+				}
+			case "monitoring":
+				monitoringConfig := qbert.MonitoringConfig{}
+				addonConfig := map[string]string{}
+				if retentionTime, found := addonConfig["retentionTime"]; found {
+					monitoringConfig.RetentionTime = &retentionTime
+				} else {
+					monitoringConfig.RetentionTime = ptr.To("7d")
+				}
+				createClusterReq.Monitoring = &monitoringConfig
+			case "pf9-profile-agent":
+				createClusterReq.EnableProfileAgent = true
+			case "something": //TODO: Find the actual name of the addon
+				createClusterReq.EnableCatapultMonitoring = true
+			default:
+				tflog.Debug(ctx, "Addon cannot be enabled while create, it will be enabled after cluster creation", map[string]interface{}{"addon": addonValue})
+			}
+		}
+	}
+
 	reqBody, err := json.Marshal(createClusterReq)
 	if err != nil {
 		tflog.Error(ctx, "Failed to marshal create cluster request", map[string]interface{}{"error": err})
@@ -140,51 +204,141 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Failed to attach nodes", err.Error())
 		return
 	}
-	tflog.Debug(ctx, "Attached nodes, saving state", map[string]interface{}{"nodeList": nodeList})
-	data.Id = types.StringValue(clusterID)
-	cluster, err := qbertClient.GetCluster(ctx, projectID, clusterID)
-	if err != nil {
-		tflog.Error(ctx, "Failed to get cluster", map[string]interface{}{"error": err})
-		resp.Diagnostics.AddError("Failed to get cluster", err.Error())
-		return
-	}
-	diags := qbertClusterToTerraformCluster(ctx, cluster, &data)
-	if diags.HasError() {
-		resp.Diagnostics = diags
-		return
-	}
-	clusterNodes, err := r.client.Qbert().ListClusterNodes(ctx, clusterID)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to get cluster nodes", err.Error())
-		return
-	}
-	masterNodes := []string{}
-	workerNodes := []string{}
-	for _, node := range clusterNodes {
-		if node.IsMaster == 1 {
-			masterNodes = append(masterNodes, node.UUID)
-		} else {
-			workerNodes = append(workerNodes, node.UUID)
-		}
-	}
-	var convertDiags diag.Diagnostics
-	data.MasterNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, masterNodes)
-	resp.Diagnostics.Append(convertDiags...)
+	// tflog.Debug(ctx, "Attached nodes, saving state", map[string]interface{}{"nodeList": nodeList})
+	// TODO: Save intermediate state after every PUT/POST api
+
+	resp.Diagnostics.Append(r.reconcileAddons(ctx, clusterID, addonsValueMap)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	data.WorkerNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, workerNodes)
-	resp.Diagnostics.Append(convertDiags...)
+
+	resp.Diagnostics.Append(r.setState(ctx, clusterID, projectID, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func (r *clusterResource) reconcileAddons(ctx context.Context, clusterID string, planAddonsValueMap map[string]resource_cluster.AddonsValue) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
+	// TODO: Do not issue fresh get request, instead use the value from state
+	tflog.Debug(ctx, "Getting list of addons")
+	addons, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
+	if err != nil {
+		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
+		diags.AddError("Failed to get cluster addons", err.Error())
+		return diags
+	}
+	tflog.Debug(ctx, "Got list of addons", map[string]interface{}{"addons": addons})
+	// addon list contains all the enabled addons, iow, disabled addons are not returned
+	for _, addon := range addons.Items {
+		if addonValue, found := planAddonsValueMap[addon.Spec.Type]; found {
+			if addonValue.Enabled.IsNull() {
+				tflog.Error(ctx, "Enabled field is required for addon", map[string]interface{}{"addon": addon})
+				diags.AddError("Enabled field is required for addon", fmt.Sprintf("addon: %v", addon))
+				return diags
+			}
+			if addonValue.Enabled.IsUnknown() {
+				tflog.Error(ctx, "Enabled field is unknown", map[string]interface{}{"addon": addon})
+				diags.AddError("Enabled field is unknown", fmt.Sprintf("addon: %v", addon))
+				return diags
+			}
+			if addonValue.Enabled.ValueBool() {
+				addonConfig := map[string]string{}
+				if !addonValue.Config.IsNull() && !addonValue.Config.IsUnknown() {
+					diags.Append(addonValue.Config.ElementsAs(ctx, &addonConfig, false)...)
+					if diags.HasError() {
+						return diags
+					}
+				}
+				patchBody, diags := buildPatchBody(ctx, addonValue, addon)
+				if diags.HasError() {
+					return diags
+				}
+				// Check if PATCH is needed. The patchBody will be `{}` if no patch is needed
+				if len(patchBody) > 2 {
+					// TODO: Update the addon config using patch
+					// TODO: ?? Does setting addonversion here will work or we need to call https://platform9.com/docs/qbert/ref#postupgrade-a-cluster-identified-by-the-uuid
+					// r.client.Sunpike().Patch(ctx, &addon, patchBody)
+
+				} else {
+					tflog.Debug(ctx, "no patch required")
+				}
+				continue
+			} else {
+				// user explicitly wants to disable the addon
+				tflog.Debug(ctx, "Disabling addon", map[string]interface{}{"addon": addon})
+				err = r.client.Sunpike().Delete(ctx, &addon)
+				if err != nil {
+					tflog.Error(ctx, "Failed to disable addon", map[string]interface{}{"error": err})
+					diags.AddError("Failed to disable addon", err.Error())
+					return diags
+				}
+			}
+		} else {
+			tflog.Debug(ctx, "Addon not provided by the practitioner, but available on remote", map[string]interface{}{"addon": addon})
+			// its okay; user is allowed to not provide all the addons; in this case whatever default set by the backend will be used
+		}
+	}
+	return diags
+}
+
+func buildPatchBody(ctx context.Context, local resource_cluster.AddonsValue, remote sunpikev1alpha2.ClusterAddon) ([]byte, diag.Diagnostics) {
+	params := remote.Spec.Override.Params
+	confRemote := map[string]string{}
+	for _, param := range params {
+		confRemote[param.Name] = param.Value
+	}
+	confLocal := map[string]string{}
+	diags := local.Config.ElementsAs(ctx, &confLocal, false)
+	if diags.HasError() {
+		return nil, diags
+	}
+	var paramsToModify []sunpikev1alpha2.Params
+	for key, value := range confLocal {
+		if confRemoteValue, ok := confRemote[key]; !ok || confRemoteValue != value {
+			paramsToModify = append(paramsToModify, sunpikev1alpha2.Params{
+				Name:  key,
+				Value: value,
+			})
+		}
+	}
+
+	var buffer bytes.Buffer
+	buffer.WriteString("{")
+	if len(paramsToModify) > 0 {
+		buffer.WriteString(`"spec":{"override":{"params":`)
+		b, err := json.Marshal(paramsToModify)
+		if err != nil {
+			diags.AddError("Error marshalling addon params", "Error marshalling addon params")
+			return nil, diags
+		}
+		buffer.Write(b)
+		buffer.WriteString("}")
+	}
+	if !local.Version.IsNull() && !local.Version.IsUnknown() {
+		if remote.Spec.Version != local.Version.ValueString() {
+			if len(paramsToModify) > 0 {
+				buffer.WriteString(",")
+			} else {
+				buffer.WriteString(`"spec":{`)
+			}
+			buffer.WriteString(`"version":"`)
+			buffer.WriteString(local.Version.ValueString())
+			buffer.WriteString(`"`)
+		}
+	}
+	buffer.WriteString("}")
+	//`{"spec: {"override":{"params":[{"name":"retentionTime","value":"7d"}]},"version":"0.68.0"}`
+	return buffer.Bytes(), diags
 }
 
 func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data resource_cluster.ClusterModel
+	var data, state resource_cluster.ClusterModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -202,45 +356,13 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 	clusterID := data.Id.ValueString()
 	projectID := authInfo.ProjectID
-	cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to get cluster", err.Error())
-		return
-	}
-	tflog.Info(ctx, "Cluster: %v", map[string]interface{}{"cluster": cluster})
-	diags := qbertClusterToTerraformCluster(ctx, cluster, &data)
-	if diags.HasError() {
-		resp.Diagnostics = diags
-		return
-	}
-	clusterNodes, err := r.client.Qbert().ListClusterNodes(ctx, clusterID)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to get cluster nodes", err.Error())
-		return
-	}
-	masterNodes := []string{}
-	workerNodes := []string{}
-	for _, node := range clusterNodes {
-		if node.IsMaster == 1 {
-			masterNodes = append(masterNodes, node.UUID)
-		} else {
-			workerNodes = append(workerNodes, node.UUID)
-		}
-	}
-	var convertDiags diag.Diagnostics
-	data.MasterNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, masterNodes)
-	resp.Diagnostics.Append(convertDiags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	data.WorkerNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, workerNodes)
-	resp.Diagnostics.Append(convertDiags...)
+	resp.Diagnostics.Append(r.setState(ctx, clusterID, projectID, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	// Save updated state into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -295,65 +417,26 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		editClusterReq.EtcdBackup = &etcdConfig
 	}
 
+	// The following attrributes are not in the swagger: https://platform9.com/docs/qbert/ref#putupdate-the-properties-of-a-cluster-specified-by-the-cluster-u
+	// but available in the qbert server code: https://github.com/platform9/pf9-qbert/blob/d23bce9c9cb64caf786a561627c8d0b98dfdbc7c/server/api/handlers/v1/index.js#L267
 	if !plan.CertExpiryHrs.Equal(state.CertExpiryHrs) {
 		editRequired = true
-		editClusterReq.CertExpiryHrs = ptr.To(int(plan.CertExpiryHrs.ValueInt64()))
+		editClusterReq.CertExpiryHrs = int(plan.CertExpiryHrs.ValueInt64())
 	}
-	if !plan.ExternalDnsName.Equal(state.ExternalDnsName) {
-		editRequired = true
-		editClusterReq.ExternalDnsName = plan.ExternalDnsName.ValueStringPointer()
-	}
-	if !plan.MasterIp.Equal(state.MasterIp) {
-		editRequired = true
-		editClusterReq.MasterIp = plan.MasterIp.ValueStringPointer()
-	}
-	if !plan.EnableMetallb.Equal(state.EnableMetallb) {
-		editRequired = true
-		editClusterReq.EnableMetalLb = plan.EnableMetallb.ValueBoolPointer()
-	}
-	if !plan.MetallbCidr.Equal(state.MetallbCidr) {
-		editClusterReq.MetallbCidr = plan.MetallbCidr.ValueStringPointer()
-	}
-	if !plan.CalicoNodeCpuLimit.Equal(state.CalicoNodeCpuLimit) {
-		editRequired = true
-		editClusterReq.CalicoNodeCpuLimit = plan.CalicoNodeCpuLimit.ValueString()
-	}
-	if !plan.CalicoNodeMemoryLimit.Equal(state.CalicoNodeMemoryLimit) {
-		editRequired = true
-		editClusterReq.CalicoNodeMemoryLimit = plan.CalicoNodeMemoryLimit.ValueString()
-	}
-	if !plan.CalicoTyphaCpuLimit.Equal(state.CalicoTyphaCpuLimit) {
-		editRequired = true
-		editClusterReq.CalicoTyphaCpuLimit = plan.CalicoTyphaCpuLimit.ValueString()
-	}
-	if !plan.CalicoTyphaMemoryLimit.Equal(state.CalicoTyphaMemoryLimit) {
-		editRequired = true
-		editClusterReq.CalicoTyphaMemoryLimit = plan.CalicoTyphaMemoryLimit.ValueString()
-	}
-	if !plan.CalicoControllerCpuLimit.Equal(state.CalicoControllerCpuLimit) {
-		editRequired = true
-		editClusterReq.CalicoControllerCpuLimit = plan.CalicoControllerCpuLimit.ValueString()
-	}
-	if !plan.CalicoControllerMemoryLimit.Equal(state.CalicoControllerMemoryLimit) {
-		editRequired = true
-		editClusterReq.CalicoControllerMemoryLimit = plan.CalicoControllerMemoryLimit.ValueString()
-	}
+
 	if !plan.ContainersCidr.Equal(state.ContainersCidr) {
 		editRequired = true
-		editClusterReq.ContainersCidr = plan.ContainersCidr.ValueStringPointer()
+		editClusterReq.ContainersCidr = plan.ContainersCidr.ValueString()
 	}
 	if !plan.ServicesCidr.Equal(state.ServicesCidr) {
 		editRequired = true
-		editClusterReq.ServicesCidr = plan.ServicesCidr.ValueStringPointer()
+		editClusterReq.ServicesCidr = plan.ServicesCidr.ValueString()
 	}
 
-	// TODO: Add following fields to provider_code_spec.json if they are required
-	// editClusterReq.KubeProxyMode = plan.KubeProxyMode.ValueStringPointer()
-	// editClusterReq.EnableProfileAgent = plan.EnableProfileAgent.ValueBoolPointer()
-	// editClusterReq.EnableCatapultMonitoring = plan.EnableCatapultMonitoring.ValueBoolPointer()
-	// editClusterReq.NumMaxWorkers = plan.NumMaxWorkers.ValueInt64Pointer()
-	// editClusterReq.NumMinWorkers = plan.NumMinWorkers.ValueInt64Pointer()
-	// editClusterReq.NumWorkers = plan.NumWorkers.ValueInt64Pointer()
+	// TODO: Add following fields are in provider_code_spec.json; if needed
+	// editClusterReq.KubeProxyMode = plan.KubeProxyMode.ValueString()
+	// editClusterReq.EnableProfileAgent = plan.EnableProfileAgent.ValueBool()
+	// editClusterReq.EnableCatapultMonitoring = plan.EnableCatapultMonitoring.ValueBool()
 
 	if editRequired {
 		// qberty API replaces tags with empty map if tags are not provided
@@ -372,27 +455,122 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	} else {
 		tflog.Debug(ctx, "No change detected, skipping update")
-
 	}
 
+	if !plan.KubeRoleVersion.Equal(state.KubeRoleVersion) {
+		tflog.Info(ctx, "upgrading kube role version", map[string]interface{}{"from": state.KubeRoleVersion, "to": plan.KubeRoleVersion})
+		supportedVersions, err := r.client.Qbert().ListSupportedVersions(projectID)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to find kube role versions for a cluster", err.Error())
+			return
+		}
+		var upgradeAllowed bool
+		for _, version := range supportedVersions.Roles {
+			if version.RoleVersion == plan.KubeRoleVersion.ValueString() {
+				upgradeAllowed = true
+				break
+			}
+		}
+		if !upgradeAllowed {
+			resp.Diagnostics.AddError("Kube role version cannot be upgraded to this version", fmt.Sprintf("Allowed versions are: %v", supportedVersions.Roles))
+			return
+		}
+		// TODO: identify the upgrade is patch/minor or major, then call the right api accordingly
+	}
+
+	var upgradeRequired bool
+	var upgradeClusterReq qbert.UpgradeClusterRequest
+	if !plan.ContainerRuntime.Equal(state.ContainerRuntime) {
+		upgradeRequired = true
+		upgradeClusterReq.ContainerRuntime = plan.ContainerRuntime.ValueString()
+	}
+	if !plan.AddonOperatorImageTag.Equal(state.AddonOperatorImageTag) {
+		upgradeRequired = true
+		upgradeClusterReq.AddonOperatorImageTag = plan.AddonOperatorImageTag.ValueString()
+	}
+	if !plan.CustomRegistryUrl.Equal(state.CustomRegistryUrl) {
+		upgradeRequired = true
+		upgradeClusterReq.CustomRegistryUrl = plan.CustomRegistryUrl.ValueString()
+	}
+	if !plan.CustomRegistryRepoPath.Equal(state.CustomRegistryRepoPath) {
+		upgradeRequired = true
+		upgradeClusterReq.CustomRegistryRepoPath = plan.CustomRegistryRepoPath.ValueString()
+	}
+	if !plan.CustomRegistryUsername.Equal(state.CustomRegistryUsername) {
+		upgradeRequired = true
+		upgradeClusterReq.CustomRegistryUsername = plan.CustomRegistryUsername.ValueString()
+	}
+	if !plan.CustomRegistryPassword.Equal(state.CustomRegistryPassword) {
+		upgradeRequired = true
+		upgradeClusterReq.CustomRegistryPassword = plan.CustomRegistryPassword.ValueString()
+	}
+	if !plan.CustomRegistrySkipTls.Equal(state.CustomRegistrySkipTls) {
+		upgradeRequired = true
+		upgradeClusterReq.CustomRegistrySkipTls = plan.CustomRegistrySkipTls.ValueBool()
+	}
+	if !plan.CustomRegistrySelfSignedCerts.Equal(state.CustomRegistrySelfSignedCerts) {
+		upgradeRequired = true
+		upgradeClusterReq.CustomRegistrySelfSignedCerts = plan.CustomRegistrySelfSignedCerts.ValueBool()
+	}
+	if !plan.CustomRegistryCertPath.Equal(state.CustomRegistryCertPath) {
+		upgradeRequired = true
+		upgradeClusterReq.CustomRegistryCertPath = plan.CustomRegistryCertPath.ValueString()
+	}
+	// TODO: ?? Should we add addonVersions to upgradeClusterReq; because it can be upgraded using sunpike api anyways
+	if upgradeRequired {
+		err = r.client.Qbert().UpgradeCluster(ctx, upgradeClusterReq, clusterID)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to upgrade cluster", err.Error())
+			return
+		}
+	}
+	// ?? Addonversion is available in both sunpike get all addons as well as
+	// https://platform9.com/docs/qbert/ref#getprovides-a-list-of-addon-version-for-pf9-kube-role-on-a-clust
+	// Which one to use?
+
+	// TODO: Allow modify addon configs
+	var addonsValues []resource_cluster.AddonsValue
+	resp.Diagnostics.Append(plan.Addons.ElementsAs(ctx, &addonsValues, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// qbert API is so complicated; some addons can be enabled through flags in create cluster req
+	// This code-block maps the addon values to the flags
+	addonsValueMap := make(map[string]resource_cluster.AddonsValue, len(addonsValues))
+	for _, addonValue := range addonsValues {
+		addonsValueMap[addonValue.Name.ValueString()] = addonValue
+	}
+	resp.Diagnostics.Append(r.reconcileAddons(ctx, clusterID, addonsValueMap)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(r.setState(ctx, clusterID, projectID, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// setState sets the values of the attibutes in the state variable retrieved from the backend
+func (r *clusterResource) setState(ctx context.Context, clusterID, projectID string, state *resource_cluster.ClusterModel) diag.Diagnostics {
+	var diags diag.Diagnostics
 	cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get cluster", err.Error())
-		return
+		diags.AddError("Failed to get cluster", err.Error())
+		return diags
 	}
 
-	diags := qbertClusterToTerraformCluster(ctx, cluster, &state)
+	diags = qbertClusterToTerraformCluster(ctx, cluster, state)
 	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
+		return diags
 	}
-	// TODO: Use addon api to get addon related attributes
-	// /qbert/v4/projectID/sunpike/apis/sunpike.platform9.com/v1alpha2/namespaces/default/clusteraddons?labelSelector=sunpike.pf9.io%2Fcluster%3D<clusterID>
-
 	clusterNodes, err := r.client.Qbert().ListClusterNodes(ctx, clusterID)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get cluster nodes", err.Error())
-		return
+		diags.AddError("Failed to get cluster nodes", err.Error())
+		return diags
 	}
 	masterNodes := []string{}
 	workerNodes := []string{}
@@ -403,20 +581,43 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 			workerNodes = append(workerNodes, node.UUID)
 		}
 	}
-	var convertDiags diag.Diagnostics
-	state.MasterNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, masterNodes)
-	resp.Diagnostics.Append(convertDiags...)
-	if resp.Diagnostics.HasError() {
-		return
+	state.MasterNodes, diags = types.SetValueFrom(ctx, basetypes.StringType{}, masterNodes)
+	if diags.HasError() {
+		return diags
 	}
-	state.WorkerNodes, convertDiags = types.SetValueFrom(ctx, basetypes.StringType{}, workerNodes)
-	resp.Diagnostics.Append(convertDiags...)
-	if resp.Diagnostics.HasError() {
-		return
+	state.WorkerNodes, diags = types.SetValueFrom(ctx, basetypes.StringType{}, workerNodes)
+	if diags.HasError() {
+		return diags
 	}
 
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	// TODO: Use addonversions api to get addon versions and set them inside addons
+	addons, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
+	if err != nil {
+		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
+		diags.AddError("Failed to get cluster addons", err.Error())
+		return diags
+	}
+	addonsSlice := []resource_cluster.AddonsValue{}
+	for _, addon := range addons.Items {
+		addonValue := resource_cluster.NewAddonsValueUnknown()
+		addonValue.Name = types.StringValue(addon.Spec.Type)
+		addonValue.Enabled = types.BoolValue(true)
+		addonValue.Version = types.StringValue(addon.Spec.Version)
+		addonConfig := map[string]string{}
+		for _, param := range addon.Spec.Override.Params {
+			addonConfig[param.Name] = param.Value
+		}
+		addonValue.Config, diags = types.MapValueFrom(ctx, basetypes.StringType{}, addonValue)
+		if diags.HasError() {
+			return diags
+		}
+		addonsSlice = append(addonsSlice, addonValue)
+	}
+	state.Addons, diags = types.SetValueFrom(ctx, resource_cluster.AddonsValue{}.Type(ctx), addonsSlice)
+	if diags.HasError() {
+		return diags
+	}
+	return diags
 }
 
 func (r *clusterResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -469,7 +670,6 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	}
 	out.MtuSize = types.Int64Value(int64(mtuSizeInt))
 	out.Privileged = types.BoolValue(in.Privileged != 0)
-	out.DeployLuigiOperator = types.BoolValue(in.DeployLuigiOperator != 0)
 	out.UseHostname = types.BoolValue(in.UseHostname)
 	out.InterfaceDetectionMethod = types.StringValue(in.InterfaceDetectionMethod)
 	out.InterfaceName = types.StringValue(in.InterfaceName)
@@ -493,16 +693,9 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.CalicoTyphaMemoryLimit = types.StringValue(in.CalicoTyphaMemoryLimit)
 	out.CalicoControllerCpuLimit = types.StringValue(in.CalicoControllerCpuLimit)
 	out.CalicoControllerMemoryLimit = types.StringValue(in.CalicoControllerMemoryLimit)
-	out.EnableMetallb = types.BoolValue(in.EnableMetallb != 0)
-	out.MetallbCidr = types.StringValue(in.MetallbCidr)
 
 	// Computed attributes
-	out.CanUpgrade = types.BoolValue(in.CanUpgrade)
 	out.CreatedAt = types.StringValue(in.CreatedAt)
-	out.IsKubernetes = types.BoolValue(in.IsKubernetes != 0)
-	out.IsMesos = types.BoolValue(in.IsMesos != 0)
-	out.IsSwarm = types.BoolValue(in.IsSwarm != 0)
-	out.Debug = types.BoolValue(in.Debug == "true")
 	out.Status = types.StringValue(in.Status)
 	out.FlannelIfaceLabel = types.StringValue(in.FlannelIfaceLabel)
 	out.FlannelPublicIfaceLabel = types.StringValue(in.FlannelPublicIfaceLabel)
@@ -510,14 +703,8 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.EtcdDataDir = types.StringValue(in.EtcdDataDir)
 	out.LastOp = types.StringValue(in.LastOp)
 	out.LastOk = types.StringValue(in.LastOk)
-	out.KeystoneEnabled = types.BoolValue(in.KeystoneEnabled != 0)
-	out.AuthzEnabled = types.BoolValue(in.AuthzEnabled != 0)
 	out.TaskStatus = types.StringValue(in.TaskStatus)
 	out.TaskError = types.StringValue(in.TaskError)
-	out.KubeProxyMode = types.StringValue(in.KubeProxyMode)
-	out.NumMasters = types.Int64Value(int64(in.NumMasters))
-	out.NumWorkers = types.Int64Value(int64(in.NumWorkers))
-	out.AppCatalogEnabled = types.BoolValue(in.AppCatalogEnabled != 0)
 	out.ProjectId = types.StringValue(in.ProjectId)
 	out.MasterVipVrouterId = types.StringValue(in.MasterVipVrouterId)
 	out.K8sApiPort = types.StringValue(in.K8sApiPort)
@@ -531,10 +718,6 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.FelixIpv6Support = types.BoolValue(in.FelixIPv6Support != 0)
 	out.Masterless = types.BoolValue(in.Masterless != 0)
 	out.EtcdVersion = types.StringValue(in.EtcdVersion)
-	out.ApiServerStorageBackend = types.StringValue(in.ApiserverStorageBackend)
-	out.EnableCas = types.BoolValue(in.EnableCAS != 0)
-	out.NumMinWorkers = types.Int64Value(int64(in.NumMinWorkers))
-	out.NumMaxWorkers = types.Int64Value(int64(in.NumMaxWorkers))
 	if in.EtcdHeartbeatIntervalMs == "" {
 		out.EtcdHeartbeatIntervalMs = types.Int64Null()
 	} else {
@@ -560,25 +743,17 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.MasterStatus = types.StringValue(in.MasterStatus)
 	out.WorkerStatus = types.StringValue(in.WorkerStatus)
 	out.Ipv6 = types.BoolValue(in.IPv6 != 0)
-	out.CanMinorUpgrade = types.BoolValue(in.CanMinorUpgrade != 0)
-	out.CanPatchUpgrade = types.BoolValue(in.CanPatchUpgrade != 0)
-	out.PatchUpgradeRoleVersion = types.StringValue(in.PatchUpgradeRoleVersion)
 	out.NodePoolName = types.StringValue(in.NodePoolName)
 	out.CloudProviderUuid = types.StringValue(in.CloudProviderUuid)
 	out.CloudProviderName = types.StringValue(in.CloudProviderName)
 	out.CloudProviderType = types.StringValue(in.CloudProviderType)
-	out.DeployKubevirt = types.BoolValue(in.DeployKubevirt != 0)
-	out.UpgradingTo = types.StringValue(in.UpgradingTo)
-	out.ReservedCpus = types.StringValue(in.ReservedCPUs)
 	out.DockerPrivateRegistry = types.StringValue(in.DockerPrivateRegistry)
 	out.QuayPrivateRegistry = types.StringValue(in.QuayPrivateRegistry)
 	out.GcrPrivateRegistry = types.StringValue(in.GcrPrivateRegistry)
 	out.K8sPrivateRegistry = types.StringValue(in.K8sPrivateRegistry)
-	out.EnableCatapultMonitoring = types.BoolValue(in.EnableCatapultMonitoring)
 	out.DockerCentosPackageRepoUrl = types.StringValue(in.DockerCentosPackageRepoUrl)
 	out.DockerUbuntuPackageRepoUrl = types.StringValue(in.DockerUbuntuPackageRepoUrl)
 	out.AddonOperatorImageTag = types.StringValue(in.AddonOperatorImageTag)
-	out.IsAirGapped = types.BoolValue(in.IsAirgapped != 0)
 	out.InterfaceReachableIp = types.StringValue(in.InterfaceReachableIP)
 	out.CustomRegistryUrl = types.StringValue(in.CustomRegistryUrl)
 	out.CustomRegistryRepoPath = types.StringValue(in.CustomRegistryRepoPath)
@@ -671,7 +846,6 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 	req.ServiceCIDR = in.ServicesCidr.ValueString()
 	req.MTUSize = ptr.To(int(in.MtuSize.ValueInt64()))
 	req.Privileged = in.Privileged.ValueBoolPointer()
-	req.DeployLuigiOperator = in.DeployLuigiOperator.ValueBoolPointer()
 	req.UseHostname = in.UseHostname.ValueBoolPointer()
 	if !in.InterfaceDetectionMethod.IsUnknown() {
 		req.InterfaceDetectionMethod = in.InterfaceDetectionMethod.ValueString()
@@ -736,11 +910,14 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 	req.CalicoControllerCpuLimit = in.CalicoControllerCpuLimit.ValueString()
 	req.CalicoControllerMemoryLimit = in.CalicoControllerMemoryLimit.ValueString()
 
-	// If user has not included the attribute then it should not be sent to the API
-	if in.EnableMetallb.IsNull() {
-		req.EnableMetalLb = in.EnableMetallb.ValueBoolPointer()
-	}
-	req.MetallbCidr = in.MetallbCidr.ValueString()
+	req.DockerPrivateRegistry = in.DockerPrivateRegistry.ValueString()
+	req.QuayPrivateRegistry = in.QuayPrivateRegistry.ValueString()
+	req.GcrPrivateRegistry = in.GcrPrivateRegistry.ValueString()
+	req.K8sPrivateRegistry = in.K8sPrivateRegistry.ValueString()
+
+	// TODO: Fix naming violation, whatever in API should be in struct
+	req.KubeAPIPort = in.K8sApiPort.ValueString()
+	req.DockerRoot = in.DockerRoot.ValueString()
 
 	tagsGoMap := map[string]string{}
 	diags = in.Tags.ElementsAs(ctx, &tagsGoMap, false)

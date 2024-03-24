@@ -32,7 +32,45 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"addon_operator_image_tag": schema.StringAttribute{
-				Computed: true,
+				Optional:            true,
+				Computed:            true,
+				Description:         "Tag of the addon operator image to be used for the cluster",
+				MarkdownDescription: "Tag of the addon operator image to be used for the cluster",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"addons": schema.SetNestedAttribute{
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"config": schema.MapAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
+							Computed:    true,
+						},
+						"enabled": schema.BoolAttribute{
+							Optional: true,
+							Computed: true,
+						},
+						"name": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+						},
+						"version": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+						},
+					},
+					CustomType: AddonsType{
+						ObjectType: types.ObjectType{
+							AttrTypes: AddonsValue{}.AttributeTypes(ctx),
+						},
+					},
+				},
+				Optional:            true,
+				Computed:            true,
+				Description:         "Addons to be installed on the cluster",
+				MarkdownDescription: "Addons to be installed on the cluster",
 			},
 			"allow_workloads_on_master": schema.BoolAttribute{
 				Optional:            true,
@@ -44,15 +82,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					boolplanmodifier.RequiresReplace(),
 				},
 				Default: booldefault.StaticBool(false),
-			},
-			"api_server_storage_backend": schema.StringAttribute{
-				Computed: true,
-			},
-			"app_catalog_enabled": schema.BoolAttribute{
-				Computed: true,
-			},
-			"authz_enabled": schema.BoolAttribute{
-				Computed: true,
 			},
 			"calico_controller_cpu_limit": schema.StringAttribute{
 				Optional:            true,
@@ -169,17 +198,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: stringdefault.StaticString("26"),
 			},
-			"can_minor_upgrade": schema.BoolAttribute{
-				Computed: true,
-			},
-			"can_patch_upgrade": schema.BoolAttribute{
-				Computed: true,
-			},
-			"can_upgrade": schema.BoolAttribute{
-				Computed:            true,
-				Description:         "Can upgrade",
-				MarkdownDescription: "Can upgrade",
-			},
 			"cert_expiry_hrs": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
@@ -244,58 +262,47 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "Time at which the cluster was created",
 			},
 			"custom_registry_cert_path": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
 			},
 			"custom_registry_password": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
 			},
 			"custom_registry_repo_path": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
 			},
 			"custom_registry_self_signed_certs": schema.BoolAttribute{
+				Optional: true,
 				Computed: true,
 			},
 			"custom_registry_skip_tls": schema.BoolAttribute{
+				Optional: true,
 				Computed: true,
 			},
 			"custom_registry_url": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
 			},
 			"custom_registry_username": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
-			},
-			"debug": schema.BoolAttribute{
-				Computed: true,
-			},
-			"deploy_kubevirt": schema.BoolAttribute{
-				Computed: true,
-			},
-			"deploy_luigi_operator": schema.BoolAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "If set to true, deploy Luigi operator on the cluster",
-				MarkdownDescription: "If set to true, deploy Luigi operator on the cluster",
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
-				Default: booldefault.StaticBool(false),
 			},
 			"docker_centos_package_repo_url": schema.StringAttribute{
 				Computed: true,
 			},
 			"docker_private_registry": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"docker_root": schema.StringAttribute{
 				Computed: true,
 			},
 			"docker_ubuntu_package_repo_url": schema.StringAttribute{
-				Computed: true,
-			},
-			"enable_cas": schema.BoolAttribute{
-				Computed: true,
-			},
-			"enable_catapult_monitoring": schema.BoolAttribute{
 				Computed: true,
 			},
 			"enable_etcd_encryption": schema.BoolAttribute{
@@ -308,16 +315,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					boolplanmodifier.RequiresReplace(),
 				},
 				Default: booldefault.StaticBool(true),
-			},
-			"enable_metallb": schema.BoolAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "If true, install MetalLB to support the loadbalancer service-type",
-				MarkdownDescription: "If true, install MetalLB to support the loadbalancer service-type",
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
-				Default: booldefault.StaticBool(false),
 			},
 			"etcd_backup": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
@@ -456,7 +453,11 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"gcr_private_registry": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -488,29 +489,15 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			"ipv6": schema.BoolAttribute{
 				Computed: true,
 			},
-			"is_air_gapped": schema.BoolAttribute{
-				Computed: true,
-			},
-			"is_kubernetes": schema.BoolAttribute{
-				Computed: true,
-			},
-			"is_mesos": schema.BoolAttribute{
-				Computed: true,
-			},
-			"is_swarm": schema.BoolAttribute{
-				Computed: true,
-			},
 			"k8s_api_port": schema.StringAttribute{
 				Computed: true,
 			},
 			"k8s_private_registry": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
-			},
-			"keystone_enabled": schema.BoolAttribute{
-				Computed: true,
-			},
-			"kube_proxy_mode": schema.StringAttribute{
-				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"kube_role_version": schema.StringAttribute{
 				Optional:            true,
@@ -549,8 +536,11 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			"master_vip_iface": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
-				Description:         "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to",
-				MarkdownDescription: "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to",
+				Description:         "If master_vip_ipv4 is specified, this field is required. Specify the interface that the VIP attaches to",
+				MarkdownDescription: "If master_vip_ipv4 is specified, this field is required. Specify the interface that the VIP attaches to",
+				Validators: []validator.String{
+					stringvalidator.AlsoRequires(path.MatchRelative().AtName("master_vip_ipv4")),
+				},
 			},
 			"master_vip_ipv4": schema.StringAttribute{
 				Optional:            true,
@@ -563,18 +553,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"masterless": schema.BoolAttribute{
 				Computed: true,
-			},
-			"metallb_cidr": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Comma-separated pools of IPs that MetalLB will manage (for example: A.B.C.D-E.F.G.H, I.J.K.L-M.N.O.P)",
-				MarkdownDescription: "Comma-separated pools of IPs that MetalLB will manage (for example: A.B.C.D-E.F.G.H, I.J.K.L-M.N.O.P)",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				Validators: []validator.String{
-					stringvalidator.AlsoRequires(path.MatchRelative().AtName("enable_metallb")),
-				},
 			},
 			"mtu_size": schema.Int64Attribute{
 				Optional:            true,
@@ -619,21 +597,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"num_masters": schema.Int64Attribute{
-				Computed: true,
-			},
-			"num_max_workers": schema.Int64Attribute{
-				Computed: true,
-			},
-			"num_min_workers": schema.Int64Attribute{
-				Computed: true,
-			},
-			"num_workers": schema.Int64Attribute{
-				Computed: true,
-			},
-			"patch_upgrade_role_version": schema.StringAttribute{
-				Computed: true,
-			},
 			"privileged": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -648,10 +611,11 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"quay_private_registry": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
-			},
-			"reserved_cpus": schema.StringAttribute{
-				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"runtime_config": schema.StringAttribute{
 				Optional:            true,
@@ -700,9 +664,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: stringdefault.StaticString("none"),
 			},
-			"upgrading_to": schema.StringAttribute{
-				Computed: true,
-			},
 			"use_hostname": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -728,10 +689,8 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 
 type ClusterModel struct {
 	AddonOperatorImageTag         types.String    `tfsdk:"addon_operator_image_tag"`
+	Addons                        types.Set       `tfsdk:"addons"`
 	AllowWorkloadsOnMaster        types.Bool      `tfsdk:"allow_workloads_on_master"`
-	ApiServerStorageBackend       types.String    `tfsdk:"api_server_storage_backend"`
-	AppCatalogEnabled             types.Bool      `tfsdk:"app_catalog_enabled"`
-	AuthzEnabled                  types.Bool      `tfsdk:"authz_enabled"`
 	CalicoControllerCpuLimit      types.String    `tfsdk:"calico_controller_cpu_limit"`
 	CalicoControllerMemoryLimit   types.String    `tfsdk:"calico_controller_memory_limit"`
 	CalicoIpIpMode                types.String    `tfsdk:"calico_ip_ip_mode"`
@@ -749,9 +708,6 @@ type ClusterModel struct {
 	CalicoTyphaCpuLimit           types.String    `tfsdk:"calico_typha_cpu_limit"`
 	CalicoTyphaMemoryLimit        types.String    `tfsdk:"calico_typha_memory_limit"`
 	CalicoV4BlockSize             types.String    `tfsdk:"calico_v4_block_size"`
-	CanMinorUpgrade               types.Bool      `tfsdk:"can_minor_upgrade"`
-	CanPatchUpgrade               types.Bool      `tfsdk:"can_patch_upgrade"`
-	CanUpgrade                    types.Bool      `tfsdk:"can_upgrade"`
 	CertExpiryHrs                 types.Int64     `tfsdk:"cert_expiry_hrs"`
 	CloudProviderName             types.String    `tfsdk:"cloud_provider_name"`
 	CloudProviderType             types.String    `tfsdk:"cloud_provider_type"`
@@ -767,17 +723,11 @@ type ClusterModel struct {
 	CustomRegistrySkipTls         types.Bool      `tfsdk:"custom_registry_skip_tls"`
 	CustomRegistryUrl             types.String    `tfsdk:"custom_registry_url"`
 	CustomRegistryUsername        types.String    `tfsdk:"custom_registry_username"`
-	Debug                         types.Bool      `tfsdk:"debug"`
-	DeployKubevirt                types.Bool      `tfsdk:"deploy_kubevirt"`
-	DeployLuigiOperator           types.Bool      `tfsdk:"deploy_luigi_operator"`
 	DockerCentosPackageRepoUrl    types.String    `tfsdk:"docker_centos_package_repo_url"`
 	DockerPrivateRegistry         types.String    `tfsdk:"docker_private_registry"`
 	DockerRoot                    types.String    `tfsdk:"docker_root"`
 	DockerUbuntuPackageRepoUrl    types.String    `tfsdk:"docker_ubuntu_package_repo_url"`
-	EnableCas                     types.Bool      `tfsdk:"enable_cas"`
-	EnableCatapultMonitoring      types.Bool      `tfsdk:"enable_catapult_monitoring"`
 	EnableEtcdEncryption          types.Bool      `tfsdk:"enable_etcd_encryption"`
-	EnableMetallb                 types.Bool      `tfsdk:"enable_metallb"`
 	EtcdBackup                    EtcdBackupValue `tfsdk:"etcd_backup"`
 	EtcdDataDir                   types.String    `tfsdk:"etcd_data_dir"`
 	EtcdElectionTimeoutMs         types.Int64     `tfsdk:"etcd_election_timeout_ms"`
@@ -793,14 +743,8 @@ type ClusterModel struct {
 	InterfaceName                 types.String    `tfsdk:"interface_name"`
 	InterfaceReachableIp          types.String    `tfsdk:"interface_reachable_ip"`
 	Ipv6                          types.Bool      `tfsdk:"ipv6"`
-	IsAirGapped                   types.Bool      `tfsdk:"is_air_gapped"`
-	IsKubernetes                  types.Bool      `tfsdk:"is_kubernetes"`
-	IsMesos                       types.Bool      `tfsdk:"is_mesos"`
-	IsSwarm                       types.Bool      `tfsdk:"is_swarm"`
 	K8sApiPort                    types.String    `tfsdk:"k8s_api_port"`
 	K8sPrivateRegistry            types.String    `tfsdk:"k8s_private_registry"`
-	KeystoneEnabled               types.Bool      `tfsdk:"keystone_enabled"`
-	KubeProxyMode                 types.String    `tfsdk:"kube_proxy_mode"`
 	KubeRoleVersion               types.String    `tfsdk:"kube_role_version"`
 	LastOk                        types.String    `tfsdk:"last_ok"`
 	LastOp                        types.String    `tfsdk:"last_op"`
@@ -811,21 +755,14 @@ type ClusterModel struct {
 	MasterVipIpv4                 types.String    `tfsdk:"master_vip_ipv4"`
 	MasterVipVrouterId            types.String    `tfsdk:"master_vip_vrouter_id"`
 	Masterless                    types.Bool      `tfsdk:"masterless"`
-	MetallbCidr                   types.String    `tfsdk:"metallb_cidr"`
 	MtuSize                       types.Int64     `tfsdk:"mtu_size"`
 	Name                          types.String    `tfsdk:"name"`
 	NetworkPlugin                 types.String    `tfsdk:"network_plugin"`
 	NodePoolName                  types.String    `tfsdk:"node_pool_name"`
 	NodePoolUuid                  types.String    `tfsdk:"node_pool_uuid"`
-	NumMasters                    types.Int64     `tfsdk:"num_masters"`
-	NumMaxWorkers                 types.Int64     `tfsdk:"num_max_workers"`
-	NumMinWorkers                 types.Int64     `tfsdk:"num_min_workers"`
-	NumWorkers                    types.Int64     `tfsdk:"num_workers"`
-	PatchUpgradeRoleVersion       types.String    `tfsdk:"patch_upgrade_role_version"`
 	Privileged                    types.Bool      `tfsdk:"privileged"`
 	ProjectId                     types.String    `tfsdk:"project_id"`
 	QuayPrivateRegistry           types.String    `tfsdk:"quay_private_registry"`
-	ReservedCpus                  types.String    `tfsdk:"reserved_cpus"`
 	RuntimeConfig                 types.String    `tfsdk:"runtime_config"`
 	ServicesCidr                  types.String    `tfsdk:"services_cidr"`
 	Status                        types.String    `tfsdk:"status"`
@@ -833,10 +770,509 @@ type ClusterModel struct {
 	TaskError                     types.String    `tfsdk:"task_error"`
 	TaskStatus                    types.String    `tfsdk:"task_status"`
 	TopologyManagerPolicy         types.String    `tfsdk:"topology_manager_policy"`
-	UpgradingTo                   types.String    `tfsdk:"upgrading_to"`
 	UseHostname                   types.Bool      `tfsdk:"use_hostname"`
 	WorkerNodes                   types.Set       `tfsdk:"worker_nodes"`
 	WorkerStatus                  types.String    `tfsdk:"worker_status"`
+}
+
+var _ basetypes.ObjectTypable = AddonsType{}
+
+type AddonsType struct {
+	basetypes.ObjectType
+}
+
+func (t AddonsType) Equal(o attr.Type) bool {
+	other, ok := o.(AddonsType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t AddonsType) String() string {
+	return "AddonsType"
+}
+
+func (t AddonsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	configAttribute, ok := attributes["config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`config is missing from object`)
+
+		return nil, diags
+	}
+
+	configVal, ok := configAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`config expected to be basetypes.MapValue, was: %T`, configAttribute))
+	}
+
+	enabledAttribute, ok := attributes["enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	enabledVal, ok := enabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`enabled expected to be basetypes.BoolValue, was: %T`, enabledAttribute))
+	}
+
+	nameAttribute, ok := attributes["name"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`name is missing from object`)
+
+		return nil, diags
+	}
+
+	nameVal, ok := nameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return AddonsValue{
+		Config:  configVal,
+		Enabled: enabledVal,
+		Name:    nameVal,
+		Version: versionVal,
+		state:   attr.ValueStateKnown,
+	}, diags
+}
+
+func NewAddonsValueNull() AddonsValue {
+	return AddonsValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewAddonsValueUnknown() AddonsValue {
+	return AddonsValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewAddonsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (AddonsValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing AddonsValue Attribute Value",
+				"While creating a AddonsValue value, a missing attribute value was detected. "+
+					"A AddonsValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("AddonsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid AddonsValue Attribute Type",
+				"While creating a AddonsValue value, an invalid attribute value was detected. "+
+					"A AddonsValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("AddonsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("AddonsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra AddonsValue Attribute Value",
+				"While creating a AddonsValue value, an extra attribute value was detected. "+
+					"A AddonsValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra AddonsValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewAddonsValueUnknown(), diags
+	}
+
+	configAttribute, ok := attributes["config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`config is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	configVal, ok := configAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`config expected to be basetypes.MapValue, was: %T`, configAttribute))
+	}
+
+	enabledAttribute, ok := attributes["enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`enabled is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	enabledVal, ok := enabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`enabled expected to be basetypes.BoolValue, was: %T`, enabledAttribute))
+	}
+
+	nameAttribute, ok := attributes["name"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`name is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	nameVal, ok := nameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewAddonsValueUnknown(), diags
+	}
+
+	return AddonsValue{
+		Config:  configVal,
+		Enabled: enabledVal,
+		Name:    nameVal,
+		Version: versionVal,
+		state:   attr.ValueStateKnown,
+	}, diags
+}
+
+func NewAddonsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) AddonsValue {
+	object, diags := NewAddonsValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewAddonsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t AddonsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewAddonsValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewAddonsValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewAddonsValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewAddonsValueMust(AddonsValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t AddonsType) ValueType(ctx context.Context) attr.Value {
+	return AddonsValue{}
+}
+
+var _ basetypes.ObjectValuable = AddonsValue{}
+
+type AddonsValue struct {
+	Config  basetypes.MapValue    `tfsdk:"config"`
+	Enabled basetypes.BoolValue   `tfsdk:"enabled"`
+	Name    basetypes.StringValue `tfsdk:"name"`
+	Version basetypes.StringValue `tfsdk:"version"`
+	state   attr.ValueState
+}
+
+func (v AddonsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["config"] = basetypes.MapType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.Config.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["config"] = val
+
+		val, err = v.Enabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["enabled"] = val
+
+		val, err = v.Name.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["name"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v AddonsValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v AddonsValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v AddonsValue) String() string {
+	return "AddonsValue"
+}
+
+func (v AddonsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	configVal, d := types.MapValue(types.StringType, v.Config.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"config": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"enabled": basetypes.BoolType{},
+			"name":    basetypes.StringType{},
+			"version": basetypes.StringType{},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"config": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"enabled": basetypes.BoolType{},
+			"name":    basetypes.StringType{},
+			"version": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"config":  configVal,
+			"enabled": v.Enabled,
+			"name":    v.Name,
+			"version": v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v AddonsValue) Equal(o attr.Value) bool {
+	other, ok := o.(AddonsValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.Config.Equal(other.Config) {
+		return false
+	}
+
+	if !v.Enabled.Equal(other.Enabled) {
+		return false
+	}
+
+	if !v.Name.Equal(other.Name) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v AddonsValue) Type(ctx context.Context) attr.Type {
+	return AddonsType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v AddonsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"config": basetypes.MapType{
+			ElemType: types.StringType,
+		},
+		"enabled": basetypes.BoolType{},
+		"name":    basetypes.StringType{},
+		"version": basetypes.StringType{},
+	}
 }
 
 var _ basetypes.ObjectTypable = EtcdBackupType{}

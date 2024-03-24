@@ -502,7 +502,22 @@
 						"name": "master_vip_iface",
 						"string": {
 							"computed_optional_required": "computed_optional",
-							"description": "If masterVipIpv4 is specified, this field is required. Specify the interface that the VIP attaches to"
+							"description": "If master_vip_ipv4 is specified, this field is required. Specify the interface that the VIP attaches to",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/path"
+											}
+										],
+										"schema_definition": "stringvalidator.AlsoRequires(path.MatchRelative().AtName(\"master_vip_ipv4\"))"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -738,84 +753,6 @@
 							},
 							"computed_optional_required": "computed_optional",
 							"description": "True if cluster runs privileged containers",
-							"plan_modifiers": [
-								{
-									"custom": {
-										"imports": [
-											{
-												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-											}
-										],
-										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "enable_metallb",
-						"bool": {
-							"default": {
-								"static": false
-							},
-							"computed_optional_required": "computed_optional",
-							"description": "If true, install MetalLB to support the loadbalancer service-type",
-							"plan_modifiers": [
-								{
-									"custom": {
-										"imports": [
-											{
-												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-											}
-										],
-										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "metallb_cidr",
-						"string": {
-							"computed_optional_required": "computed_optional",
-							"description": "Comma-separated pools of IPs that MetalLB will manage (for example: A.B.C.D-E.F.G.H, I.J.K.L-M.N.O.P)",
-							"validators" :[
-								{
-									"custom": {
-										"imports": [
-											{
-												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-											},
-											{
-												"path": "github.com/hashicorp/terraform-plugin-framework/path"
-											}
-										],
-										"schema_definition": "stringvalidator.AlsoRequires(path.MatchRelative().AtName(\"enable_metallb\"))"
-									}
-								}
-							],
-							"plan_modifiers": [
-								{
-									"custom": {
-										"imports": [
-											{
-												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-											}
-										],
-										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "deploy_luigi_operator",
-						"bool": {
-							"default": {
-								"static": false
-							},
-							"computed_optional_required": "computed_optional",
-							"description": "If set to true, deploy Luigi operator on the cluster",
 							"plan_modifiers": [
 								{
 									"custom": {
@@ -1406,7 +1343,7 @@
 												}
 											}
 										],
-										"validators" :[
+										"validators": [
 											{
 												"custom": {
 													"imports": [
@@ -1450,7 +1387,7 @@
 												}
 											}
 										],
-										"validators" :[
+										"validators": [
 											{
 												"custom": {
 													"imports": [
@@ -1524,41 +1461,10 @@
 						}
 					},
 					{
-						"name": "can_upgrade",
-						"bool": {
-							"computed_optional_required": "computed",
-							"description": "Can upgrade"
-						}
-					},
-					{
 						"name": "created_at",
 						"string": {
 							"computed_optional_required": "computed",
 							"description": "Time at which the cluster was created"
-						}
-					},
-					{
-						"name": "is_kubernetes",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "is_mesos",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "is_swarm",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "debug",
-						"bool": {
-							"computed_optional_required": "computed"
 						}
 					},
 					{
@@ -1604,18 +1510,6 @@
 						}
 					},
 					{
-						"name": "keystone_enabled",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "authz_enabled",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
 						"name": "task_status",
 						"string": {
 							"computed_optional_required": "computed"
@@ -1624,30 +1518,6 @@
 					{
 						"name": "task_error",
 						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "kube_proxy_mode",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "num_masters",
-						"int64": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "num_workers",
-						"int64": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "app_catalog_enabled",
-						"bool": {
 							"computed_optional_required": "computed"
 						}
 					},
@@ -1730,30 +1600,6 @@
 						}
 					},
 					{
-						"name": "api_server_storage_backend",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "enable_cas",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "num_min_workers",
-						"int64": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "num_max_workers",
-						"int64": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
 						"name": "etcd_heartbeat_interval_ms",
 						"int64": {
 							"computed_optional_required": "computed"
@@ -1784,24 +1630,6 @@
 						}
 					},
 					{
-						"name": "can_minor_upgrade",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "can_patch_upgrade",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "patch_upgrade_role_version",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
 						"name": "node_pool_name",
 						"string": {
 							"computed_optional_required": "computed"
@@ -1826,51 +1654,75 @@
 						}
 					},
 					{
-						"name": "deploy_kubevirt",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "upgrading_to",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "reserved_cpus",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
 						"name": "docker_private_registry",
 						"string": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
 						}
 					},
 					{
 						"name": "quay_private_registry",
 						"string": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
 						}
 					},
 					{
 						"name": "gcr_private_registry",
 						"string": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
 						}
 					},
 					{
 						"name": "k8s_private_registry",
 						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "enable_catapult_monitoring",
-						"bool": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -1888,13 +1740,20 @@
 					{
 						"name": "addon_operator_image_tag",
 						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "is_air_gapped",
-						"bool": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional",
+							"description": "Tag of the addon operator image to be used for the cluster",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -1906,43 +1765,81 @@
 					{
 						"name": "custom_registry_url",
 						"string": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional"
 						}
 					},
 					{
 						"name": "custom_registry_repo_path",
 						"string": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional"
 						}
 					},
 					{
 						"name": "custom_registry_username",
 						"string": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional"
 						}
 					},
 					{
 						"name": "custom_registry_password",
 						"string": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional"
 						}
 					},
 					{
 						"name": "custom_registry_skip_tls",
 						"bool": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional"
 						}
 					},
 					{
 						"name": "custom_registry_self_signed_certs",
 						"bool": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional"
 						}
 					},
 					{
 						"name": "custom_registry_cert_path",
 						"string": {
-							"computed_optional_required": "computed"
+							"computed_optional_required": "computed_optional"
+						}
+					},
+					{
+						"name": "addons",
+						"set_nested": {
+							"computed_optional_required": "computed_optional",
+							"description": "Addons to be installed on the cluster",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed_optional"
+										}
+									},
+									{
+										"name": "version",
+										"string": {
+											"computed_optional_required": "computed_optional"
+										}
+									},
+									{
+										"name": "enabled",
+										"bool": {
+											"computed_optional_required": "computed_optional"
+										}
+									},
+									{
+										"name": "config",
+										"map": {
+											"computed_optional_required": "computed_optional",
+											"element_type": {
+												"string": {}
+											}
+										}
+									}
+								]
+							}
 						}
 					}
 				]
