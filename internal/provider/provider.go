@@ -113,10 +113,11 @@ func (p *pf9Provider) Metadata(ctx context.Context, req provider.MetadataRequest
 
 func (p *pf9Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewClusterDataSource,
+		NewKubeconfigDataSource,
 		NewNodeDataSource,
 		NewNodesDataSource,
 		NewNodepoolsDataSource,
+		NewClustersDataSource,
 	}
 }
 

@@ -16,9 +16,11 @@ import (
 	"github.com/platform9/pf9-sdk-go/pf9/pmk"
 	"github.com/platform9/pf9-sdk-go/pf9/qbert"
 	"github.com/platform9/terraform-provider-pf9/internal/provider/resource_cluster"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	sunpikev1alpha2 "github.com/platform9/pf9-sdk-go/pf9/apis/sunpike/v1alpha2"
 	// sunpikev1alpha2 "github.com/platform9/pf9-sdk-go/pf9/apis/sunpike/v1alpha2"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
 
@@ -279,10 +281,10 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 }
 
 // reconcileAddons compares the plan and state of addons and updates the addons in the backend if needed
-func (r *clusterResource) reconcileAddons(ctx context.Context, plan map[string]resource_cluster.AddonsValue, state map[string]resource_cluster.AddonsValue) diag.Diagnostics {
+func (r *clusterResource) reconcileAddons(ctx context.Context, planAddonValue map[string]resource_cluster.AddonsValue, stateAddonValue map[string]resource_cluster.AddonsValue) diag.Diagnostics {
 	var diags diag.Diagnostics
-	for addonName, planAddon := range plan {
-		if stateAddon, found := state[addonName]; found {
+	for addonName, planAddon := range planAddonValue {
+		if stateAddon, found := stateAddonValue[addonName]; found {
 			if planAddon.Enabled.IsNull() {
 				tflog.Error(ctx, "Enabled field is required for addon", map[string]interface{}{"addon": addonName})
 				diags.AddAttributeError(path.Root("addons"), "Enabled field is required for addon", fmt.Sprintf("addon: %v", addonName))
@@ -302,13 +304,23 @@ func (r *clusterResource) reconcileAddons(ctx context.Context, plan map[string]r
 				}
 			} else {
 				tflog.Debug(ctx, "Disabling addon", map[string]interface{}{"addon": addonName})
-				// TODO: Implement delete addon
-				// err = r.client.Sunpike().Delete(ctx, &addon)
-				// if err != nil {
-				// 	tflog.Error(ctx, "Failed to disable addon", map[string]interface{}{"error": err})
-				// 	diags.AddError("Failed to disable addon", err.Error())
-				// 	return diags
-				// }
+				var sunpikeAddon sunpikev1alpha2.ClusterAddon
+				err := r.client.Sunpike().Get(ctx, k8stypes.NamespacedName{
+					// TODO: Sometimes addon name has clusterID as prefix; sometimes not; need to check
+					Name:      addonName,
+					Namespace: "default",
+				}, &sunpikeAddon)
+				if err != nil {
+					tflog.Error(ctx, "Failed to get addon", map[string]interface{}{"error": err})
+					diags.AddError("Failed to get addon", err.Error())
+					return diags
+				}
+				err = r.client.Sunpike().Delete(ctx, &sunpikeAddon)
+				if err != nil {
+					tflog.Error(ctx, "Failed to disable addon", map[string]interface{}{"error": err})
+					diags.AddError("Failed to disable addon", err.Error())
+					return diags
+				}
 			}
 		} else {
 			// addon available in plan but not in state
@@ -324,13 +336,30 @@ func (r *clusterResource) reconcileAddons(ctx context.Context, plan map[string]r
 			}
 			if planAddon.Enabled.ValueBool() {
 				tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": addonName})
-				// TODO: Implement create addon
+				var planConfig map[string]string
+				var params []sunpikev1alpha2.Params
+				if !planAddon.Config.IsNull() && !planAddon.Config.IsUnknown() {
+					diags = planAddon.Config.ElementsAs(ctx, &planConfig, false)
+					if diags.HasError() {
+						return diags
+					}
+					for key, value := range planConfig {
+						params = append(params, sunpikev1alpha2.Params{
+							Name:  key,
+							Value: value,
+						})
+					}
+				}
+				var version string
+				if !planAddon.Version.IsNull() && !planAddon.Version.IsUnknown() {
+					version = planAddon.Version.ValueString()
+				}
 				err := r.client.Sunpike().Create(ctx, &sunpikev1alpha2.ClusterAddon{
 					Spec: sunpikev1alpha2.ClusterAddonSpec{
 						Type:    addonName,
-						Version: planAddon.Version.ValueString(),
+						Version: version,
 						Override: sunpikev1alpha2.Override{
-							Params: []sunpikev1alpha2.Params{},
+							Params: params,
 						},
 					},
 				})
@@ -346,58 +375,72 @@ func (r *clusterResource) reconcileAddons(ctx context.Context, plan map[string]r
 }
 
 // patchAddon patches Addon using sunpike API, patch includes changing overrides and version
-func (r *clusterResource) patchAddon(ctx context.Context, plan resource_cluster.AddonsValue, state resource_cluster.AddonsValue) diag.Diagnostics {
+func (r *clusterResource) patchAddon(ctx context.Context, planAddonValue resource_cluster.AddonsValue, stateAddonValue resource_cluster.AddonsValue) diag.Diagnostics {
 	var diags diag.Diagnostics
-	var planConfig, stateConfig map[string]string
-	if !plan.Config.IsNull() && !plan.Config.IsUnknown() {
-		diags = plan.Config.ElementsAs(ctx, &planConfig, false)
+	var patchRequired bool
+	var params []sunpikev1alpha2.Params
+
+	if !planAddonValue.Config.Equal(stateAddonValue.Config) {
+		var planConfig, stateConfig map[string]string
+		if !planAddonValue.Config.IsNull() && !planAddonValue.Config.IsUnknown() {
+			diags = planAddonValue.Config.ElementsAs(ctx, &planConfig, false)
+			if diags.HasError() {
+				return diags
+			}
+		}
+		diags = stateAddonValue.Config.ElementsAs(ctx, &stateConfig, false)
 		if diags.HasError() {
 			return diags
 		}
-	}
-	diags = state.Config.ElementsAs(ctx, &stateConfig, false)
-	if diags.HasError() {
-		return diags
-	}
-	var patchRequired bool
-	var params []sunpikev1alpha2.Params
-	for key, planValue := range planConfig {
-		if stateValue, found := stateConfig[key]; found && stateValue == planValue {
-			// No need to patch
-			continue
-		}
-		params = append(params, sunpikev1alpha2.Params{
-			Name:  key,
-			Value: planValue,
-		})
-		patchRequired = true
-	}
-	type PatchBody struct {
-		Spec struct {
-			Override sunpikev1alpha2.Override `json:"override,omitempty"`
-			Version  string                   `json:"version,omitempty"`
-		} `json:"spec,omitempty"`
-	}
-	var patchBody PatchBody
-	patchBody.Spec.Override.Params = params
-	if !plan.Version.IsNull() && !plan.Version.IsUnknown() {
-		if !plan.Version.Equal(state.Version) {
-			patchBody.Spec.Version = plan.Version.ValueString()
+
+		for key, planValue := range planConfig {
+			if stateValue, found := stateConfig[key]; found && stateValue == planValue {
+				// No need to patch
+				continue
+			}
+			params = append(params, sunpikev1alpha2.Params{
+				Name:  key,
+				Value: planValue,
+			})
 			patchRequired = true
 		}
 	}
+	var version string
+	if !planAddonValue.Version.Equal(stateAddonValue.Version) {
+		version = planAddonValue.Version.ValueString()
+		patchRequired = true
+	}
+
 	if patchRequired {
-		jsonBody, err := json.Marshal(patchBody)
+		//`{"spec: {"override":{"params":[{"name":"retentionTime","value":"7d"}]},"version":"0.68.0"}`
+		tflog.Debug(ctx, "Patching addon", map[string]interface{}{"addon": planAddonValue.Name.ValueString()})
+
+		var sunpikeAddon sunpikev1alpha2.ClusterAddon
+		err := r.client.Sunpike().Get(ctx, k8stypes.NamespacedName{
+			// TODO: Sometimes addon name has clusterID as prefix; sometimes not; need to check
+			Name:      planAddonValue.Name.ValueString(),
+			Namespace: "default",
+		}, &sunpikeAddon)
 		if err != nil {
-			tflog.Error(ctx, "Failed to marshal patch body", map[string]interface{}{"error": err})
-			diags.AddError("Failed to marshal patch body", err.Error())
+			tflog.Error(ctx, "Failed to get addon", map[string]interface{}{"error": err})
+			diags.AddError("Failed to get addon", err.Error())
 			return diags
 		}
-		//`{"spec: {"override":{"params":[{"name":"retentionTime","value":"7d"}]},"version":"0.68.0"}`
-		tflog.Debug(ctx, "TODO: Patching addon", map[string]interface{}{"addon": plan.Name.ValueString(), "patchBody": string(jsonBody)})
-		// TODO: Update the addon config using patch
-		// TODO: ?? Does setting addonversion here will work or we need to call https://platform9.com/docs/qbert/ref#postupgrade-a-cluster-identified-by-the-uuid
-		// r.client.Sunpike().Patch(ctx, &addon, patchBody)
+		patch := client.MergeFrom(sunpikeAddon.DeepCopy())
+		if len(params) > 0 {
+			sunpikeAddon.Spec.Override.Params = params
+		}
+		if len(version) > 0 {
+			// TODO: ?? Does setting addonversion here will work or we should call
+			// https://platform9.com/docs/qbert/ref#postupgrade-a-cluster-identified-by-the-uuid
+			sunpikeAddon.Spec.Version = version
+		}
+		err = r.client.Sunpike().Patch(ctx, &sunpikeAddon, patch)
+		if err != nil {
+			tflog.Error(ctx, "Failed to patch addon", map[string]interface{}{"error": err})
+			diags.AddError("Failed to patch addon", err.Error())
+			return diags
+		}
 		return diags
 	}
 	return diags

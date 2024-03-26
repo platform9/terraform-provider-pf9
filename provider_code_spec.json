@@ -1,7 +1,7 @@
 {
 	"datasources": [
 		{
-			"name": "cluster",
+			"name": "kubeconfig",
 			"schema": {
 				"attributes": [
 					{
@@ -12,59 +12,37 @@
 						}
 					},
 					{
-						"name": "name",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Name of the cluster"
+						"name": "force_cert_auth",
+						"bool": {
+							"computed_optional_required": "optional",
+							"description": "Force certificate authentication"
 						}
 					},
 					{
-						"name": "project_id",
+						"name": "endpoint",
 						"string": {
 							"computed_optional_required": "computed",
-							"description": "UUID of the project the cluster belongs to"
+							"description": "API endpoint for the cluster"
 						}
 					},
 					{
-						"name": "kubeconfig",
+						"name": "raw",
 						"string": {
 							"computed_optional_required": "computed",
 							"description": "Kubeconfig blob"
 						}
 					},
 					{
-						"name": "status",
+						"name": "token",
 						"string": {
 							"computed_optional_required": "computed",
-							"description": "Status"
+							"description": "Token to be used from kubeconfig"
 						}
 					},
 					{
-						"name": "task_status",
+						"name": "cluster_ca_certificate",
 						"string": {
-							"computed_optional_required": "computed",
-							"description": "Status of task execution"
-						}
-					},
-					{
-						"name": "task_error",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Error during execution of task"
-						}
-					},
-					{
-						"name": "master_status",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Master status"
-						}
-					},
-					{
-						"name": "worker_status",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Worker status"
+							"computed_optional_required": "computed"
 						}
 					}
 				]
@@ -359,6 +337,77 @@
 										"element_type": {
 											"string": {}
 										}
+									}
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "clusters",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Placeholder for an ID"
+						}
+					},
+					{
+						"name": "cluster_ids",
+						"list": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							},
+							"description": "List of cluster IDs"
+						}
+					},
+					{
+						"name": "filters",
+						"list_nested": {
+							"computed_optional_required": "required",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "Name of the attribute on which this filter should be applied"
+										}
+									},
+									{
+										"name": "values",
+										"set": {
+											"computed_optional_required": "optional",
+											"element_type": {
+												"string": {}
+											}
+										}
+									},
+									{
+										"name": "regexes",
+										"set": {
+											"computed_optional_required": "optional",
+											"element_type": {
+												"string": {}
+											}
+										}
+									}
+								]
+							},
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+											}
+										],
+										"schema_definition": "listvalidator.SizeAtLeast(1)"
 									}
 								}
 							]
