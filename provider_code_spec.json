@@ -1809,6 +1809,18 @@
 						"set_nested": {
 							"computed_optional_required": "computed_optional",
 							"description": "Addons to be installed on the cluster",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
+											}
+										],
+										"schema_definition": "setplanmodifier.UseStateForUnknown()"
+									}
+								}
+							],
 							"nested_object": {
 								"attributes": [
 									{

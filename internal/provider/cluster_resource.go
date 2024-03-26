@@ -65,6 +65,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	projectID := authInfo.ProjectID
 
+	tflog.Debug(ctx, "Listing supported kubeRoleVersions for validations and defaulting to the latest")
 	// https://platform9.com/docs/qbert/ref#getprovides-a-list-of-supported-pf9-kube-roles-for-a-cluster-
 	supportedKubeRoleVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
 	if err != nil {
@@ -73,6 +74,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 	if !data.KubeRoleVersion.IsNull() && !data.KubeRoleVersion.IsUnknown() {
+		tflog.Debug(ctx, "Validating if kube_role_version is supported", map[string]interface{}{"kube_role_version": data.KubeRoleVersion.ValueString()})
 		// Validate using the response of
 		allowedKubeRoleVersions := []string{}
 		for _, role := range supportedKubeRoleVersions.Roles {
@@ -108,12 +110,14 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	if createClusterReq.KubeRoleVersion == "" {
+		tflog.Debug(ctx, "Kube role version not provided")
 		if len(supportedKubeRoleVersions.Roles) > 0 {
 			latestKubeRoleVersion := findLatestKubeRoleVersion(supportedKubeRoleVersions.Roles)
 			createClusterReq.KubeRoleVersion = latestKubeRoleVersion.RoleVersion
-			tflog.Debug(ctx, "Kube role version not provided using the latest from supported versions", map[string]interface{}{"latestKubeRoleVersion": latestKubeRoleVersion.RoleVersion})
+			tflog.Debug(ctx, "Using the latest kubeRoleVersion from supported versions", map[string]interface{}{"latestKubeRoleVersion": latestKubeRoleVersion.RoleVersion})
 		} else {
-			tflog.Error(ctx, "No supported kube role versions found")
+			resp.Diagnostics.AddError("No supported kube role versions found", "No supported kube role versions found")
+			return
 		}
 	}
 
@@ -122,8 +126,9 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// qbert API is so complicated; some addons can be enabled through flags in create cluster req
-	// This code-block maps the addon values to the flags
+
+	tflog.Debug(ctx, "Mapping addons to addon-flags inside create cluster request")
+	// qbert API is so complicated; some addons can be enabled through flags in create cluster request
 	addonsValueMap := make(map[string]resource_cluster.AddonsValue, len(addonsValues))
 	for _, addonValue := range addonsValues {
 		addonsValueMap[addonValue.Name.ValueString()] = addonValue
@@ -177,13 +182,14 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
+	// TODO: Add check for the level; marshalling is only required for logging purpose
 	reqBody, err := json.Marshal(createClusterReq)
 	if err != nil {
 		tflog.Error(ctx, "Failed to marshal create cluster request", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to marshal create cluster request", err.Error())
 		return
 	}
-	tflog.Debug(ctx, "Creating a cluster: %v", map[string]interface{}{"createClusterReq": string(reqBody)})
+	tflog.Info(ctx, "Creating a cluster in qbert", map[string]interface{}{"req": string(reqBody)})
 	qbertClient := r.client.Qbert()
 	clusterID, err := qbertClient.CreateCluster(*createClusterReq, projectID, qbert.CreateClusterOptions{})
 	if err != nil {
@@ -191,6 +197,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Failed to create cluster", err.Error())
 		return
 	}
+
 	nodeList := []qbert.Node{}
 	var masterNodeIDs []string
 	resp.Diagnostics.Append(data.MasterNodes.ElementsAs(ctx, &masterNodeIDs, false)...)
@@ -214,17 +221,20 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 			IsMaster: 0,
 		})
 	}
-	tflog.Debug(ctx, "Attaching nodes", map[string]interface{}{"nodeList": nodeList})
+	tflog.Info(ctx, "Attaching nodes", map[string]interface{}{"nodeList": nodeList})
 	err = qbertClient.AttachNodes(clusterID, nodeList)
 	if err != nil {
 		tflog.Error(ctx, "Failed to attach nodes", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to attach nodes", err.Error())
 		return
 	}
-	// tflog.Debug(ctx, "Attached nodes, saving state", map[string]interface{}{"nodeList": nodeList})
-	// TODO: Save intermediate state after every PUT/POST api
+	// TODO: Should we save an intermediate state between multiple requests?
 
-	tflog.Debug(ctx, "Getting list of enabled addons including that are enabled by the backend") // we call it state
+	// The sunpike/qbert auto enables some of the addons; so we need to reconcile the state.
+	// i.e, match the state with the plan if there are differences
+	// For example, is the practitioner has provided config for coredns addon, we have to call
+	// sunpike api to get it configured as per plan
+	tflog.Debug(ctx, "Getting list of enabled addons including that are enabled by the backend")
 	addons, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
 	if err != nil {
 		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
@@ -232,10 +242,12 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 	tflog.Debug(ctx, "Got list of enabled addons", map[string]interface{}{"addons": addons})
-	// Convert them in terraform format
+	// reconcileAddons() is common across Create() and Update() to avoid code duplication.
+	// It expects addons in the map[string]resource_cluster.AddonsValue format, where key is addon name.
+	// So, we need to convert the list of addons to map.
 	stateAddonsValueMap := make(map[string]resource_cluster.AddonsValue, len(addons.Items))
 	for _, addon := range addons.Items {
-		addonValue := resource_cluster.NewAddonsValueUnknown()
+		addonValue := resource_cluster.AddonsValue{}
 		addonValue.Name = types.StringValue(addon.Spec.Type)
 		addonValue.Enabled = types.BoolValue(true)
 		addonValue.Version = types.StringValue(addon.Spec.Version)
@@ -248,14 +260,16 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		if diags.HasError() {
 			return
 		}
-		stateAddonsValueMap[addon.Spec.Type] = addonValue
+		// TODO: Use recommended way if someone responds to the issue:
+		// https://discuss.hashicorp.com/t/using-terraform-plugin-codegen-framework-generated-code-to-instantiate-nested-objects/64026
+		stateAddonsValueMap[addon.Spec.Type] = resource_cluster.NewKnownAddonsValueMust(addonValue)
 	}
 	resp.Diagnostics.Append(r.reconcileAddons(ctx, addonsValueMap, stateAddonsValueMap)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(r.setState(ctx, clusterID, projectID, &state)...)
+	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -408,7 +422,7 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 	clusterID := data.Id.ValueString()
 	projectID := authInfo.ProjectID
-	resp.Diagnostics.Append(r.setState(ctx, clusterID, projectID, &state)...)
+	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -625,7 +639,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	resp.Diagnostics.Append(r.setState(ctx, clusterID, projectID, &state)...)
+	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -634,19 +648,22 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-// setState sets the values of the attibutes in the state variable retrieved from the backend
-func (r *clusterResource) setState(ctx context.Context, clusterID, projectID string, state *resource_cluster.ClusterModel) diag.Diagnostics {
+// readStateFromRemote sets the values of the attibutes in the state variable retrieved from the backend
+func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, projectID string, state *resource_cluster.ClusterModel) diag.Diagnostics {
 	var diags diag.Diagnostics
+
+	tflog.Info(ctx, "Reading cluster from qbert", map[string]interface{}{"clusterID": clusterID})
 	cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
 	if err != nil {
 		diags.AddError("Failed to get cluster", err.Error())
 		return diags
 	}
-
 	diags = qbertClusterToTerraformCluster(ctx, cluster, state)
 	if diags.HasError() {
 		return diags
 	}
+
+	tflog.Info(ctx, "Listing nodes attached to the cluster", map[string]interface{}{"clusterID": clusterID})
 	clusterNodes, err := r.client.Qbert().ListClusterNodes(ctx, clusterID)
 	if err != nil {
 		diags.AddError("Failed to get cluster nodes", err.Error())
@@ -670,7 +687,7 @@ func (r *clusterResource) setState(ctx context.Context, clusterID, projectID str
 		return diags
 	}
 
-	// TODO: Use addonversions api to get addon versions and set them inside addons
+	tflog.Info(ctx, "Listing addons enabled on the cluster", map[string]interface{}{"clusterID": clusterID})
 	addons, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
 	if err != nil {
 		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
@@ -679,7 +696,7 @@ func (r *clusterResource) setState(ctx context.Context, clusterID, projectID str
 	}
 	addonsSlice := []resource_cluster.AddonsValue{}
 	for _, addon := range addons.Items {
-		addonValue := resource_cluster.NewAddonsValueUnknown()
+		addonValue := resource_cluster.AddonsValue{}
 		addonValue.Name = types.StringValue(addon.Spec.Type)
 		addonValue.Enabled = types.BoolValue(true)
 		addonValue.Version = types.StringValue(addon.Spec.Version)
@@ -687,10 +704,26 @@ func (r *clusterResource) setState(ctx context.Context, clusterID, projectID str
 		for _, param := range addon.Spec.Override.Params {
 			addonConfig[param.Name] = param.Value
 		}
-		addonValue.Config, diags = types.MapValueFrom(ctx, basetypes.StringType{}, addonValue)
+		addonValue.Config, diags = types.MapValueFrom(ctx, basetypes.StringType{}, addonConfig)
 		if diags.HasError() {
 			return diags
 		}
+
+		// Conversion from AddonsValue{} to ObjectValue{} and then to ObjectValuable and finally
+		// back to AddonsValue{} with known state.
+
+		// TODO: Use recommended way if someone responds to the issue:
+		// https://discuss.hashicorp.com/t/using-terraform-plugin-codegen-framework-generated-code-to-instantiate-nested-objects/64026
+		objectValue, diags := addonValue.ToObjectValue(ctx)
+		if diags.HasError() {
+			return diags
+		}
+		addonObjValuable, diags := resource_cluster.AddonsType{}.ValueFromObject(ctx, objectValue)
+		diags.Append(diags...)
+		if diags.HasError() {
+			return diags
+		}
+		addonValue = addonObjValuable.(resource_cluster.AddonsValue)
 		addonsSlice = append(addonsSlice, addonValue)
 	}
 	state.Addons, diags = types.SetValueFrom(ctx, resource_cluster.AddonsValue{}.Type(ctx), addonsSlice)
