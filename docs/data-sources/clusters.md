@@ -32,11 +32,11 @@ output "example" {
 
 ### Required
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--filters))
+- `filters` (Attributes List) List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed. (see [below for nested schema](#nestedatt--filters))
 
 ### Read-Only
 
-- `cluster_ids` (List of String) List of cluster IDs
+- `cluster_ids` (List of String) A list of cluster IDs for clusters that match all the specified filters.
 - `id` (String) Placeholder for an ID
 
 <a id="nestedatt--filters"></a>
@@ -44,9 +44,9 @@ output "example" {
 
 Required:
 
-- `name` (String) Name of the attribute on which this filter should be applied
+- `name` (String) Name of the attribute on which this filter should be applied. The tags attribute is a special case where the name has to be specified as 'tags:<tag_key>'
 
 Optional:
 
-- `regexes` (Set of String)
-- `values` (Set of String)
+- `regexes` (Set of String) Set of regexes to match to the attribute value, if any of the 'regex' matches then the filter is considered to be matched
+- `values` (Set of String) Set of values for the attribute, if any of the 'value' matches then the filter is considered to be matched

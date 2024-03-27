@@ -23,24 +23,28 @@ func ClustersDataSourceSchema(ctx context.Context) schema.Schema {
 			"cluster_ids": schema.ListAttribute{
 				ElementType:         types.StringType,
 				Computed:            true,
-				Description:         "List of cluster IDs",
-				MarkdownDescription: "List of cluster IDs",
+				Description:         "A list of cluster IDs for clusters that match all the specified filters.",
+				MarkdownDescription: "A list of cluster IDs for clusters that match all the specified filters.",
 			},
 			"filters": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
 							Required:            true,
-							Description:         "Name of the attribute on which this filter should be applied",
-							MarkdownDescription: "Name of the attribute on which this filter should be applied",
+							Description:         "Name of the attribute on which this filter should be applied. The tags attribute is a special case where the name has to be specified as 'tags:<tag_key>'",
+							MarkdownDescription: "Name of the attribute on which this filter should be applied. The tags attribute is a special case where the name has to be specified as 'tags:<tag_key>'",
 						},
 						"regexes": schema.SetAttribute{
-							ElementType: types.StringType,
-							Optional:    true,
+							ElementType:         types.StringType,
+							Optional:            true,
+							Description:         "Set of regexes to match to the attribute value, if any of the 'regex' matches then the filter is considered to be matched",
+							MarkdownDescription: "Set of regexes to match to the attribute value, if any of the 'regex' matches then the filter is considered to be matched",
 						},
 						"values": schema.SetAttribute{
-							ElementType: types.StringType,
-							Optional:    true,
+							ElementType:         types.StringType,
+							Optional:            true,
+							Description:         "Set of values for the attribute, if any of the 'value' matches then the filter is considered to be matched",
+							MarkdownDescription: "Set of values for the attribute, if any of the 'value' matches then the filter is considered to be matched",
 						},
 					},
 					CustomType: FiltersType{
@@ -49,7 +53,9 @@ func ClustersDataSourceSchema(ctx context.Context) schema.Schema {
 						},
 					},
 				},
-				Required: true,
+				Required:            true,
+				Description:         "List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed.",
+				MarkdownDescription: "List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed.",
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 				},

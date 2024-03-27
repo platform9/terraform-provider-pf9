@@ -44,6 +44,7 @@ func (d *clustersDataSource) Configure(ctx context.Context, req datasource.Confi
 
 func (d *clustersDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data datasource_clusters.ClustersModel
+	var diags diag.Diagnostics
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
@@ -64,6 +65,8 @@ func (d *clustersDataSource) Read(ctx context.Context, req datasource.ReadReques
 		resp.Diagnostics.AddError("Failed to list clusters", err.Error())
 		return
 	}
+
+	// Iterate through clusters and remove clusters not matching to the filter
 	for _, filter := range filters {
 		attribName := filter.Name.ValueString()
 		var values []string
@@ -81,8 +84,12 @@ func (d *clustersDataSource) Read(ctx context.Context, req datasource.ReadReques
 		switch {
 		case attribName == "name":
 			clusters = filterClusters(clusters, attribName, values, regexes)
-		case attribName == "tenant": //TODO: Ask PMK team/Miguel what do we mean by tenant
-			clusters = filterClusters(clusters, attribName, values, regexes)
+		case attribName == "tenant":
+			clusters, diags = d.filterClustersByTenantName(ctx, clusters, values, regexes)
+			if diags.HasError() {
+				resp.Diagnostics.Append(diags...)
+				return
+			}
 		case strings.HasPrefix(attribName, "tags:"):
 			clusters = filterClustersByTags(clusters, attribName, values)
 		case attribName == "tenant_id":
@@ -98,7 +105,6 @@ func (d *clustersDataSource) Read(ctx context.Context, req datasource.ReadReques
 		clusterIDs = append(clusterIDs, cluster.UUID)
 	}
 
-	var diags diag.Diagnostics
 	data.ClusterIds, diags = types.ListValueFrom(ctx, basetypes.StringType{}, clusterIDs)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -107,6 +113,43 @@ func (d *clustersDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (d *clustersDataSource) filterClustersByTenantName(ctx context.Context, clusters []qbert.Cluster, values, regexes []string) ([]qbert.Cluster, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	authInfo, err := d.client.Authenticator().Auth(ctx)
+	if err != nil {
+		diags.AddError("Failed to authenticate", err.Error())
+		return nil, diags
+	}
+	projects, err := d.client.Keystone().GetProjects(ctx, authInfo.Token)
+	if err != nil {
+		diags.AddError("Failed to list project", err.Error())
+		return nil, diags
+	}
+	tenantIDToClusterMap := map[string]qbert.Cluster{}
+	for _, cluster := range clusters {
+		tenantIDToClusterMap[cluster.ProjectId] = cluster
+	}
+
+	var filteredClusters []qbert.Cluster
+	for _, project := range projects {
+		for _, value := range values {
+			if project.Name == value {
+				if cluster, found := tenantIDToClusterMap[project.ID]; found {
+					filteredClusters = append(filteredClusters, cluster)
+				}
+			}
+		}
+		for _, regex := range regexes {
+			if ok, _ := regexp.Match(regex, []byte(project.Name)); ok {
+				if cluster, found := tenantIDToClusterMap[project.ID]; found {
+					filteredClusters = append(filteredClusters, cluster)
+				}
+			}
+		}
+	}
+	return filteredClusters, diags
 }
 
 func filterClusters(clusters []qbert.Cluster, attribName string, values, regexes []string) []qbert.Cluster {

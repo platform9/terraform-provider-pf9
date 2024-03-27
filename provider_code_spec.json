@@ -1052,26 +1052,28 @@
 							"element_type": {
 								"string": {}
 							},
-							"description": "List of cluster IDs"
+							"description": "A list of cluster IDs for clusters that match all the specified filters."
 						}
 					},
 					{
 						"name": "filters",
 						"list_nested": {
 							"computed_optional_required": "required",
+							"description": "List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed.",
 							"nested_object": {
 								"attributes": [
 									{
 										"name": "name",
 										"string": {
 											"computed_optional_required": "required",
-											"description": "Name of the attribute on which this filter should be applied"
+											"description": "Name of the attribute on which this filter should be applied. The tags attribute is a special case where the name has to be specified as 'tags:<tag_key>'"
 										}
 									},
 									{
 										"name": "values",
 										"set": {
 											"computed_optional_required": "optional",
+											"description": "Set of values for the attribute, if any of the 'value' matches then the filter is considered to be matched",
 											"element_type": {
 												"string": {}
 											}
@@ -1081,6 +1083,7 @@
 										"name": "regexes",
 										"set": {
 											"computed_optional_required": "optional",
+											"description": "Set of regexes to match to the attribute value, if any of the 'regex' matches then the filter is considered to be matched",
 											"element_type": {
 												"string": {}
 											}
