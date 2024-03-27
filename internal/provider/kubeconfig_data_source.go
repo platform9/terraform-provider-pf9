@@ -2,10 +2,16 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"gopkg.in/yaml.v2"
 
 	"github.com/platform9/pf9-sdk-go/pf9/pmk"
 	"github.com/platform9/pf9-sdk-go/pf9/qbert"
@@ -47,6 +53,8 @@ func (d *kubeconfigDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	clusterID := data.Id.ValueString()
+	authenticationMethod := data.AuthenticationMethod.ValueString()
 
 	// Read API call logic
 	authInfo, err := d.client.Authenticator().Auth(ctx)
@@ -56,23 +64,97 @@ func (d *kubeconfigDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	clusterID := data.Id.ValueString()
-	forceCertAuth := data.ForceCertAuth.ValueBool()
+	token := authInfo.Token
 	projectID := authInfo.ProjectID
-	kubeconfigBlob, err := d.client.Qbert().GetClusterKubeconfig(projectID, clusterID, authInfo.Token, qbert.KubeconfigOptions{ForceCertAuth: forceCertAuth})
+	opts := qbert.KubeconfigOptions{}
+	if authenticationMethod == "certificate" {
+		opts.ForceCertAuth = true
+	}
+	kubeconfigBlob, err := d.client.Qbert().GetClusterKubeconfig(projectID, clusterID, token, opts)
 	if err != nil {
 		tflog.Error(ctx, "Failed to get cluster kubeconfig", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to get cluster kubeconfig", err.Error())
 		return
 	}
 	kubeconfigStr := string(kubeconfigBlob)
+	if authenticationMethod == "password" {
+		tflog.Debug(ctx, "Replacing token with base64 encoded username and password")
+		basicAuthToken := getBasicAuthToken()
+		kubeconfigStr = strings.Replace(kubeconfigStr, token, basicAuthToken, 1)
+		token = basicAuthToken
+	}
 	data.Raw = types.StringValue(kubeconfigStr)
-
-	// TODO: Set the following fields correctly
-	data.Endpoint = types.StringValue("https://api." + clusterID + ".pf9.io")
-	data.ClusterCaCertificate = types.StringValue("")
-	data.Token = types.StringValue(authInfo.Token)
-
+	kubeConfig := KubeConfig{}
+	err = yaml.Unmarshal(kubeconfigBlob, &kubeConfig)
+	if err != nil {
+		tflog.Error(ctx, "Failed to unmarshal kubeconfig", map[string]interface{}{"error": err})
+		resp.Diagnostics.AddError("Failed to unmarshal kubeconfig", err.Error())
+		return
+	}
+	var diags diag.Diagnostics
+	data.Clusters, diags = types.ListValueFrom(ctx, data.Clusters.ElementType(ctx), kubeConfig.Clusters)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Users, diags = types.ListValueFrom(ctx, data.Users.ElementType(ctx), kubeConfig.Users)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func getBasicAuthToken() string {
+	username := os.Getenv("DU_USERNAME")
+	password := os.Getenv("DU_PASSWORD")
+	jsonEncoded, err := json.Marshal(Credentials{
+		Username: username,
+		Password: password,
+	})
+	if err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(jsonEncoded)
+}
+
+type Credentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type KubeConfig struct {
+	APIVersion     string    `yaml:"apiVersion"`
+	CurrentContext string    `yaml:"current-context"`
+	Kind           string    `yaml:"kind"`
+	Clusters       []Cluster `yaml:"clusters"`
+	Contexts       []Context `yaml:"contexts"`
+	Users          []User    `yaml:"users"`
+}
+
+type Cluster struct {
+	Cluster struct {
+		Server                   string `yaml:"server" tfsdk:"server"`
+		CertificateAuthorityData string `yaml:"certificate-authority-data" tfsdk:"certificate_authority"`
+	} `yaml:"cluster" tfsdk:"cluster"`
+	Name string `yaml:"name" tfsdk:"name"`
+}
+
+type Context struct {
+	Name    string `yaml:"name"`
+	Context struct {
+		Cluster   string `yaml:"cluster"`
+		Namespace string `yaml:"namespace"`
+		User      string `yaml:"user"`
+	} `yaml:"context"`
+}
+
+type User struct {
+	Name string `yaml:"name" tfsdk:"name"`
+	User struct {
+		Token                 string `yaml:"token" tfsdk:"token"`
+		ClientCertificateData string `yaml:"client-certificate-data" tfsdk:"client_certificate"`
+		ClientKeyData         string `yaml:"client-key-data" tfsdk:"client_key"`
+	} `yaml:"user" tfsdk:"user"`
 }

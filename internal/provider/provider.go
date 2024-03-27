@@ -88,6 +88,16 @@ func (p *pf9Provider) Configure(ctx context.Context, req provider.ConfigureReque
 		resp.Diagnostics.AddError("Failed to ping", err.Error())
 		return
 	}
+	err := os.Setenv("DU_USERNAME", username)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to set env variable", "env variable DU_USERNAME cant be set")
+		return
+	}
+	err = os.Setenv("DU_PASSWORD", password)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to set env variable", "env variable DU_PASSWORD cant be set")
+		return
+	}
 	client := unAuthenticatedClient.WithCredentials(keystone.Credentials{
 		Username: username,
 		Password: password,
@@ -113,11 +123,12 @@ func (p *pf9Provider) Metadata(ctx context.Context, req provider.MetadataRequest
 
 func (p *pf9Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewKubeconfigDataSource,
 		NewNodeDataSource,
 		NewNodesDataSource,
 		NewNodepoolsDataSource,
+		NewClusterDataSource,
 		NewClustersDataSource,
+		NewKubeconfigDataSource,
 	}
 }
 

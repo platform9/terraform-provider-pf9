@@ -8,13 +8,17 @@ description: |-
 
 # pf9_cluster Data Source
 
-This data source is useful to get details of the cluster.
+  
 
 ## Example Usage
 
 ```terraform
 data "pf9_cluster" "example" {
-  id = "d7727229-b2b4-4725-b0a0-473208f5093a"
+    id = "d7727229-b2b4-4725-b0a0-473208f5093a"
+}
+
+output "example" {
+  value = data.pf9_cluster.example.api_responding
 }
 ```
 
@@ -27,11 +31,112 @@ data "pf9_cluster" "example" {
 
 ### Read-Only
 
-- `kubeconfig` (String) Kubeconfig blob
-- `master_status` (String) Master status
+- `addon_operator_image_tag` (String)
+- `addons` (Attributes Set) (see [below for nested schema](#nestedatt--addons))
+- `allow_workloads_on_master` (Boolean)
+- `calico_controller_cpu_limit` (String)
+- `calico_controller_memory_limit` (String)
+- `calico_ip_ip_mode` (String)
+- `calico_ipv4` (String)
+- `calico_ipv4_detection_method` (String)
+- `calico_ipv6` (String)
+- `calico_ipv6_detection_method` (String)
+- `calico_ipv6_pool_block_size` (String)
+- `calico_ipv6_pool_cidr` (String)
+- `calico_ipv6_pool_nat_outgoing` (Boolean)
+- `calico_nat_outgoing` (Boolean)
+- `calico_node_cpu_limit` (String)
+- `calico_node_memory_limit` (String)
+- `calico_router_id` (String)
+- `calico_typha_cpu_limit` (String)
+- `calico_typha_memory_limit` (String)
+- `calico_v4_block_size` (String)
+- `cert_expiry_hrs` (Number)
+- `cloud_provider_name` (String)
+- `cloud_provider_type` (String)
+- `cloud_provider_uuid` (String)
+- `container_runtime` (String)
+- `containers_cidr` (String)
+- `cpu_manager_policy` (String)
+- `created_at` (String) Time at which the cluster was created
+- `custom_registry_cert_path` (String)
+- `custom_registry_password` (String)
+- `custom_registry_repo_path` (String)
+- `custom_registry_self_signed_certs` (Boolean)
+- `custom_registry_skip_tls` (Boolean)
+- `custom_registry_url` (String)
+- `custom_registry_username` (String)
+- `docker_centos_package_repo_url` (String)
+- `docker_private_registry` (String)
+- `docker_root` (String)
+- `docker_ubuntu_package_repo_url` (String)
+- `enable_etcd_encryption` (Boolean)
+- `etcd_backup` (Attributes) (see [below for nested schema](#nestedatt--etcd_backup))
+- `etcd_data_dir` (String)
+- `etcd_election_timeout_ms` (Number)
+- `etcd_heartbeat_interval_ms` (Number)
+- `etcd_version` (String)
+- `external_dns_name` (String)
+- `felix_ipv6_support` (Boolean)
+- `flannel_iface_label` (String)
+- `flannel_public_iface_label` (String)
+- `gcr_private_registry` (String)
+- `interface_detection_method` (String)
+- `interface_name` (String)
+- `interface_reachable_ip` (String)
+- `ipv6` (Boolean)
+- `k8s_api_port` (String)
+- `k8s_private_registry` (String)
+- `kube_role_version` (String)
+- `last_ok` (String)
+- `last_op` (String)
+- `master_ip` (String)
+- `master_nodes` (Set of String)
+- `master_status` (String)
+- `master_vip_iface` (String)
+- `master_vip_ipv4` (String)
+- `master_vip_vrouter_id` (String)
+- `masterless` (Boolean)
+- `mtu_size` (Number)
 - `name` (String) Name of the cluster
-- `project_id` (String) UUID of the project the cluster belongs to
-- `status` (String) Status
-- `task_error` (String) Error during execution of task
-- `task_status` (String) Status of task execution
-- `worker_status` (String) Worker status
+- `network_plugin` (String)
+- `node_pool_name` (String)
+- `node_pool_uuid` (String)
+- `privileged` (Boolean)
+- `project_id` (String)
+- `quay_private_registry` (String)
+- `runtime_config` (String)
+- `services_cidr` (String)
+- `status` (String)
+- `tags` (Map of String)
+- `task_error` (String)
+- `task_status` (String)
+- `topology_manager_policy` (String)
+- `use_hostname` (Boolean)
+- `worker_nodes` (Set of String)
+- `worker_status` (String)
+
+<a id="nestedatt--addons"></a>
+### Nested Schema for `addons`
+
+Read-Only:
+
+- `config` (Map of String)
+- `enabled` (Boolean)
+- `name` (String)
+- `version` (String)
+
+
+<a id="nestedatt--etcd_backup"></a>
+### Nested Schema for `etcd_backup`
+
+Read-Only:
+
+- `daily_backup_time` (String)
+- `interval_in_hours` (Number)
+- `interval_in_mins` (Number)
+- `is_etcd_backup_enabled` (Boolean)
+- `max_interval_backup_count` (Number)
+- `max_timestamp_backup_count` (Number)
+- `storage_local_path` (String)
+- `storage_type` (String)

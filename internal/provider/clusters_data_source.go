@@ -17,6 +17,7 @@ import (
 )
 
 var _ datasource.DataSource = (*clustersDataSource)(nil)
+var _ datasource.DataSourceWithConfigure = (*clustersDataSource)(nil)
 
 func NewClustersDataSource() datasource.DataSource {
 	return &clustersDataSource{}
@@ -32,6 +33,13 @@ func (d *clustersDataSource) Metadata(ctx context.Context, req datasource.Metada
 
 func (d *clustersDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = datasource_clusters.ClustersDataSourceSchema(ctx)
+}
+
+func (d *clustersDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	d.client = req.ProviderData.(*pmk.HTTPClient)
 }
 
 func (d *clustersDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -73,10 +81,12 @@ func (d *clustersDataSource) Read(ctx context.Context, req datasource.ReadReques
 		switch {
 		case attribName == "name":
 			clusters = filterClusters(clusters, attribName, values, regexes)
-		case attribName == "tenant_id": //TODO: Ask PMK team/Miguel what do we mean by tenant
+		case attribName == "tenant": //TODO: Ask PMK team/Miguel what do we mean by tenant
 			clusters = filterClusters(clusters, attribName, values, regexes)
-		case strings.HasPrefix("tags:", attribName):
+		case strings.HasPrefix(attribName, "tags:"):
 			clusters = filterClustersByTags(clusters, attribName, values)
+		case attribName == "tenant_id":
+			clusters = filterClusters(clusters, attribName, values, regexes)
 		default:
 			resp.Diagnostics.AddError("Unknown filter", "Unknown filter: "+attribName)
 			return

@@ -1,6 +1,616 @@
 {
 	"datasources": [
 		{
+			"name": "cluster",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the cluster"
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the cluster"
+						}
+					},
+					{
+						"name": "master_nodes",
+						"set": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							}
+						}
+					},
+					{
+						"name": "worker_nodes",
+						"set": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							}
+						}
+					},
+					{
+						"name": "allow_workloads_on_master",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_vip_iface",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_ip",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_vip_ipv4",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "external_dns_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "containers_cidr",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "services_cidr",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_node_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_node_memory_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_typha_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_typha_memory_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_controller_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_controller_memory_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "mtu_size",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "privileged",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "use_hostname",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "interface_detection_method",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "interface_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "node_pool_uuid",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "kube_role_version",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cpu_manager_policy",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "topology_manager_policy",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ip_ip_mode",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_nat_outgoing",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_v4_block_size",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv4_detection_method",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "network_plugin",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "runtime_config",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "container_runtime",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cert_expiry_hrs",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "enable_etcd_encryption",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_backup",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "storage_type",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "is_etcd_backup_enabled",
+									"bool": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "daily_backup_time",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "max_timestamp_backup_count",
+									"int64": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "storage_local_path",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "interval_in_hours",
+									"int64": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "interval_in_mins",
+									"int64": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "max_interval_backup_count",
+									"int64": {
+										"computed_optional_required": "computed"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "tags",
+						"map": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							}
+						}
+					},
+					{
+						"name": "created_at",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Time at which the cluster was created"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "flannel_iface_label",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "flannel_public_iface_label",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_root",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_data_dir",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "last_op",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "last_ok",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "task_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "task_error",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_vip_vrouter_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "k8s_api_port",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv4",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_detection_method",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_router_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_cidr",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_block_size",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_nat_outgoing",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "felix_ipv6_support",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "masterless",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_version",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_heartbeat_interval_ms",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_election_timeout_ms",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "worker_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "ipv6",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "node_pool_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_uuid",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_type",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "quay_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "gcr_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "k8s_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_centos_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_ubuntu_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "addon_operator_image_tag",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "interface_reachable_ip",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_repo_path",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_username",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_password",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_skip_tls",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_self_signed_certs",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_cert_path",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "addons",
+						"set_nested": {
+							"computed_optional_required": "computed",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed"
+										}
+									},
+									{
+										"name": "version",
+										"string": {
+											"computed_optional_required": "computed"
+										}
+									},
+									{
+										"name": "enabled",
+										"bool": {
+											"computed_optional_required": "computed"
+										}
+									},
+									{
+										"name": "config",
+										"map": {
+											"computed_optional_required": "computed",
+											"element_type": {
+												"string": {}
+											}
+										}
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		},
+		{
 			"name": "kubeconfig",
 			"schema": {
 				"attributes": [
@@ -12,17 +622,22 @@
 						}
 					},
 					{
-						"name": "force_cert_auth",
-						"bool": {
-							"computed_optional_required": "optional",
-							"description": "Force certificate authentication"
-						}
-					},
-					{
-						"name": "endpoint",
+						"name": "authentication_method",
 						"string": {
-							"computed_optional_required": "computed",
-							"description": "API endpoint for the cluster"
+							"computed_optional_required": "optional",
+							"description": "The authentication method can be one of three types: token, certificate, or password.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"token\",\"password\",\"certificate\")"
+									}
+								}
+							]
 						}
 					},
 					{
@@ -33,16 +648,90 @@
 						}
 					},
 					{
-						"name": "token",
-						"string": {
+						"name": "clusters",
+						"list_nested": {
 							"computed_optional_required": "computed",
-							"description": "Token to be used from kubeconfig"
+							"description": "List of clusters",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the cluster"
+										}
+									},
+									{
+										"name": "cluster",
+										"single_nested": {
+											"computed_optional_required": "computed",
+											"attributes": [
+												{
+													"name": "server",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "API server URL"
+													}
+												},
+												{
+													"name": "certificate_authority",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "CA certificate"
+													}
+												}
+											]
+										}
+									}
+								]
+							}
 						}
 					},
 					{
-						"name": "cluster_ca_certificate",
-						"string": {
-							"computed_optional_required": "computed"
+						"name": "users",
+						"list_nested": {
+							"computed_optional_required": "computed",
+							"description": "List of users",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the user"
+										}
+									},
+									{
+										"name": "user",
+										"single_nested": {
+											"computed_optional_required": "computed",
+											"attributes": [
+												{
+													"name": "token",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Token"
+													}
+												},
+												{
+													"name": "client_certificate",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Client certificate"
+													}
+												},
+												{
+													"name": "client_key",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Client key"
+													}
+												}
+											]
+										}
+									}
+								]
+							}
 						}
 					}
 				]
@@ -1856,7 +2545,7 @@
 					{
 						"name": "addons",
 						"set_nested": {
-							"computed_optional_required": "computed_optional",
+							"computed_optional_required": "optional",
 							"description": "Addons to be installed on the cluster",
 							"plan_modifiers": [
 								{
