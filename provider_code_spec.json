@@ -1,0 +1,3175 @@
+{
+	"datasources": [
+		{
+			"name": "cluster",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the cluster"
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the cluster"
+						}
+					},
+					{
+						"name": "master_nodes",
+						"set": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							}
+						}
+					},
+					{
+						"name": "worker_nodes",
+						"set": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							}
+						}
+					},
+					{
+						"name": "allow_workloads_on_master",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_vip_iface",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_ip",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_vip_ipv4",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "external_dns_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "containers_cidr",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "services_cidr",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_node_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_node_memory_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_typha_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_typha_memory_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_controller_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_controller_memory_limit",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "mtu_size",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "privileged",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "use_hostname",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "interface_detection_method",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "interface_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "node_pool_uuid",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "kube_role_version",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cpu_manager_policy",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "topology_manager_policy",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ip_ip_mode",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_nat_outgoing",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_v4_block_size",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv4_detection_method",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "network_plugin",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "runtime_config",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "container_runtime",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cert_expiry_hrs",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "enable_etcd_encryption",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_backup",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "storage_type",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "is_etcd_backup_enabled",
+									"bool": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "daily_backup_time",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "max_timestamp_backup_count",
+									"int64": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "storage_local_path",
+									"string": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "interval_in_hours",
+									"int64": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "interval_in_mins",
+									"int64": {
+										"computed_optional_required": "computed"
+									}
+								},
+								{
+									"name": "max_interval_backup_count",
+									"int64": {
+										"computed_optional_required": "computed"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "tags",
+						"map": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							}
+						}
+					},
+					{
+						"name": "created_at",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Time at which the cluster was created"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "flannel_iface_label",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "flannel_public_iface_label",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_root",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_data_dir",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "last_op",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "last_ok",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "task_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "task_error",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_vip_vrouter_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "k8s_api_port",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv4",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_detection_method",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_router_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_cidr",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_block_size",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_nat_outgoing",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "felix_ipv6_support",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "masterless",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_version",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_heartbeat_interval_ms",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_election_timeout_ms",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "worker_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "ipv6",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "node_pool_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_uuid",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_type",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "quay_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "gcr_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "k8s_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_centos_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_ubuntu_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "addon_operator_image_tag",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "interface_reachable_ip",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_repo_path",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_username",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_password",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_skip_tls",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_self_signed_certs",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_cert_path",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "addons",
+						"set_nested": {
+							"computed_optional_required": "computed",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed"
+										}
+									},
+									{
+										"name": "version",
+										"string": {
+											"computed_optional_required": "computed"
+										}
+									},
+									{
+										"name": "enabled",
+										"bool": {
+											"computed_optional_required": "computed"
+										}
+									},
+									{
+										"name": "config",
+										"map": {
+											"computed_optional_required": "computed",
+											"element_type": {
+												"string": {}
+											}
+										}
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "kubeconfig",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the cluster"
+						}
+					},
+					{
+						"name": "authentication_method",
+						"string": {
+							"computed_optional_required": "optional",
+							"description": "The authentication method can be one of three types: token, certificate, or password.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"token\",\"password\",\"certificate\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "raw",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Kubeconfig blob"
+						}
+					},
+					{
+						"name": "clusters",
+						"list_nested": {
+							"computed_optional_required": "computed",
+							"description": "List of clusters",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the cluster"
+										}
+									},
+									{
+										"name": "cluster",
+										"single_nested": {
+											"computed_optional_required": "computed",
+											"attributes": [
+												{
+													"name": "server",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "API server URL"
+													}
+												},
+												{
+													"name": "certificate_authority",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "CA certificate"
+													}
+												}
+											]
+										}
+									}
+								]
+							}
+						}
+					},
+					{
+						"name": "users",
+						"list_nested": {
+							"computed_optional_required": "computed",
+							"description": "List of users",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the user"
+										}
+									},
+									{
+										"name": "user",
+										"single_nested": {
+											"computed_optional_required": "computed",
+											"attributes": [
+												{
+													"name": "token",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Token"
+													}
+												},
+												{
+													"name": "client_certificate",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Client certificate"
+													}
+												},
+												{
+													"name": "client_key",
+													"string": {
+														"computed_optional_required": "computed",
+														"description": "Client key"
+													}
+												}
+											]
+										}
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "node",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the cluster"
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Host name of the node"
+						}
+					},
+					{
+						"name": "api_responding",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "true indicates the API server on this node is running."
+						}
+					},
+					{
+						"name": "cluster_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the cluster the node belongs to"
+						}
+					},
+					{
+						"name": "cluster_uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the cluster the node belongs to"
+						}
+					},
+					{
+						"name": "is_master",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "true if this node is a master of a cluster."
+						}
+					},
+					{
+						"name": "node_pool_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the node pool, the node belongs to"
+						}
+					},
+					{
+						"name": "node_pool_uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the node pool, the node belongs to"
+						}
+					},
+					{
+						"name": "primary_ip",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "IP address of the node"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the node. States include “ok”, ”converging”, “failed”. These states indicate the current state of kubernetes setup on the host."
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "nodes",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Placeholder for ID"
+						}
+					},
+					{
+						"name": "nodes",
+						"list_nested": {
+							"computed_optional_required": "computed",
+							"description": "List of nodes",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "id",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the cluster"
+										}
+									},
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Host name of the node"
+										}
+									},
+									{
+										"name": "api_responding",
+										"bool": {
+											"computed_optional_required": "computed",
+											"description": "Indicates the API server on this node is running"
+										}
+									},
+									{
+										"name": "cluster_name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the cluster the node belongs to"
+										}
+									},
+									{
+										"name": "cluster_uuid",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the cluster the node belongs to"
+										}
+									},
+									{
+										"name": "is_master",
+										"bool": {
+											"computed_optional_required": "computed",
+											"description": "true if this node is a master of a cluster."
+										}
+									},
+									{
+										"name": "node_pool_name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the node pool, the node belongs to"
+										}
+									},
+									{
+										"name": "node_pool_uuid",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the node pool, the node belongs to"
+										}
+									},
+									{
+										"name": "primary_ip",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "IP address of the node"
+										}
+									},
+									{
+										"name": "status",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Status of the node. States include ok, converging, failed. These states indicate the current state of kubernetes setup on the host."
+										}
+									}
+								]
+							}
+						}
+					},
+					{
+						"name": "filter",
+						"single_nested": {
+							"computed_optional_required": "required",
+							"attributes": [
+								{
+									"name": "name",
+									"string": {
+										"computed_optional_required": "required",
+										"description": "Name of the attribute on which this filter is applied",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.OneOf(\"id\",\"name\",\"api_responding\",\"cluster_name\",\"cluster_uuid\",\"is_master\",\"node_pool_name\",\"node_pool_uuid\",\"primary_ip\",\"status\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "values",
+									"list": {
+										"computed_optional_required": "required",
+										"element_type": {
+											"string": {}
+										}
+									}
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "nodepools",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Placeholder for ID"
+						}
+					},
+					{
+						"name": "nodepools",
+						"list_nested": {
+							"computed_optional_required": "computed",
+							"description": "List of nodepools matched to the filter",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "id",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the nodepool"
+										}
+									},
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the nodepool"
+										}
+									},
+									{
+										"name": "cloud_provider_uuid",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the cloud provider"
+										}
+									},
+									{
+										"name": "cloud_provider_name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the cloud provider"
+										}
+									}
+								]
+							}
+						}
+					},
+					{
+						"name": "filter",
+						"single_nested": {
+							"computed_optional_required": "required",
+							"attributes": [
+								{
+									"name": "name",
+									"string": {
+										"computed_optional_required": "required",
+										"description": "Name of the attribute on which this filter is applied",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.OneOf(\"name\",\"cloud_provider_name\",\"cloud_provider_uuid\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "values",
+									"list": {
+										"computed_optional_required": "required",
+										"element_type": {
+											"string": {}
+										}
+									}
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "clusters",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Placeholder for an ID"
+						}
+					},
+					{
+						"name": "cluster_ids",
+						"list": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							},
+							"description": "A list of cluster IDs for clusters that match all the specified filters."
+						}
+					},
+					{
+						"name": "filters",
+						"list_nested": {
+							"computed_optional_required": "required",
+							"description": "List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed.",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "Name of the attribute on which this filter should be applied. The tags attribute is a special case where the name has to be specified as 'tags:<tag_key>'"
+										}
+									},
+									{
+										"name": "values",
+										"set": {
+											"computed_optional_required": "optional",
+											"description": "Set of values for the attribute, if any of the 'value' matches then the filter is considered to be matched",
+											"element_type": {
+												"string": {}
+											}
+										}
+									},
+									{
+										"name": "regexes",
+										"set": {
+											"computed_optional_required": "optional",
+											"description": "Set of regexes to match to the attribute value, if any of the 'regex' matches then the filter is considered to be matched",
+											"element_type": {
+												"string": {}
+											}
+										}
+									}
+								]
+							},
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+											}
+										],
+										"schema_definition": "listvalidator.SizeAtLeast(1)"
+									}
+								}
+							]
+						}
+					}
+				]
+			}
+		}
+	],
+	"provider": {
+		"name": "pf9",
+		"schema": {
+			"attributes": [
+				{
+					"name": "du_fqdn",
+					"string": {
+						"optional_required": "optional",
+						"description": "DU FQDN"
+					}
+				},
+				{
+					"name": "du_username",
+					"string": {
+						"optional_required": "optional",
+						"description": "Username"
+					}
+				},
+				{
+					"name": "du_region",
+					"string": {
+						"optional_required": "optional",
+						"description": "Region"
+					}
+				},
+				{
+					"name": "du_tenant",
+					"string": {
+						"optional_required": "optional",
+						"description": "Tenant"
+					}
+				}
+			]
+		}
+	},
+	"resources": [
+		{
+			"name": "cluster",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the cluster",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "Name of the cluster, applicable also for manual deploy",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "master_nodes",
+						"set": {
+							"computed_optional_required": "required",
+							"element_type": {
+								"string": {}
+							},
+							"description": "List of uuid of master nodes"
+						}
+					},
+					{
+						"name": "worker_nodes",
+						"set": {
+							"computed_optional_required": "required",
+							"element_type": {
+								"string": {}
+							},
+							"description": "List of uuid of worker nodes"
+						}
+					},
+					{
+						"name": "allow_workloads_on_master",
+						"bool": {
+							"default": {
+								"static": false
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "If the master nodes can run non-critical workloads",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+									}
+								},
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.RequiresReplace()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "master_vip_iface",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "If master_vip_ipv4 is specified, this field is required. Specify the interface that the VIP attaches to",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/path"
+											}
+										],
+										"schema_definition": "stringvalidator.AlsoRequires(path.MatchRelative().AtName(\"master_vip_ipv4\"))"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "master_ip",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "IP of master node",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "master_vip_ipv4",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together"
+						}
+					},
+					{
+						"name": "external_dns_name",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Optional DNS name for API endpoint. This field is autogenerated when usePf9Domain is set, also applicable for manual deploy",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "containers_cidr",
+						"string": {
+							"default": {
+								"static": "10.20.0.0/16"
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "CIDR used for pod IP addresses, applicable also for manual deploy",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "services_cidr",
+						"string": {
+							"default": {
+								"static": "10.21.0.0/16"
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "CIDR used for service IP addresses, applicable also for manual deploy",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "calico_node_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico.",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "calico_node_memory_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico.",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "calico_typha_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico.",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "calico_typha_memory_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico.",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "calico_controller_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "calico_controller_memory_limit",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "mtu_size",
+						"int64": {
+							"default": {
+								"static": 1440
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "MTU for container network interfaces. Optional and used for the Calico network backend",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+											}
+										],
+										"schema_definition": "int64planmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "privileged",
+						"bool": {
+							"default": {
+								"static": true
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "True if cluster runs privileged containers",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "use_hostname",
+						"bool": {
+							"default": {
+								"static": false
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts.",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "interface_detection_method",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Method to detect the interface",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "interface_name",
+						"string": {
+							"default": {
+								"static": ""
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "Name of the interface"
+						}
+					},
+					{
+						"name": "node_pool_uuid",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Optional. UUID of the node pool used for the cluster. Defaults to the first node pool of the local cloud provider type",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "kube_role_version",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "kube role version to be used when bringing up the cluster.",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								},
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.RequiresReplace()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "cpu_manager_policy",
+						"string": {
+							"default": {
+								"static": "none"
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "options: none, static; default: none",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"none\",\"static\")"
+									}
+								}
+							],
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "topology_manager_policy",
+						"string": {
+							"default": {
+								"static": "none"
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "options: none, best-effort, restricted, single-numa-node; default: none",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"none\",\"best-effort\",\"restricted\",\"single-numa-node\")"
+									}
+								}
+							],
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "calico_ip_ip_mode",
+						"string": {
+							"default": {
+								"static": "Always"
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"Always\",\"Never\",\"CrossSubnet\")"
+									}
+								}
+							],
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "calico_nat_outgoing",
+						"bool": {
+							"default": {
+								"static": true
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "Field is set to true if Calico nodes need to NAT north-south egress traffic.",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "calico_v4_block_size",
+						"string": {
+							"default": {
+								"static": "26"
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "Subnet size per node for the Calico network, in CIDR notation (e.g. 26)",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "calico_ipv4_detection_method",
+						"string": {
+							"default": {
+								"static": "first-found"
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "Method to detect the IPv4 address"
+						}
+					},
+					{
+						"name": "network_plugin",
+						"string": {
+							"default": {
+								"static": "calico"
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "Network backend to use for container networking. Defaults to flannel. Supported choices are flannel, calico",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"calico\",\"flannel\")"
+									}
+								}
+							],
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "runtime_config",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Applicable also for manual deploy",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "container_runtime",
+						"string": {
+							"default": {
+								"static": "containerd"
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "Container runtime used by this cluster",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"containerd\")"
+									}
+								}
+							],
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "cert_expiry_hrs",
+						"int64": {
+							"computed_optional_required": "computed_optional",
+							"default": {
+								"static": 24
+							},
+							"description": "Number of hours before user certificates in kubeconfig expires, should be greater than 0 if set",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+											}
+										],
+										"schema_definition": "int64validator.AtLeast(1)"
+									}
+								}
+							],
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+											}
+										],
+										"schema_definition": "int64planmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "enable_etcd_encryption",
+						"bool": {
+							"default": {
+								"static": true
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "Enables etcd encryption",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+									}
+								},
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.RequiresReplace()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "etcd_backup",
+						"single_nested": {
+							"computed_optional_required": "required",
+							"attributes": [
+								{
+									"name": "storage_type",
+									"string": {
+										"default": {
+											"static": "local"
+										},
+										"computed_optional_required": "computed_optional",
+										"description": "Storage type for the etcd backup. Only 'local' is current supported type. 'local' saves backup to the node's local disk",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+														}
+													],
+													"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+												}
+											}
+										],
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.OneOf(\"local\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "is_etcd_backup_enabled",
+									"bool": {
+										"computed_optional_required": "required",
+										"description": "Set to true if etcd backup should be enabled, false otherwise",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+														}
+													],
+													"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "daily_backup_time",
+									"string": {
+										"default": {
+											"static": "02:00"
+										},
+										"computed_optional_required": "computed_optional",
+										"description": "etcd backup Timestamp for daily backup, specified in format 'HH:MM'",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+														}
+													],
+													"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+												}
+											}
+										],
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														},
+														{
+															"path": "regexp"
+														}
+													],
+													"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(`^(?:[0-1][0-9]|2[0-3]):[0-5][0-9]$`), \"Must be a valid time in HH:MM format\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "max_timestamp_backup_count",
+									"int64": {
+										"default": {
+											"static": 3
+										},
+										"computed_optional_required": "computed_optional",
+										"description": "max number of Backups retention for Timestamp type backups, required if dailyBackupTime is provided",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+														}
+													],
+													"schema_definition": "int64planmodifier.UseStateForUnknown()"
+												}
+											}
+										],
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+														}
+													],
+													"schema_definition": "int64validator.AtLeast(1)"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "storage_local_path",
+									"string": {
+										"default": {
+											"static": "/etc/pf9/etcd-backup"
+										},
+										"computed_optional_required": "computed_optional",
+										"description": "Path on the local filesystem where the etcd backup should be stored. For 'local' storage type only.",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+														}
+													],
+													"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "interval_in_hours",
+									"int64": {
+										"computed_optional_required": "optional",
+										"description": "etcd backup interval, specified in Hours. intervalInMins and intervalInHours are mutually exclusive",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+														}
+													],
+													"schema_definition": "int64planmodifier.UseStateForUnknown()"
+												}
+											}
+										],
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+														},
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/path"
+														}
+													],
+													"schema_definition": "int64validator.ConflictsWith(path.MatchRelative().AtName(\"interval_in_mins\"))"
+												}
+											},
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+														}
+													],
+													"schema_definition": "int64validator.AtLeast(1)"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "interval_in_mins",
+									"int64": {
+										"computed_optional_required": "optional",
+										"description": "etcd backup interval, specified in minutes. intervalInMins and intervalInHours are mutually exclusive",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+														}
+													],
+													"schema_definition": "int64planmodifier.UseStateForUnknown()"
+												}
+											}
+										],
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+														}
+													],
+													"schema_definition": "int64validator.AtLeast(1)"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "max_interval_backup_count",
+									"int64": {
+										"default": {
+											"static": 3
+										},
+										"computed_optional_required": "computed_optional",
+										"description": "max number of Backups retention for interval type backups, required if intervalInMins or intervalInHours is provided",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+														}
+													],
+													"schema_definition": "int64planmodifier.UseStateForUnknown()"
+												}
+											}
+										],
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+														}
+													],
+													"schema_definition": "int64validator.AtLeast(1)"
+												}
+											}
+										]
+									}
+								}
+							],
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+											}
+										],
+										"schema_definition": "objectplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "tags",
+						"map": {
+							"computed_optional_required": "optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "User defined key-value pairs represented as a JSON object"
+						}
+					},
+					{
+						"name": "created_at",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Time at which the cluster was created"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "flannel_iface_label",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "flannel_public_iface_label",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_root",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_data_dir",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "last_op",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "last_ok",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "task_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "task_error",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_vip_vrouter_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "k8s_api_port",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv4",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_detection_method",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_router_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_cidr",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_block_size",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_nat_outgoing",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "felix_ipv6_support",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "masterless",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_version",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_heartbeat_interval_ms",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_election_timeout_ms",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "worker_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "ipv6",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "node_pool_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_uuid",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_type",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_private_registry",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "quay_private_registry",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "gcr_private_registry",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "k8s_private_registry",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "docker_centos_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_ubuntu_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "addon_operator_image_tag",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"description": "Tag of the addon operator image to be used for the cluster",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "interface_reachable_ip",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_url",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_repo_path",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_username",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_password",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_skip_tls",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_self_signed_certs",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_cert_path",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "addons",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+											}
+										],
+										"schema_definition": "objectplanmodifier.UseStateForUnknown()"
+									}
+								}
+							],
+							"attributes": [
+								{
+									"name": "kubernetes_dashboard",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+														}
+													],
+													"schema_definition": "objectplanmodifier.UseStateForUnknown()"
+												}
+											}
+										],
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "metrics_server",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "kubevirt",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "luigi",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "coredns",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+														}
+													],
+													"schema_definition": "objectplanmodifier.UseStateForUnknown()"
+												}
+											}
+										],
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+																	}
+																],
+																"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
+																	}
+																],
+																"schema_definition": "mapplanmodifier.UseStateForUnknown()"
+															}
+														}
+													],
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "monitoring",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "metallb",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "metal3",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "profile_agent",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "dns_autoscaler",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					}
+				]
+			}
+		}
+	],
+	"version": "0.1"
+}

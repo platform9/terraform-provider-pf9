@@ -1,0 +1,86 @@
+provider:
+  name: pf9
+
+resources:
+  # Ref: https://platform9.com/docs/qbert/ref#postcreates-a-cluster-using-auto-deploy-or-manual-mode
+  # Ref: https://platform9.com/docs/qbert/ref#putupdate-the-properties-of-a-cluster-specified-by-the-cluster-u
+  # Ref: https://platform9.com/docs/qbert/ref#deletedelete-a-cluster-from-pmk-as-specified-by-the-cluster-uuid
+  cluster:
+    create:
+      path: /v4/{projectId}/clusters
+      method: POST
+    read:
+      path: /v4/{projectId}/clusters/{clusterId}
+      method: GET
+    update:
+      path: /v4/{projectId}/clusters/{clusterId}
+      method: PUT
+    delete:
+      path: /v4/{projectId}/clusters/{clusterId}
+      method: DELETE
+    schema:
+      attributes:
+        overrides:
+          projectId:
+            description: UUID of the project the cluster belongs to
+          clusterId:
+            description: The UUID of the cluster
+        aliases:
+          clusterId: id
+
+data_sources:
+  # Ref: https://platform9.com/docs/qbert/ref#getget-details-of-a-cluster
+  cluster:
+    read:
+      path: /v4/{projectId}/clusters/{clusterId}
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          projectId:
+            description: UUID of the project the cluster belongs to
+          clusterId:
+            description: The UUID of the cluster
+        aliases:
+          clusterId: id
+
+  # Ref: https://platform9.com/docs/qbert/ref#getget-the-list-of-clusters-currently-setup-in-pmk
+  clusters:
+    read:
+      path: /v4/{projectId}/clusters
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          projectId:
+            description: UUID of the project the cluster belongs to
+  
+  # Ref: https://platform9.com/docs/qbert/ref#getlist-all-the-nodes-in-a-project-identified-by-the-project-uui
+  nodes:
+    read:
+      path: /v4/{projectId}/clusters/{clusterId}/nodes
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          projectId:
+            description: UUID of the project the cluster belongs to
+          clusterId:
+            description: The UUID of the cluster
+        aliases:
+          clusterId: id
+  
+  # https://platform9.com/docs/qbert/ref#getget-the-kubeconfig-blob-for-the-specific-cluster
+  kubeconfig:
+    read:
+      path: /v4/{projectId}/kubeconfig/{clusterId}
+      method: GET
+    schema:
+      attributes:
+        overrides:
+          projectId:
+            description: UUID of the project the cluster belongs to
+          clusterId:
+            description: The UUID of the cluster
+        aliases:
+          clusterId: id
