@@ -57,7 +57,7 @@ resource "pf9_cluster" "example" {
 ### Optional
 
 - `addon_operator_image_tag` (String) Tag of the addon operator image to be used for the cluster
-- `addons` (Attributes Set) Addons to be installed on the cluster (see [below for nested schema](#nestedatt--addons))
+- `addons` (Attributes) (see [below for nested schema](#nestedatt--addons))
 - `allow_workloads_on_master` (Boolean) If the master nodes can run non-critical workloads
 - `calico_controller_cpu_limit` (String) Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.
 - `calico_controller_memory_limit` (String) Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.
@@ -164,10 +164,155 @@ Optional:
 
 Optional:
 
-- `config` (Map of String)
-- `enabled` (Boolean)
-- `name` (String)
+- `coredns` (Attributes) (see [below for nested schema](#nestedatt--addons--coredns))
+- `dns_autoscaler` (Attributes) (see [below for nested schema](#nestedatt--addons--dns_autoscaler))
+- `kubernetes_dashboard` (Attributes) (see [below for nested schema](#nestedatt--addons--kubernetes_dashboard))
+- `kubevirt` (Attributes) (see [below for nested schema](#nestedatt--addons--kubevirt))
+- `luigi` (Attributes) (see [below for nested schema](#nestedatt--addons--luigi))
+- `metal3` (Attributes) (see [below for nested schema](#nestedatt--addons--metal3))
+- `metallb` (Attributes) (see [below for nested schema](#nestedatt--addons--metallb))
+- `metrics_server` (Attributes) (see [below for nested schema](#nestedatt--addons--metrics_server))
+- `monitoring` (Attributes) (see [below for nested schema](#nestedatt--addons--monitoring))
+- `profile_agent` (Attributes) (see [below for nested schema](#nestedatt--addons--profile_agent))
+
+<a id="nestedatt--addons--coredns"></a>
+### Nested Schema for `addons.coredns`
+
+Optional:
+
+- `is_enabled` (Boolean)
+- `params` (Map of String)
 - `version` (String)
+
+Read-Only:
+
+- `phase` (String)
+
+
+<a id="nestedatt--addons--dns_autoscaler"></a>
+### Nested Schema for `addons.dns_autoscaler`
+
+Optional:
+
+- `is_enabled` (Boolean)
+- `params` (Map of String)
+- `version` (String)
+
+Read-Only:
+
+- `phase` (String)
+
+
+<a id="nestedatt--addons--kubernetes_dashboard"></a>
+### Nested Schema for `addons.kubernetes_dashboard`
+
+Optional:
+
+- `is_enabled` (Boolean)
+- `params` (Map of String)
+- `version` (String)
+
+Read-Only:
+
+- `phase` (String)
+
+
+<a id="nestedatt--addons--kubevirt"></a>
+### Nested Schema for `addons.kubevirt`
+
+Optional:
+
+- `is_enabled` (Boolean)
+- `params` (Map of String)
+- `version` (String)
+
+Read-Only:
+
+- `phase` (String)
+
+
+<a id="nestedatt--addons--luigi"></a>
+### Nested Schema for `addons.luigi`
+
+Optional:
+
+- `is_enabled` (Boolean)
+- `params` (Map of String)
+- `version` (String)
+
+Read-Only:
+
+- `phase` (String)
+
+
+<a id="nestedatt--addons--metal3"></a>
+### Nested Schema for `addons.metal3`
+
+Optional:
+
+- `is_enabled` (Boolean)
+- `params` (Map of String)
+- `version` (String)
+
+Read-Only:
+
+- `phase` (String)
+
+
+<a id="nestedatt--addons--metallb"></a>
+### Nested Schema for `addons.metallb`
+
+Optional:
+
+- `is_enabled` (Boolean)
+- `params` (Map of String)
+- `version` (String)
+
+Read-Only:
+
+- `phase` (String)
+
+
+<a id="nestedatt--addons--metrics_server"></a>
+### Nested Schema for `addons.metrics_server`
+
+Optional:
+
+- `is_enabled` (Boolean)
+- `params` (Map of String)
+- `version` (String)
+
+Read-Only:
+
+- `phase` (String)
+
+
+<a id="nestedatt--addons--monitoring"></a>
+### Nested Schema for `addons.monitoring`
+
+Optional:
+
+- `is_enabled` (Boolean)
+- `params` (Map of String)
+- `version` (String)
+
+Read-Only:
+
+- `phase` (String)
+
+
+<a id="nestedatt--addons--profile_agent"></a>
+### Nested Schema for `addons.profile_agent`
+
+Optional:
+
+- `is_enabled` (Boolean)
+- `params` (Map of String)
+- `version` (String)
+
+Read-Only:
+
+- `phase` (String)
 
 ## Import
 

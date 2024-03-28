@@ -20,7 +20,8 @@ import (
 
 	sunpikev1alpha2 "github.com/platform9/pf9-sdk-go/pf9/apis/sunpike/v1alpha2"
 	// sunpikev1alpha2 "github.com/platform9/pf9-sdk-go/pf9/apis/sunpike/v1alpha2"
-	k8stypes "k8s.io/apimachinery/pkg/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 )
 
@@ -123,63 +124,83 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
-	var addonsValues []resource_cluster.AddonsValue
-	resp.Diagnostics.Append(data.Addons.ElementsAs(ctx, &addonsValues, false)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	tflog.Debug(ctx, "Mapping addons to addon-flags inside create cluster request")
 	// qbert API is so complicated; some addons can be enabled through flags in create cluster request
-	addonsValueMap := make(map[string]resource_cluster.AddonsValue, len(addonsValues))
-	for _, addonValue := range addonsValues {
-		addonsValueMap[addonValue.Name.ValueString()] = addonValue
-		if addonValue.Enabled.IsNull() {
-			tflog.Error(ctx, "Enabled field is required for addon", map[string]interface{}{"addon": addonValue})
-			resp.Diagnostics.AddError("Enabled field is required for addon", fmt.Sprintf("addon: %v", addonValue))
-			return
+	if !data.Addons.IsNull() && !data.Addons.IsUnknown() {
+		if !data.Addons.Kubevirt.IsNull() && !data.Addons.Kubevirt.IsUnknown() {
+			objValuable, diags := resource_cluster.KubevirtType{}.ValueFromObject(ctx, data.Addons.Kubevirt)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			kubevirtValue := objValuable.(resource_cluster.KubevirtValue)
+			if kubevirtValue.IsEnabled.ValueBool() {
+				createClusterReq.DeployKubevirt = true
+			}
 		}
-		if addonValue.Enabled.IsUnknown() {
-			tflog.Error(ctx, "Enabled field is unknown", map[string]interface{}{"addon": addonValue})
-			resp.Diagnostics.AddError("Enabled field is unknown", fmt.Sprintf("addon: %v", addonValue))
-			return
+		if !data.Addons.Luigi.IsNull() && !data.Addons.Luigi.IsUnknown() {
+			objValuable, diags := resource_cluster.LuigiType{}.ValueFromObject(ctx, data.Addons.Luigi)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			luigiValue := objValuable.(resource_cluster.LuigiValue)
+			if luigiValue.IsEnabled.ValueBool() {
+				createClusterReq.DeployLuigiOperator = true
+			}
 		}
-		if addonValue.Enabled.ValueBool() {
-			addonConfig := map[string]string{}
-			if !addonValue.Config.IsNull() && !addonValue.Config.IsUnknown() {
-				resp.Diagnostics.Append(addonValue.Config.ElementsAs(ctx, &addonConfig, false)...)
+		if !data.Addons.Metallb.IsNull() && !data.Addons.Metallb.IsUnknown() {
+
+			objValueable, diags := resource_cluster.MetallbType{}.ValueFromObject(ctx, data.Addons.Metallb)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			metallbValue := objValueable.(resource_cluster.MetallbValue)
+			if metallbValue.IsEnabled.ValueBool() {
+				params := map[string]string{}
+				resp.Diagnostics.Append(metallbValue.Params.ElementsAs(ctx, &params, false)...)
 				if resp.Diagnostics.HasError() {
 					return
 				}
-			}
-			switch addonValue.Name.ValueString() {
-			case "kubevirt":
-				createClusterReq.DeployKubevirt = true
-			case "luigi":
-				createClusterReq.DeployLuigiOperator = true
-			case "metallb":
-				createClusterReq.EnableMetalLb = true
-				if metallbCidr, found := addonConfig["MetallbIpRange"]; found {
+				if metallbCidr, found := params["metallbIpRange"]; found {
 					createClusterReq.MetallbCidr = metallbCidr
+					createClusterReq.EnableMetalLb = true
 				} else {
-					resp.Diagnostics.AddAttributeError(path.Root("addons"), "MetallbIpRange is required for metallb addon", "MetallbIpRange is required for metallb addon")
+					resp.Diagnostics.AddAttributeError(path.Root("addons").AtName("metallb").AtName("params"), "MetallbIpRange is required for metallb addon", "MetallbIpRange is required for metallb addon")
 					return
 				}
-			case "monitoring":
-				monitoringConfig := qbert.MonitoringConfig{}
-				addonConfig := map[string]string{}
-				if retentionTime, found := addonConfig["retentionTime"]; found {
-					monitoringConfig.RetentionTime = &retentionTime
-				} else {
-					monitoringConfig.RetentionTime = ptr.To("7d")
+			}
+		}
+		if !data.Addons.Monitoring.IsNull() && !data.Addons.Monitoring.IsUnknown() {
+			objValuable, diags := resource_cluster.MonitoringType{}.ValueFromObject(ctx, data.Addons.Monitoring)
+			diags.Append(diags...)
+			if diags.HasError() {
+				return
+			}
+			monitoringValue := objValuable.(resource_cluster.MonitoringValue)
+			if monitoringValue.IsEnabled.ValueBool() {
+				params := map[string]string{}
+				resp.Diagnostics.Append(monitoringValue.Params.ElementsAs(ctx, &params, false)...)
+				if resp.Diagnostics.HasError() {
+					return
 				}
-				createClusterReq.Monitoring = &monitoringConfig
-			case "pf9-profile-agent":
+				if retentionTime, found := params["retentionTime"]; found {
+					createClusterReq.Monitoring.RetentionTime = ptr.To(retentionTime)
+				} else {
+					createClusterReq.Monitoring.RetentionTime = ptr.To("7d")
+				}
+			}
+		}
+		if !data.Addons.ProfileAgent.IsNull() && !data.Addons.ProfileAgent.IsUnknown() {
+			objValuable, diags := resource_cluster.ProfileAgentType{}.ValueFromObject(ctx, data.Addons.ProfileAgent)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			profileAgentValue := objValuable.(resource_cluster.ProfileAgentValue)
+			if profileAgentValue.IsEnabled.ValueBool() {
 				createClusterReq.EnableProfileAgent = true
-			case "something": //TODO: Find the actual name of the addon
-				createClusterReq.EnableCatapultMonitoring = true
-			default:
-				tflog.Debug(ctx, "Addon cannot be enabled while create, it will be enabled after cluster creation", map[string]interface{}{"addon": addonValue})
 			}
 		}
 	}
@@ -231,42 +252,25 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 	// TODO: Should we save an intermediate state between multiple requests?
-
-	// The sunpike/qbert auto enables some of the addons; so we need to reconcile the state.
-	// i.e, match the state with the plan if there are differences
-	// For example, is the practitioner has provided config for coredns addon, we have to call
-	// sunpike api to get it configured as per plan
 	tflog.Debug(ctx, "Getting list of enabled addons including that are enabled by the backend")
-	addons, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
-	if err != nil {
-		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
-		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
+	stateAddons, sunpikeAddons, diags := r.readAddonsFromRemote(ctx, clusterID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "Got list of enabled addons", map[string]interface{}{"addons": addons})
-	// reconcileAddons() is common across Create() and Update() to avoid code duplication.
-	// It expects addons in the map[string]resource_cluster.AddonsValue format, where key is addon name.
-	// So, we need to convert the list of addons to map.
-	stateAddonsValueMap := make(map[string]resource_cluster.AddonsValue, len(addons.Items))
-	for _, addon := range addons.Items {
-		addonValue := resource_cluster.AddonsValue{}
-		addonValue.Name = types.StringValue(addon.Spec.Type)
-		addonValue.Enabled = types.BoolValue(true)
-		addonValue.Version = types.StringValue(addon.Spec.Version)
-		addonConfig := map[string]string{}
-		for _, param := range addon.Spec.Override.Params {
-			addonConfig[param.Name] = param.Value
-		}
-		var diags diag.Diagnostics
-		addonValue.Config, diags = types.MapValueFrom(ctx, basetypes.StringType{}, addonConfig)
-		if diags.HasError() {
-			return
-		}
-		// TODO: Use recommended way if someone responds to the issue:
-		// https://discuss.hashicorp.com/t/using-terraform-plugin-codegen-framework-generated-code-to-instantiate-nested-objects/64026
-		stateAddonsValueMap[addon.Spec.Type] = resource_cluster.NewKnownAddonsValueMust(addonValue)
+
+	// diags = resp.State.SetAttribute(ctx, path.Root("addons"), stateAddons)
+	// resp.Diagnostics.Append(diags...)
+	// if resp.Diagnostics.HasError() {
+	// 	return
+	// }
+
+	// Create a map key=addonName value=sunpikeAddon for lookup during reconcilation
+	stateAddonsMap := map[string]sunpikev1alpha2.ClusterAddon{}
+	for _, qbertAddon := range sunpikeAddons {
+		stateAddonsMap[qbertAddon.Spec.Type] = qbertAddon
 	}
-	resp.Diagnostics.Append(r.reconcileAddons(ctx, addonsValueMap, stateAddonsValueMap)...)
+	resp.Diagnostics.Append(r.reconcileAddons(ctx, clusterID, data.Addons, stateAddons, stateAddonsMap)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -277,170 +281,309 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Save data into Terraform state
+	stateAddons, _, diags = r.readAddonsFromRemote(ctx, clusterID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	state.Addons = stateAddons
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-// reconcileAddons compares the plan and state of addons and updates the addons in the backend if needed
-func (r *clusterResource) reconcileAddons(ctx context.Context, planAddonValue map[string]resource_cluster.AddonsValue, stateAddonValue map[string]resource_cluster.AddonsValue) diag.Diagnostics {
+func sunpikeAddonsToTerraformAddons(ctx context.Context, clusterAddon []sunpikev1alpha2.ClusterAddon) (resource_cluster.AddonsValue, diag.Diagnostics) {
+	addons := resource_cluster.AddonsValue{}
 	var diags diag.Diagnostics
-	for addonName, planAddon := range planAddonValue {
-		if stateAddon, found := stateAddonValue[addonName]; found {
-			if planAddon.Enabled.IsNull() {
-				tflog.Error(ctx, "Enabled field is required for addon", map[string]interface{}{"addon": addonName})
-				diags.AddAttributeError(path.Root("addons"), "Enabled field is required for addon", fmt.Sprintf("addon: %v", addonName))
-				return diags
+	for _, addon := range clusterAddon {
+		version := types.StringValue(addon.Spec.Version)
+		phase := types.StringValue(string(addon.Status.Phase))
+		paramMap := map[string]string{}
+		for _, param := range addon.Spec.Override.Params {
+			paramMap[param.Name] = param.Value
+		}
+		var params basetypes.MapValue
+		params, diags = types.MapValueFrom(ctx, types.StringType, paramMap)
+		if diags.HasError() {
+			return addons, diags
+		}
+		switch addon.Spec.Type {
+		case "coredns":
+			addons.Coredns, diags = resource_cluster.CorednsValue{
+				IsEnabled: types.BoolValue(true),
+				Params:    params,
+				Phase:     phase,
+				Version:   version,
+			}.ToObjectValue(ctx)
+			if diags.HasError() {
+				return addons, diags
 			}
-			if planAddon.Enabled.IsUnknown() {
-				tflog.Error(ctx, "Enabled field is unknown", map[string]interface{}{"addon": addonName})
-				diags.AddAttributeError(path.Root("addons"), "Enabled field is required for addon", fmt.Sprintf("addon: %v", addonName))
-				return diags
+		case "kubernetes-dashboard":
+			addons.KubernetesDashboard, diags = resource_cluster.KubernetesDashboardValue{
+				IsEnabled: types.BoolValue(true),
+				Params:    params,
+				Phase:     phase,
+				Version:   version,
+			}.ToObjectValue(ctx)
+			if diags.HasError() {
+				return addons, diags
 			}
-			if planAddon.Enabled.ValueBool() {
-				// TODO: Use https://platform9.com/docs/qbert/ref#deleteget-all-supported-cluster-addon-versions-for-a-pmk-cluster
-				// to get the supported versions of the addon; raise error if the version in the plan is not supported
-				diags.Append(r.patchAddon(ctx, planAddon, stateAddon)...)
-				if diags.HasError() {
-					return diags
-				}
-			} else {
-				tflog.Debug(ctx, "Disabling addon", map[string]interface{}{"addon": addonName})
-				var sunpikeAddon sunpikev1alpha2.ClusterAddon
-				err := r.client.Sunpike().Get(ctx, k8stypes.NamespacedName{
-					// TODO: Sometimes addon name has clusterID as prefix; sometimes not; need to check
-					Name:      addonName,
-					Namespace: "default",
-				}, &sunpikeAddon)
-				if err != nil {
-					tflog.Error(ctx, "Failed to get addon", map[string]interface{}{"error": err})
-					diags.AddError("Failed to get addon", err.Error())
-					return diags
-				}
-				err = r.client.Sunpike().Delete(ctx, &sunpikeAddon)
-				if err != nil {
-					tflog.Error(ctx, "Failed to disable addon", map[string]interface{}{"error": err})
-					diags.AddError("Failed to disable addon", err.Error())
-					return diags
-				}
+		case "kubevirt":
+			addons.Kubevirt, diags = resource_cluster.KubevirtValue{
+				IsEnabled: types.BoolValue(true),
+				Params:    params,
+				Phase:     phase,
+				Version:   version,
+			}.ToObjectValue(ctx)
+			if diags.HasError() {
+				return addons, diags
 			}
-		} else {
-			// addon available in plan but not in state
-			if planAddon.Enabled.IsNull() {
-				tflog.Error(ctx, "Enabled field is required for addon", map[string]interface{}{"addon": addonName})
-				diags.AddAttributeError(path.Root("addons"), "Enabled field is required for addon", fmt.Sprintf("addon: %v", addonName))
-				return diags
+		case "luigi":
+			addons.Luigi, diags = resource_cluster.LuigiValue{
+				IsEnabled: types.BoolValue(true),
+				Params:    params,
+				Phase:     phase,
+				Version:   version,
+			}.ToObjectValue(ctx)
+			if diags.HasError() {
+				return addons, diags
 			}
-			if planAddon.Enabled.IsUnknown() {
-				tflog.Error(ctx, "Enabled field is unknown", map[string]interface{}{"addon": addonName})
-				diags.AddAttributeError(path.Root("addons"), "Enabled field is required for addon", fmt.Sprintf("addon: %v", addonName))
-				return diags
+		case "metal3":
+			addons.Metal3, diags = resource_cluster.Metal3Value{
+				IsEnabled: types.BoolValue(true),
+				Params:    params,
+				Phase:     phase,
+				Version:   version,
+			}.ToObjectValue(ctx)
+			if diags.HasError() {
+				return addons, diags
 			}
-			if planAddon.Enabled.ValueBool() {
-				tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": addonName})
-				var planConfig map[string]string
-				var params []sunpikev1alpha2.Params
-				if !planAddon.Config.IsNull() && !planAddon.Config.IsUnknown() {
-					diags = planAddon.Config.ElementsAs(ctx, &planConfig, false)
-					if diags.HasError() {
-						return diags
-					}
-					for key, value := range planConfig {
-						params = append(params, sunpikev1alpha2.Params{
-							Name:  key,
-							Value: value,
-						})
-					}
-				}
-				var version string
-				if !planAddon.Version.IsNull() && !planAddon.Version.IsUnknown() {
-					version = planAddon.Version.ValueString()
-				}
-				err := r.client.Sunpike().Create(ctx, &sunpikev1alpha2.ClusterAddon{
-					Spec: sunpikev1alpha2.ClusterAddonSpec{
-						Type:    addonName,
-						Version: version,
-						Override: sunpikev1alpha2.Override{
-							Params: params,
-						},
-					},
-				})
-				if err != nil {
-					tflog.Error(ctx, "Failed to enable addon", map[string]interface{}{"error": err})
-					diags.AddError("Failed to enable addon", err.Error())
-					return diags
-				}
+		case "metallb":
+			addons.Metallb, diags = resource_cluster.MetallbValue{
+				IsEnabled: types.BoolValue(true),
+				Params:    params,
+				Phase:     phase,
+				Version:   version,
+			}.ToObjectValue(ctx)
+			if diags.HasError() {
+				return addons, diags
 			}
+		case "metrics-server":
+			addons.MetricsServer, diags = resource_cluster.MetricsServerValue{
+				IsEnabled: types.BoolValue(true),
+				Params:    params,
+				Phase:     phase,
+				Version:   version,
+			}.ToObjectValue(ctx)
+			if diags.HasError() {
+				return addons, diags
+			}
+		case "monitoring":
+			addons.Monitoring, diags = resource_cluster.MonitoringValue{
+				IsEnabled: types.BoolValue(true),
+				Params:    params,
+				Phase:     phase,
+				Version:   version,
+			}.ToObjectValue(ctx)
+			if diags.HasError() {
+				return addons, diags
+			}
+		case "pf9-profile-agent":
+			addons.ProfileAgent, diags = resource_cluster.ProfileAgentValue{
+				IsEnabled: types.BoolValue(true),
+				Params:    params,
+				Phase:     phase,
+				Version:   version,
+			}.ToObjectValue(ctx)
+			if diags.HasError() {
+				return addons, diags
+			}
+		default:
+			tflog.Error(ctx, "The addon is not currently supported by terraform provider", map[string]interface{}{"name": addon.Spec.Type})
+			// TODO: Support other addons dynamically
 		}
 	}
+	// Make addons known
+	// https://discuss.hashicorp.com/t/using-terraform-plugin-codegen-framework-generated-code-to-instantiate-nested-objects/64026
+	addonsObjectValue, diags := addons.ToObjectValue(ctx)
+	if diags.HasError() {
+		return addons, diags
+	}
+	addonsObjValuable, diags := resource_cluster.AddonsType{}.ValueFromObject(ctx, addonsObjectValue)
+	diags.Append(diags...)
+	if diags.HasError() {
+		return addons, diags
+	}
+	addons = addonsObjValuable.(resource_cluster.AddonsValue)
+	return addons, diags
+}
+
+func (r *clusterResource) reconcileAddons(ctx context.Context, clusterID string, planAddonsValue resource_cluster.AddonsValue,
+	stateAddonsValue resource_cluster.AddonsValue, stateAddonsMap map[string]sunpikev1alpha2.ClusterAddon) diag.Diagnostics {
+
+	var diags diag.Diagnostics
+
+	if !stateAddonsValue.IsUnknown() {
+		if planAddonsValue.IsNull() {
+			if !stateAddonsValue.IsNull() {
+				tflog.Debug(ctx, "Practitioner removed addons; it is null in the plan but non-null in the state")
+				// disable all addons from the state
+			} else {
+				tflog.Debug(ctx, "addons is null in the plan and the state")
+			}
+		}
+		if planAddonsValue.IsUnknown() {
+			// this can never happen if useStateForUnknowns plan modifier is used
+			if !stateAddonsValue.IsNull() {
+				tflog.Debug(ctx, "Practitioner removed addons from addons; it is unknown in the plan but non-null in the state")
+			} else {
+				tflog.Debug(ctx, "addons is unknown in the plan, null in the state")
+			}
+		}
+	} else {
+		tflog.Debug(ctx, "Create()")
+	}
+
+	// Note: planAddonsValue remains always known
+
+	diags.Append(r.reconcileCorednsAddon(ctx, clusterID, planAddonsValue.Coredns, stateAddonsMap)...)
+	diags.Append(r.reconcileMonitoringAddon(ctx, clusterID, "monitoring", planAddonsValue.Monitoring, stateAddonsMap)...)
+	diags.Append(r.reconcileMetallbAddon(ctx, clusterID, "metallb", planAddonsValue.Metallb, stateAddonsMap)...)
+	// TODO: Add other
+
 	return diags
 }
 
-// patchAddon patches Addon using sunpike API, patch includes changing overrides and version
-func (r *clusterResource) patchAddon(ctx context.Context, planAddonValue resource_cluster.AddonsValue, stateAddonValue resource_cluster.AddonsValue) diag.Diagnostics {
-	var diags diag.Diagnostics
-	var patchRequired bool
+func convertParamsToMap(params []sunpikev1alpha2.Params) map[string]string {
+	paramsMap := map[string]string{}
+	for _, param := range params {
+		paramsMap[param.Name] = param.Value
+	}
+	return paramsMap
+}
+
+func areMapsDifferent(planParams map[string]string, stateParams map[string]string) bool {
+	if len(planParams) == 0 {
+		return false
+	}
+	for key, value := range planParams {
+		if stateValue, found := stateParams[key]; found && stateValue != value {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *clusterResource) listAddonsByLabels(ctx context.Context, clusterID string, addonType string) ([]sunpikev1alpha2.ClusterAddon, error) {
+	labelSelector := k8slabels.SelectorFromSet(map[string]string{
+		"sunpike.pf9.io/cluster": clusterID,
+		"type":                   addonType,
+	})
+
+	listOptions := &client.ListOptions{
+		Namespace:     "default",
+		LabelSelector: labelSelector,
+	}
+
+	var clusterAddonsList sunpikev1alpha2.ClusterAddonList
+	err := r.client.Sunpike().List(ctx, &clusterAddonsList, listOptions)
+	if err != nil {
+		return nil, err
+	}
+	return clusterAddonsList.Items, nil
+}
+
+func (r *clusterResource) disableAddon(ctx context.Context, clusterID string, addonType string) error {
+	clusterAddons, err := r.listAddonsByLabels(ctx, clusterID, addonType)
+	if err != nil {
+		return err
+	}
+	if len(clusterAddons) == 0 {
+		tflog.Debug(ctx, "Addon is already disabled")
+		return nil
+	}
+	clusterAddon := clusterAddons[0]
+	return r.client.Sunpike().Delete(ctx, &clusterAddon)
+}
+
+type AddonSpec struct {
+	ClusterID string
+	Version   string
+	Type      string
+	ParamsMap map[string]string
+}
+
+func (r *clusterResource) enableAddon(ctx context.Context, spec AddonSpec) error {
+	// UI sends the following POST
+	// {
+	// 	"kind": "ClusterAddon",
+	// 	"apiVersion": "sunpike.platform9.com/v1alpha2",
+	// 	"metadata": {
+	// 		"name": "791d2744-f23f-4170-bd85-37d5b771b7bd-luigi",
+	// 		"labels": {
+	// 			"sunpike.pf9.io/cluster": "791d2744-f23f-4170-bd85-37d5b771b7bd",
+	// 			"type": "luigi"
+	// 		}
+	// 	},
+	// 	"spec": {
+	// 		"clusterID": "791d2744-f23f-4170-bd85-37d5b771b7bd",
+	// 		"version": "0.5.4",
+	// 		"type": "luigi",
+	// 		"override": {},
+	// 		"watch": true
+	// 	}
+	// }
+	tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": spec.Type})
 	var params []sunpikev1alpha2.Params
-
-	if !planAddonValue.Config.Equal(stateAddonValue.Config) {
-		var planConfig, stateConfig map[string]string
-		if !planAddonValue.Config.IsNull() && !planAddonValue.Config.IsUnknown() {
-			diags = planAddonValue.Config.ElementsAs(ctx, &planConfig, false)
-			if diags.HasError() {
-				return diags
-			}
-		}
-		diags = stateAddonValue.Config.ElementsAs(ctx, &stateConfig, false)
-		if diags.HasError() {
-			return diags
-		}
-
-		for key, planValue := range planConfig {
-			if stateValue, found := stateConfig[key]; found && stateValue == planValue {
-				// No need to patch
-				continue
-			}
-			params = append(params, sunpikev1alpha2.Params{
-				Name:  key,
-				Value: planValue,
-			})
-			patchRequired = true
-		}
+	for key, value := range spec.ParamsMap {
+		params = append(params, sunpikev1alpha2.Params{
+			Name:  key,
+			Value: value,
+		})
 	}
-	var version string
-	if !planAddonValue.Version.Equal(stateAddonValue.Version) {
-		version = planAddonValue.Version.ValueString()
-		patchRequired = true
+	return r.client.Sunpike().Create(ctx, &sunpikev1alpha2.ClusterAddon{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-%s", spec.ClusterID, spec.Type),
+			Labels: map[string]string{
+				"sunpike.pf9.io/cluster": spec.ClusterID,
+				"type":                   spec.Type,
+			},
+		},
+		Spec: sunpikev1alpha2.ClusterAddonSpec{
+			Type:    spec.Type,
+			Version: spec.Version,
+			Override: sunpikev1alpha2.Override{
+				Params: params,
+			},
+		},
+	})
+}
+
+// patchAddon patches Addon using sunpike API, patch includes changing overrides and version
+func (r *clusterResource) patchAddon(ctx context.Context, stateAddon sunpikev1alpha2.ClusterAddon,
+	isVersionPatchNeeded bool, isParamPatchNeeded bool, versionToPatch string, paramsToPatch map[string]string) diag.Diagnostics {
+	var diags diag.Diagnostics
+	var params []sunpikev1alpha2.Params
+	for key, value := range paramsToPatch {
+		params = append(params, sunpikev1alpha2.Params{
+			Name:  key,
+			Value: value,
+		})
 	}
 
-	if patchRequired {
-		//`{"spec: {"override":{"params":[{"name":"retentionTime","value":"7d"}]},"version":"0.68.0"}`
-		tflog.Debug(ctx, "Patching addon", map[string]interface{}{"addon": planAddonValue.Name.ValueString()})
-
-		var sunpikeAddon sunpikev1alpha2.ClusterAddon
-		err := r.client.Sunpike().Get(ctx, k8stypes.NamespacedName{
-			// TODO: Sometimes addon name has clusterID as prefix; sometimes not; need to check
-			Name:      planAddonValue.Name.ValueString(),
-			Namespace: "default",
-		}, &sunpikeAddon)
-		if err != nil {
-			tflog.Error(ctx, "Failed to get addon", map[string]interface{}{"error": err})
-			diags.AddError("Failed to get addon", err.Error())
-			return diags
-		}
-		patch := client.MergeFrom(sunpikeAddon.DeepCopy())
-		if len(params) > 0 {
-			sunpikeAddon.Spec.Override.Params = params
-		}
-		if len(version) > 0 {
-			// TODO: ?? Does setting addonversion here will work or we should call
-			// https://platform9.com/docs/qbert/ref#postupgrade-a-cluster-identified-by-the-uuid
-			sunpikeAddon.Spec.Version = version
-		}
-		err = r.client.Sunpike().Patch(ctx, &sunpikeAddon, patch)
-		if err != nil {
-			tflog.Error(ctx, "Failed to patch addon", map[string]interface{}{"error": err})
-			diags.AddError("Failed to patch addon", err.Error())
-			return diags
-		}
+	//`{"spec: {"override":{"params":[{"name":"retentionTime","value":"7d"}]},"version":"0.68.0"}`
+	tflog.Debug(ctx, "Patching addon", map[string]interface{}{"addon": stateAddon.Spec.Type})
+	patch := client.MergeFrom(stateAddon.DeepCopy())
+	if isParamPatchNeeded {
+		stateAddon.Spec.Override.Params = params
+	}
+	if isVersionPatchNeeded {
+		// TODO: ?? Does setting addonversion here will work or we should call
+		// https://platform9.com/docs/qbert/ref#postupgrade-a-cluster-identified-by-the-uuid
+		stateAddon.Spec.Version = versionToPatch
+	}
+	err := r.client.Sunpike().Patch(ctx, &stateAddon, patch)
+	if err != nil {
+		tflog.Error(ctx, "Failed to patch addon", map[string]interface{}{"error": err})
+		diags.AddError("Failed to patch addon", err.Error())
 		return diags
 	}
 	return diags
@@ -471,6 +614,13 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// Save updated state into Terraform state
+	stateAddons, _, diags := r.readAddonsFromRemote(ctx, clusterID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	state.Addons = stateAddons
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -655,29 +805,24 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 			return
 		}
 	}
-	// ?? Addonversion is available in both sunpike get all addons as well as
+	// TODO: ?? Addonversion is available in both sunpike get all addons as well as
 	// https://platform9.com/docs/qbert/ref#getprovides-a-list-of-addon-version-for-pf9-kube-role-on-a-clust
 	// Which one to use?
 
-	var planAddons []resource_cluster.AddonsValue
-	resp.Diagnostics.Append(plan.Addons.ElementsAs(ctx, &planAddons, false)...)
-	if resp.Diagnostics.HasError() {
+	// Terraform calls Read() before Update() to get the current state. Hence state.Addons is already updated
+	// TODO: Decide whether to load from remote or convert from stateAddonsValue
+	tflog.Debug(ctx, "Getting list of enabled addons including that are enabled by the backend")
+	qbertAddons, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
+	if err != nil {
+		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
+		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
 		return
 	}
-	planAddonsMap := make(map[string]resource_cluster.AddonsValue, len(planAddons))
-	for _, planAddon := range planAddons {
-		planAddonsMap[planAddon.Name.ValueString()] = planAddon
+	stateAddonsMap := map[string]sunpikev1alpha2.ClusterAddon{}
+	for _, qbertAddon := range qbertAddons.Items {
+		stateAddonsMap[qbertAddon.Spec.Type] = qbertAddon
 	}
-	var stateAddons []resource_cluster.AddonsValue
-	resp.Diagnostics.Append(state.Addons.ElementsAs(ctx, &stateAddons, false)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	stateAddonsMap := map[string]resource_cluster.AddonsValue{}
-	for _, stateAddon := range stateAddonsMap {
-		stateAddonsMap[stateAddon.Name.ValueString()] = stateAddon
-	}
-	resp.Diagnostics.Append(r.reconcileAddons(ctx, planAddonsMap, stateAddonsMap)...)
+	resp.Diagnostics.Append(r.reconcileAddons(ctx, clusterID, plan.Addons, state.Addons, stateAddonsMap)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -686,6 +831,14 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Save data into Terraform state
+	stateAddons, _, diags := r.readAddonsFromRemote(ctx, clusterID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	state.Addons = stateAddons
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -729,51 +882,23 @@ func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, pr
 	if diags.HasError() {
 		return diags
 	}
+	return diags
+}
 
+func (r *clusterResource) readAddonsFromRemote(ctx context.Context, clusterID string) (resource_cluster.AddonsValue, []sunpikev1alpha2.ClusterAddon, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	tflog.Info(ctx, "Listing addons enabled on the cluster", map[string]interface{}{"clusterID": clusterID})
-	addons, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
+	qbertAddons, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
 	if err != nil {
 		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
 		diags.AddError("Failed to get cluster addons", err.Error())
-		return diags
+		return resource_cluster.NewAddonsValueUnknown(), nil, diags
 	}
-	addonsSlice := []resource_cluster.AddonsValue{}
-	for _, addon := range addons.Items {
-		addonValue := resource_cluster.AddonsValue{}
-		addonValue.Name = types.StringValue(addon.Spec.Type)
-		addonValue.Enabled = types.BoolValue(true)
-		addonValue.Version = types.StringValue(addon.Spec.Version)
-		addonConfig := map[string]string{}
-		for _, param := range addon.Spec.Override.Params {
-			addonConfig[param.Name] = param.Value
-		}
-		addonValue.Config, diags = types.MapValueFrom(ctx, basetypes.StringType{}, addonConfig)
-		if diags.HasError() {
-			return diags
-		}
-
-		// Conversion from AddonsValue{} to ObjectValue{} and then to ObjectValuable and finally
-		// back to AddonsValue{} with known state.
-
-		// TODO: Use recommended way if someone responds to the issue:
-		// https://discuss.hashicorp.com/t/using-terraform-plugin-codegen-framework-generated-code-to-instantiate-nested-objects/64026
-		objectValue, diags := addonValue.ToObjectValue(ctx)
-		if diags.HasError() {
-			return diags
-		}
-		addonObjValuable, diags := resource_cluster.AddonsType{}.ValueFromObject(ctx, objectValue)
-		diags.Append(diags...)
-		if diags.HasError() {
-			return diags
-		}
-		addonValue = addonObjValuable.(resource_cluster.AddonsValue)
-		addonsSlice = append(addonsSlice, addonValue)
-	}
-	state.Addons, diags = types.SetValueFrom(ctx, resource_cluster.AddonsValue{}.Type(ctx), addonsSlice)
+	addonsValue, diags := sunpikeAddonsToTerraformAddons(ctx, qbertAddons.Items)
 	if diags.HasError() {
-		return diags
+		return resource_cluster.NewAddonsValueUnknown(), nil, diags
 	}
-	return diags
+	return addonsValue, qbertAddons.Items, diags
 }
 
 func (r *clusterResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

@@ -14,9 +14,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -41,38 +41,330 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"addons": schema.SetNestedAttribute{
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"config": schema.MapAttribute{
-							ElementType: types.StringType,
-							Optional:    true,
-							Computed:    true,
+			"addons": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"coredns": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"is_enabled": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"params": schema.MapAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+								PlanModifiers: []planmodifier.Map{
+									mapplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"phase": schema.StringAttribute{
+								Computed: true,
+							},
+							"version": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
 						},
-						"enabled": schema.BoolAttribute{
-							Optional: true,
-							Computed: true,
+						CustomType: CorednsType{
+							ObjectType: types.ObjectType{
+								AttrTypes: CorednsValue{}.AttributeTypes(ctx),
+							},
 						},
-						"name": schema.StringAttribute{
-							Optional: true,
-							Computed: true,
-						},
-						"version": schema.StringAttribute{
-							Optional: true,
-							Computed: true,
+						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
 						},
 					},
-					CustomType: AddonsType{
-						ObjectType: types.ObjectType{
-							AttrTypes: AddonsValue{}.AttributeTypes(ctx),
+					"dns_autoscaler": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"is_enabled": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"params": schema.MapAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"phase": schema.StringAttribute{
+								Computed: true,
+							},
+							"version": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
 						},
+						CustomType: DnsAutoscalerType{
+							ObjectType: types.ObjectType{
+								AttrTypes: DnsAutoscalerValue{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
+						Computed: true,
+					},
+					"kubernetes_dashboard": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"is_enabled": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"params": schema.MapAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"phase": schema.StringAttribute{
+								Computed: true,
+							},
+							"version": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
+						},
+						CustomType: KubernetesDashboardType{
+							ObjectType: types.ObjectType{
+								AttrTypes: KubernetesDashboardValue{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"kubevirt": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"is_enabled": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"params": schema.MapAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"phase": schema.StringAttribute{
+								Computed: true,
+							},
+							"version": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
+						},
+						CustomType: KubevirtType{
+							ObjectType: types.ObjectType{
+								AttrTypes: KubevirtValue{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
+						Computed: true,
+					},
+					"luigi": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"is_enabled": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"params": schema.MapAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"phase": schema.StringAttribute{
+								Computed: true,
+							},
+							"version": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
+						},
+						CustomType: LuigiType{
+							ObjectType: types.ObjectType{
+								AttrTypes: LuigiValue{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
+						Computed: true,
+					},
+					"metal3": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"is_enabled": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"params": schema.MapAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"phase": schema.StringAttribute{
+								Computed: true,
+							},
+							"version": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
+						},
+						CustomType: Metal3Type{
+							ObjectType: types.ObjectType{
+								AttrTypes: Metal3Value{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
+						Computed: true,
+					},
+					"metallb": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"is_enabled": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"params": schema.MapAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"phase": schema.StringAttribute{
+								Computed: true,
+							},
+							"version": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
+						},
+						CustomType: MetallbType{
+							ObjectType: types.ObjectType{
+								AttrTypes: MetallbValue{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
+						Computed: true,
+					},
+					"metrics_server": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"is_enabled": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"params": schema.MapAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"phase": schema.StringAttribute{
+								Computed: true,
+							},
+							"version": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
+						},
+						CustomType: MetricsServerType{
+							ObjectType: types.ObjectType{
+								AttrTypes: MetricsServerValue{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
+						Computed: true,
+					},
+					"monitoring": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"is_enabled": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"params": schema.MapAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"phase": schema.StringAttribute{
+								Computed: true,
+							},
+							"version": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
+						},
+						CustomType: MonitoringType{
+							ObjectType: types.ObjectType{
+								AttrTypes: MonitoringValue{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
+						Computed: true,
+					},
+					"profile_agent": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"is_enabled": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"params": schema.MapAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"phase": schema.StringAttribute{
+								Computed: true,
+							},
+							"version": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
+						},
+						CustomType: ProfileAgentType{
+							ObjectType: types.ObjectType{
+								AttrTypes: ProfileAgentValue{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
+						Computed: true,
 					},
 				},
-				Optional:            true,
-				Description:         "Addons to be installed on the cluster",
-				MarkdownDescription: "Addons to be installed on the cluster",
-				PlanModifiers: []planmodifier.Set{
-					setplanmodifier.UseStateForUnknown(),
+				CustomType: AddonsType{
+					ObjectType: types.ObjectType{
+						AttrTypes: AddonsValue{}.AttributeTypes(ctx),
+					},
+				},
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"allow_workloads_on_master": schema.BoolAttribute{
@@ -267,30 +559,51 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			"custom_registry_cert_path": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"custom_registry_password": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"custom_registry_repo_path": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"custom_registry_self_signed_certs": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"custom_registry_skip_tls": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"custom_registry_url": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"custom_registry_username": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"docker_centos_package_repo_url": schema.StringAttribute{
 				Computed: true,
@@ -692,7 +1005,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 
 type ClusterModel struct {
 	AddonOperatorImageTag         types.String    `tfsdk:"addon_operator_image_tag"`
-	Addons                        types.Set       `tfsdk:"addons"`
+	Addons                        AddonsValue     `tfsdk:"addons"`
 	AllowWorkloadsOnMaster        types.Bool      `tfsdk:"allow_workloads_on_master"`
 	CalicoControllerCpuLimit      types.String    `tfsdk:"calico_controller_cpu_limit"`
 	CalicoControllerMemoryLimit   types.String    `tfsdk:"calico_controller_memory_limit"`
@@ -803,76 +1116,184 @@ func (t AddonsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 
 	attributes := in.Attributes()
 
-	configAttribute, ok := attributes["config"]
+	corednsAttribute, ok := attributes["coredns"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`config is missing from object`)
+			`coredns is missing from object`)
 
 		return nil, diags
 	}
 
-	configVal, ok := configAttribute.(basetypes.MapValue)
+	corednsVal, ok := corednsAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`config expected to be basetypes.MapValue, was: %T`, configAttribute))
+			fmt.Sprintf(`coredns expected to be basetypes.ObjectValue, was: %T`, corednsAttribute))
 	}
 
-	enabledAttribute, ok := attributes["enabled"]
+	dnsAutoscalerAttribute, ok := attributes["dns_autoscaler"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`enabled is missing from object`)
+			`dns_autoscaler is missing from object`)
 
 		return nil, diags
 	}
 
-	enabledVal, ok := enabledAttribute.(basetypes.BoolValue)
+	dnsAutoscalerVal, ok := dnsAutoscalerAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`enabled expected to be basetypes.BoolValue, was: %T`, enabledAttribute))
+			fmt.Sprintf(`dns_autoscaler expected to be basetypes.ObjectValue, was: %T`, dnsAutoscalerAttribute))
 	}
 
-	nameAttribute, ok := attributes["name"]
+	kubernetesDashboardAttribute, ok := attributes["kubernetes_dashboard"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`name is missing from object`)
+			`kubernetes_dashboard is missing from object`)
 
 		return nil, diags
 	}
 
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
+	kubernetesDashboardVal, ok := kubernetesDashboardAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+			fmt.Sprintf(`kubernetes_dashboard expected to be basetypes.ObjectValue, was: %T`, kubernetesDashboardAttribute))
 	}
 
-	versionAttribute, ok := attributes["version"]
+	kubevirtAttribute, ok := attributes["kubevirt"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`version is missing from object`)
+			`kubevirt is missing from object`)
 
 		return nil, diags
 	}
 
-	versionVal, ok := versionAttribute.(basetypes.StringValue)
+	kubevirtVal, ok := kubevirtAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+			fmt.Sprintf(`kubevirt expected to be basetypes.ObjectValue, was: %T`, kubevirtAttribute))
+	}
+
+	luigiAttribute, ok := attributes["luigi"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`luigi is missing from object`)
+
+		return nil, diags
+	}
+
+	luigiVal, ok := luigiAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`luigi expected to be basetypes.ObjectValue, was: %T`, luigiAttribute))
+	}
+
+	metal3Attribute, ok := attributes["metal3"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`metal3 is missing from object`)
+
+		return nil, diags
+	}
+
+	metal3Val, ok := metal3Attribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`metal3 expected to be basetypes.ObjectValue, was: %T`, metal3Attribute))
+	}
+
+	metallbAttribute, ok := attributes["metallb"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`metallb is missing from object`)
+
+		return nil, diags
+	}
+
+	metallbVal, ok := metallbAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`metallb expected to be basetypes.ObjectValue, was: %T`, metallbAttribute))
+	}
+
+	metricsServerAttribute, ok := attributes["metrics_server"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`metrics_server is missing from object`)
+
+		return nil, diags
+	}
+
+	metricsServerVal, ok := metricsServerAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`metrics_server expected to be basetypes.ObjectValue, was: %T`, metricsServerAttribute))
+	}
+
+	monitoringAttribute, ok := attributes["monitoring"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`monitoring is missing from object`)
+
+		return nil, diags
+	}
+
+	monitoringVal, ok := monitoringAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`monitoring expected to be basetypes.ObjectValue, was: %T`, monitoringAttribute))
+	}
+
+	profileAgentAttribute, ok := attributes["profile_agent"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`profile_agent is missing from object`)
+
+		return nil, diags
+	}
+
+	profileAgentVal, ok := profileAgentAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`profile_agent expected to be basetypes.ObjectValue, was: %T`, profileAgentAttribute))
 	}
 
 	if diags.HasError() {
@@ -880,11 +1301,17 @@ func (t AddonsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 	}
 
 	return AddonsValue{
-		Config:  configVal,
-		Enabled: enabledVal,
-		Name:    nameVal,
-		Version: versionVal,
-		state:   attr.ValueStateKnown,
+		Coredns:             corednsVal,
+		DnsAutoscaler:       dnsAutoscalerVal,
+		KubernetesDashboard: kubernetesDashboardVal,
+		Kubevirt:            kubevirtVal,
+		Luigi:               luigiVal,
+		Metal3:              metal3Val,
+		Metallb:             metallbVal,
+		MetricsServer:       metricsServerVal,
+		Monitoring:          monitoringVal,
+		ProfileAgent:        profileAgentVal,
+		state:               attr.ValueStateKnown,
 	}, diags
 }
 
@@ -951,76 +1378,184 @@ func NewAddonsValue(attributeTypes map[string]attr.Type, attributes map[string]a
 		return NewAddonsValueUnknown(), diags
 	}
 
-	configAttribute, ok := attributes["config"]
+	corednsAttribute, ok := attributes["coredns"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`config is missing from object`)
+			`coredns is missing from object`)
 
 		return NewAddonsValueUnknown(), diags
 	}
 
-	configVal, ok := configAttribute.(basetypes.MapValue)
+	corednsVal, ok := corednsAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`config expected to be basetypes.MapValue, was: %T`, configAttribute))
+			fmt.Sprintf(`coredns expected to be basetypes.ObjectValue, was: %T`, corednsAttribute))
 	}
 
-	enabledAttribute, ok := attributes["enabled"]
+	dnsAutoscalerAttribute, ok := attributes["dns_autoscaler"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`enabled is missing from object`)
+			`dns_autoscaler is missing from object`)
 
 		return NewAddonsValueUnknown(), diags
 	}
 
-	enabledVal, ok := enabledAttribute.(basetypes.BoolValue)
+	dnsAutoscalerVal, ok := dnsAutoscalerAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`enabled expected to be basetypes.BoolValue, was: %T`, enabledAttribute))
+			fmt.Sprintf(`dns_autoscaler expected to be basetypes.ObjectValue, was: %T`, dnsAutoscalerAttribute))
 	}
 
-	nameAttribute, ok := attributes["name"]
+	kubernetesDashboardAttribute, ok := attributes["kubernetes_dashboard"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`name is missing from object`)
+			`kubernetes_dashboard is missing from object`)
 
 		return NewAddonsValueUnknown(), diags
 	}
 
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
+	kubernetesDashboardVal, ok := kubernetesDashboardAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+			fmt.Sprintf(`kubernetes_dashboard expected to be basetypes.ObjectValue, was: %T`, kubernetesDashboardAttribute))
 	}
 
-	versionAttribute, ok := attributes["version"]
+	kubevirtAttribute, ok := attributes["kubevirt"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`version is missing from object`)
+			`kubevirt is missing from object`)
 
 		return NewAddonsValueUnknown(), diags
 	}
 
-	versionVal, ok := versionAttribute.(basetypes.StringValue)
+	kubevirtVal, ok := kubevirtAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+			fmt.Sprintf(`kubevirt expected to be basetypes.ObjectValue, was: %T`, kubevirtAttribute))
+	}
+
+	luigiAttribute, ok := attributes["luigi"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`luigi is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	luigiVal, ok := luigiAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`luigi expected to be basetypes.ObjectValue, was: %T`, luigiAttribute))
+	}
+
+	metal3Attribute, ok := attributes["metal3"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`metal3 is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	metal3Val, ok := metal3Attribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`metal3 expected to be basetypes.ObjectValue, was: %T`, metal3Attribute))
+	}
+
+	metallbAttribute, ok := attributes["metallb"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`metallb is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	metallbVal, ok := metallbAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`metallb expected to be basetypes.ObjectValue, was: %T`, metallbAttribute))
+	}
+
+	metricsServerAttribute, ok := attributes["metrics_server"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`metrics_server is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	metricsServerVal, ok := metricsServerAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`metrics_server expected to be basetypes.ObjectValue, was: %T`, metricsServerAttribute))
+	}
+
+	monitoringAttribute, ok := attributes["monitoring"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`monitoring is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	monitoringVal, ok := monitoringAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`monitoring expected to be basetypes.ObjectValue, was: %T`, monitoringAttribute))
+	}
+
+	profileAgentAttribute, ok := attributes["profile_agent"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`profile_agent is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	profileAgentVal, ok := profileAgentAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`profile_agent expected to be basetypes.ObjectValue, was: %T`, profileAgentAttribute))
 	}
 
 	if diags.HasError() {
@@ -1028,11 +1563,17 @@ func NewAddonsValue(attributeTypes map[string]attr.Type, attributes map[string]a
 	}
 
 	return AddonsValue{
-		Config:  configVal,
-		Enabled: enabledVal,
-		Name:    nameVal,
-		Version: versionVal,
-		state:   attr.ValueStateKnown,
+		Coredns:             corednsVal,
+		DnsAutoscaler:       dnsAutoscalerVal,
+		KubernetesDashboard: kubernetesDashboardVal,
+		Kubevirt:            kubevirtVal,
+		Luigi:               luigiVal,
+		Metal3:              metal3Val,
+		Metallb:             metallbVal,
+		MetricsServer:       metricsServerVal,
+		Monitoring:          monitoringVal,
+		ProfileAgent:        profileAgentVal,
+		state:               attr.ValueStateKnown,
 	}, diags
 }
 
@@ -1104,63 +1645,141 @@ func (t AddonsType) ValueType(ctx context.Context) attr.Value {
 var _ basetypes.ObjectValuable = AddonsValue{}
 
 type AddonsValue struct {
-	Config  basetypes.MapValue    `tfsdk:"config"`
-	Enabled basetypes.BoolValue   `tfsdk:"enabled"`
-	Name    basetypes.StringValue `tfsdk:"name"`
-	Version basetypes.StringValue `tfsdk:"version"`
-	state   attr.ValueState
+	Coredns             basetypes.ObjectValue `tfsdk:"coredns"`
+	DnsAutoscaler       basetypes.ObjectValue `tfsdk:"dns_autoscaler"`
+	KubernetesDashboard basetypes.ObjectValue `tfsdk:"kubernetes_dashboard"`
+	Kubevirt            basetypes.ObjectValue `tfsdk:"kubevirt"`
+	Luigi               basetypes.ObjectValue `tfsdk:"luigi"`
+	Metal3              basetypes.ObjectValue `tfsdk:"metal3"`
+	Metallb             basetypes.ObjectValue `tfsdk:"metallb"`
+	MetricsServer       basetypes.ObjectValue `tfsdk:"metrics_server"`
+	Monitoring          basetypes.ObjectValue `tfsdk:"monitoring"`
+	ProfileAgent        basetypes.ObjectValue `tfsdk:"profile_agent"`
+	state               attr.ValueState
 }
 
 func (v AddonsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 4)
+	attrTypes := make(map[string]tftypes.Type, 10)
 
 	var val tftypes.Value
 	var err error
 
-	attrTypes["config"] = basetypes.MapType{
-		ElemType: types.StringType,
+	attrTypes["coredns"] = basetypes.ObjectType{
+		AttrTypes: CorednsValue{}.AttributeTypes(ctx),
 	}.TerraformType(ctx)
-	attrTypes["enabled"] = basetypes.BoolType{}.TerraformType(ctx)
-	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["dns_autoscaler"] = basetypes.ObjectType{
+		AttrTypes: DnsAutoscalerValue{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
+	attrTypes["kubernetes_dashboard"] = basetypes.ObjectType{
+		AttrTypes: KubernetesDashboardValue{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
+	attrTypes["kubevirt"] = basetypes.ObjectType{
+		AttrTypes: KubevirtValue{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
+	attrTypes["luigi"] = basetypes.ObjectType{
+		AttrTypes: LuigiValue{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
+	attrTypes["metal3"] = basetypes.ObjectType{
+		AttrTypes: Metal3Value{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
+	attrTypes["metallb"] = basetypes.ObjectType{
+		AttrTypes: MetallbValue{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
+	attrTypes["metrics_server"] = basetypes.ObjectType{
+		AttrTypes: MetricsServerValue{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
+	attrTypes["monitoring"] = basetypes.ObjectType{
+		AttrTypes: MonitoringValue{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
+	attrTypes["profile_agent"] = basetypes.ObjectType{
+		AttrTypes: ProfileAgentValue{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 4)
+		vals := make(map[string]tftypes.Value, 10)
 
-		val, err = v.Config.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["config"] = val
-
-		val, err = v.Enabled.ToTerraformValue(ctx)
+		val, err = v.Coredns.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["enabled"] = val
+		vals["coredns"] = val
 
-		val, err = v.Name.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["name"] = val
-
-		val, err = v.Version.ToTerraformValue(ctx)
+		val, err = v.DnsAutoscaler.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["version"] = val
+		vals["dns_autoscaler"] = val
+
+		val, err = v.KubernetesDashboard.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["kubernetes_dashboard"] = val
+
+		val, err = v.Kubevirt.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["kubevirt"] = val
+
+		val, err = v.Luigi.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["luigi"] = val
+
+		val, err = v.Metal3.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["metal3"] = val
+
+		val, err = v.Metallb.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["metallb"] = val
+
+		val, err = v.MetricsServer.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["metrics_server"] = val
+
+		val, err = v.Monitoring.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["monitoring"] = val
+
+		val, err = v.ProfileAgent.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["profile_agent"] = val
 
 		if err := tftypes.ValidateValue(objectType, vals); err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
@@ -1191,35 +1810,260 @@ func (v AddonsValue) String() string {
 func (v AddonsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	configVal, d := types.MapValue(types.StringType, v.Config.Elements())
+	var coredns basetypes.ObjectValue
 
-	diags.Append(d...)
+	if v.Coredns.IsNull() {
+		coredns = types.ObjectNull(
+			CorednsValue{}.AttributeTypes(ctx),
+		)
+	}
 
-	if d.HasError() {
-		return types.ObjectUnknown(map[string]attr.Type{
-			"config": basetypes.MapType{
-				ElemType: types.StringType,
-			},
-			"enabled": basetypes.BoolType{},
-			"name":    basetypes.StringType{},
-			"version": basetypes.StringType{},
-		}), diags
+	if v.Coredns.IsUnknown() {
+		coredns = types.ObjectUnknown(
+			CorednsValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.Coredns.IsNull() && !v.Coredns.IsUnknown() {
+		coredns = types.ObjectValueMust(
+			CorednsValue{}.AttributeTypes(ctx),
+			v.Coredns.Attributes(),
+		)
+	}
+
+	var dnsAutoscaler basetypes.ObjectValue
+
+	if v.DnsAutoscaler.IsNull() {
+		dnsAutoscaler = types.ObjectNull(
+			DnsAutoscalerValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.DnsAutoscaler.IsUnknown() {
+		dnsAutoscaler = types.ObjectUnknown(
+			DnsAutoscalerValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.DnsAutoscaler.IsNull() && !v.DnsAutoscaler.IsUnknown() {
+		dnsAutoscaler = types.ObjectValueMust(
+			DnsAutoscalerValue{}.AttributeTypes(ctx),
+			v.DnsAutoscaler.Attributes(),
+		)
+	}
+
+	var kubernetesDashboard basetypes.ObjectValue
+
+	if v.KubernetesDashboard.IsNull() {
+		kubernetesDashboard = types.ObjectNull(
+			KubernetesDashboardValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.KubernetesDashboard.IsUnknown() {
+		kubernetesDashboard = types.ObjectUnknown(
+			KubernetesDashboardValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.KubernetesDashboard.IsNull() && !v.KubernetesDashboard.IsUnknown() {
+		kubernetesDashboard = types.ObjectValueMust(
+			KubernetesDashboardValue{}.AttributeTypes(ctx),
+			v.KubernetesDashboard.Attributes(),
+		)
+	}
+
+	var kubevirt basetypes.ObjectValue
+
+	if v.Kubevirt.IsNull() {
+		kubevirt = types.ObjectNull(
+			KubevirtValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.Kubevirt.IsUnknown() {
+		kubevirt = types.ObjectUnknown(
+			KubevirtValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.Kubevirt.IsNull() && !v.Kubevirt.IsUnknown() {
+		kubevirt = types.ObjectValueMust(
+			KubevirtValue{}.AttributeTypes(ctx),
+			v.Kubevirt.Attributes(),
+		)
+	}
+
+	var luigi basetypes.ObjectValue
+
+	if v.Luigi.IsNull() {
+		luigi = types.ObjectNull(
+			LuigiValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.Luigi.IsUnknown() {
+		luigi = types.ObjectUnknown(
+			LuigiValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.Luigi.IsNull() && !v.Luigi.IsUnknown() {
+		luigi = types.ObjectValueMust(
+			LuigiValue{}.AttributeTypes(ctx),
+			v.Luigi.Attributes(),
+		)
+	}
+
+	var metal3 basetypes.ObjectValue
+
+	if v.Metal3.IsNull() {
+		metal3 = types.ObjectNull(
+			Metal3Value{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.Metal3.IsUnknown() {
+		metal3 = types.ObjectUnknown(
+			Metal3Value{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.Metal3.IsNull() && !v.Metal3.IsUnknown() {
+		metal3 = types.ObjectValueMust(
+			Metal3Value{}.AttributeTypes(ctx),
+			v.Metal3.Attributes(),
+		)
+	}
+
+	var metallb basetypes.ObjectValue
+
+	if v.Metallb.IsNull() {
+		metallb = types.ObjectNull(
+			MetallbValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.Metallb.IsUnknown() {
+		metallb = types.ObjectUnknown(
+			MetallbValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.Metallb.IsNull() && !v.Metallb.IsUnknown() {
+		metallb = types.ObjectValueMust(
+			MetallbValue{}.AttributeTypes(ctx),
+			v.Metallb.Attributes(),
+		)
+	}
+
+	var metricsServer basetypes.ObjectValue
+
+	if v.MetricsServer.IsNull() {
+		metricsServer = types.ObjectNull(
+			MetricsServerValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.MetricsServer.IsUnknown() {
+		metricsServer = types.ObjectUnknown(
+			MetricsServerValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.MetricsServer.IsNull() && !v.MetricsServer.IsUnknown() {
+		metricsServer = types.ObjectValueMust(
+			MetricsServerValue{}.AttributeTypes(ctx),
+			v.MetricsServer.Attributes(),
+		)
+	}
+
+	var monitoring basetypes.ObjectValue
+
+	if v.Monitoring.IsNull() {
+		monitoring = types.ObjectNull(
+			MonitoringValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.Monitoring.IsUnknown() {
+		monitoring = types.ObjectUnknown(
+			MonitoringValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.Monitoring.IsNull() && !v.Monitoring.IsUnknown() {
+		monitoring = types.ObjectValueMust(
+			MonitoringValue{}.AttributeTypes(ctx),
+			v.Monitoring.Attributes(),
+		)
+	}
+
+	var profileAgent basetypes.ObjectValue
+
+	if v.ProfileAgent.IsNull() {
+		profileAgent = types.ObjectNull(
+			ProfileAgentValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.ProfileAgent.IsUnknown() {
+		profileAgent = types.ObjectUnknown(
+			ProfileAgentValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.ProfileAgent.IsNull() && !v.ProfileAgent.IsUnknown() {
+		profileAgent = types.ObjectValueMust(
+			ProfileAgentValue{}.AttributeTypes(ctx),
+			v.ProfileAgent.Attributes(),
+		)
 	}
 
 	objVal, diags := types.ObjectValue(
 		map[string]attr.Type{
-			"config": basetypes.MapType{
-				ElemType: types.StringType,
+			"coredns": basetypes.ObjectType{
+				AttrTypes: CorednsValue{}.AttributeTypes(ctx),
 			},
-			"enabled": basetypes.BoolType{},
-			"name":    basetypes.StringType{},
-			"version": basetypes.StringType{},
+			"dns_autoscaler": basetypes.ObjectType{
+				AttrTypes: DnsAutoscalerValue{}.AttributeTypes(ctx),
+			},
+			"kubernetes_dashboard": basetypes.ObjectType{
+				AttrTypes: KubernetesDashboardValue{}.AttributeTypes(ctx),
+			},
+			"kubevirt": basetypes.ObjectType{
+				AttrTypes: KubevirtValue{}.AttributeTypes(ctx),
+			},
+			"luigi": basetypes.ObjectType{
+				AttrTypes: LuigiValue{}.AttributeTypes(ctx),
+			},
+			"metal3": basetypes.ObjectType{
+				AttrTypes: Metal3Value{}.AttributeTypes(ctx),
+			},
+			"metallb": basetypes.ObjectType{
+				AttrTypes: MetallbValue{}.AttributeTypes(ctx),
+			},
+			"metrics_server": basetypes.ObjectType{
+				AttrTypes: MetricsServerValue{}.AttributeTypes(ctx),
+			},
+			"monitoring": basetypes.ObjectType{
+				AttrTypes: MonitoringValue{}.AttributeTypes(ctx),
+			},
+			"profile_agent": basetypes.ObjectType{
+				AttrTypes: ProfileAgentValue{}.AttributeTypes(ctx),
+			},
 		},
 		map[string]attr.Value{
-			"config":  configVal,
-			"enabled": v.Enabled,
-			"name":    v.Name,
-			"version": v.Version,
+			"coredns":              coredns,
+			"dns_autoscaler":       dnsAutoscaler,
+			"kubernetes_dashboard": kubernetesDashboard,
+			"kubevirt":             kubevirt,
+			"luigi":                luigi,
+			"metal3":               metal3,
+			"metallb":              metallb,
+			"metrics_server":       metricsServer,
+			"monitoring":           monitoring,
+			"profile_agent":        profileAgent,
 		})
 
 	return objVal, diags
@@ -1240,19 +2084,43 @@ func (v AddonsValue) Equal(o attr.Value) bool {
 		return true
 	}
 
-	if !v.Config.Equal(other.Config) {
+	if !v.Coredns.Equal(other.Coredns) {
 		return false
 	}
 
-	if !v.Enabled.Equal(other.Enabled) {
+	if !v.DnsAutoscaler.Equal(other.DnsAutoscaler) {
 		return false
 	}
 
-	if !v.Name.Equal(other.Name) {
+	if !v.KubernetesDashboard.Equal(other.KubernetesDashboard) {
 		return false
 	}
 
-	if !v.Version.Equal(other.Version) {
+	if !v.Kubevirt.Equal(other.Kubevirt) {
+		return false
+	}
+
+	if !v.Luigi.Equal(other.Luigi) {
+		return false
+	}
+
+	if !v.Metal3.Equal(other.Metal3) {
+		return false
+	}
+
+	if !v.Metallb.Equal(other.Metallb) {
+		return false
+	}
+
+	if !v.MetricsServer.Equal(other.MetricsServer) {
+		return false
+	}
+
+	if !v.Monitoring.Equal(other.Monitoring) {
+		return false
+	}
+
+	if !v.ProfileAgent.Equal(other.ProfileAgent) {
 		return false
 	}
 
@@ -1269,11 +2137,5035 @@ func (v AddonsValue) Type(ctx context.Context) attr.Type {
 
 func (v AddonsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
-		"config": basetypes.MapType{
+		"coredns": basetypes.ObjectType{
+			AttrTypes: CorednsValue{}.AttributeTypes(ctx),
+		},
+		"dns_autoscaler": basetypes.ObjectType{
+			AttrTypes: DnsAutoscalerValue{}.AttributeTypes(ctx),
+		},
+		"kubernetes_dashboard": basetypes.ObjectType{
+			AttrTypes: KubernetesDashboardValue{}.AttributeTypes(ctx),
+		},
+		"kubevirt": basetypes.ObjectType{
+			AttrTypes: KubevirtValue{}.AttributeTypes(ctx),
+		},
+		"luigi": basetypes.ObjectType{
+			AttrTypes: LuigiValue{}.AttributeTypes(ctx),
+		},
+		"metal3": basetypes.ObjectType{
+			AttrTypes: Metal3Value{}.AttributeTypes(ctx),
+		},
+		"metallb": basetypes.ObjectType{
+			AttrTypes: MetallbValue{}.AttributeTypes(ctx),
+		},
+		"metrics_server": basetypes.ObjectType{
+			AttrTypes: MetricsServerValue{}.AttributeTypes(ctx),
+		},
+		"monitoring": basetypes.ObjectType{
+			AttrTypes: MonitoringValue{}.AttributeTypes(ctx),
+		},
+		"profile_agent": basetypes.ObjectType{
+			AttrTypes: ProfileAgentValue{}.AttributeTypes(ctx),
+		},
+	}
+}
+
+var _ basetypes.ObjectTypable = CorednsType{}
+
+type CorednsType struct {
+	basetypes.ObjectType
+}
+
+func (t CorednsType) Equal(o attr.Type) bool {
+	other, ok := o.(CorednsType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t CorednsType) String() string {
+	return "CorednsType"
+}
+
+func (t CorednsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return nil, diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return nil, diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return CorednsValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewCorednsValueNull() CorednsValue {
+	return CorednsValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewCorednsValueUnknown() CorednsValue {
+	return CorednsValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewCorednsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (CorednsValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing CorednsValue Attribute Value",
+				"While creating a CorednsValue value, a missing attribute value was detected. "+
+					"A CorednsValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("CorednsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid CorednsValue Attribute Type",
+				"While creating a CorednsValue value, an invalid attribute value was detected. "+
+					"A CorednsValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("CorednsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("CorednsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra CorednsValue Attribute Value",
+				"While creating a CorednsValue value, an extra attribute value was detected. "+
+					"A CorednsValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra CorednsValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewCorednsValueUnknown(), diags
+	}
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return NewCorednsValueUnknown(), diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return NewCorednsValueUnknown(), diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return NewCorednsValueUnknown(), diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewCorednsValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewCorednsValueUnknown(), diags
+	}
+
+	return CorednsValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewCorednsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) CorednsValue {
+	object, diags := NewCorednsValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewCorednsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t CorednsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewCorednsValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewCorednsValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewCorednsValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewCorednsValueMust(CorednsValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t CorednsType) ValueType(ctx context.Context) attr.Value {
+	return CorednsValue{}
+}
+
+var _ basetypes.ObjectValuable = CorednsValue{}
+
+type CorednsValue struct {
+	IsEnabled basetypes.BoolValue   `tfsdk:"is_enabled"`
+	Params    basetypes.MapValue    `tfsdk:"params"`
+	Phase     basetypes.StringValue `tfsdk:"phase"`
+	Version   basetypes.StringValue `tfsdk:"version"`
+	state     attr.ValueState
+}
+
+func (v CorednsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["is_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["params"] = basetypes.MapType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["phase"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.IsEnabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_enabled"] = val
+
+		val, err = v.Params.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["params"] = val
+
+		val, err = v.Phase.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["phase"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v CorednsValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v CorednsValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v CorednsValue) String() string {
+	return "CorednsValue"
+}
+
+func (v CorednsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"is_enabled": v.IsEnabled,
+			"params":     paramsVal,
+			"phase":      v.Phase,
+			"version":    v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v CorednsValue) Equal(o attr.Value) bool {
+	other, ok := o.(CorednsValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.IsEnabled.Equal(other.IsEnabled) {
+		return false
+	}
+
+	if !v.Params.Equal(other.Params) {
+		return false
+	}
+
+	if !v.Phase.Equal(other.Phase) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v CorednsValue) Type(ctx context.Context) attr.Type {
+	return CorednsType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v CorednsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"is_enabled": basetypes.BoolType{},
+		"params": basetypes.MapType{
 			ElemType: types.StringType,
 		},
-		"enabled": basetypes.BoolType{},
-		"name":    basetypes.StringType{},
+		"phase":   basetypes.StringType{},
+		"version": basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = DnsAutoscalerType{}
+
+type DnsAutoscalerType struct {
+	basetypes.ObjectType
+}
+
+func (t DnsAutoscalerType) Equal(o attr.Type) bool {
+	other, ok := o.(DnsAutoscalerType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t DnsAutoscalerType) String() string {
+	return "DnsAutoscalerType"
+}
+
+func (t DnsAutoscalerType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return nil, diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return nil, diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return DnsAutoscalerValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewDnsAutoscalerValueNull() DnsAutoscalerValue {
+	return DnsAutoscalerValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewDnsAutoscalerValueUnknown() DnsAutoscalerValue {
+	return DnsAutoscalerValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewDnsAutoscalerValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (DnsAutoscalerValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing DnsAutoscalerValue Attribute Value",
+				"While creating a DnsAutoscalerValue value, a missing attribute value was detected. "+
+					"A DnsAutoscalerValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("DnsAutoscalerValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid DnsAutoscalerValue Attribute Type",
+				"While creating a DnsAutoscalerValue value, an invalid attribute value was detected. "+
+					"A DnsAutoscalerValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("DnsAutoscalerValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("DnsAutoscalerValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra DnsAutoscalerValue Attribute Value",
+				"While creating a DnsAutoscalerValue value, an extra attribute value was detected. "+
+					"A DnsAutoscalerValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra DnsAutoscalerValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewDnsAutoscalerValueUnknown(), diags
+	}
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return NewDnsAutoscalerValueUnknown(), diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return NewDnsAutoscalerValueUnknown(), diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return NewDnsAutoscalerValueUnknown(), diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewDnsAutoscalerValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewDnsAutoscalerValueUnknown(), diags
+	}
+
+	return DnsAutoscalerValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewDnsAutoscalerValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) DnsAutoscalerValue {
+	object, diags := NewDnsAutoscalerValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewDnsAutoscalerValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t DnsAutoscalerType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewDnsAutoscalerValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewDnsAutoscalerValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewDnsAutoscalerValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewDnsAutoscalerValueMust(DnsAutoscalerValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t DnsAutoscalerType) ValueType(ctx context.Context) attr.Value {
+	return DnsAutoscalerValue{}
+}
+
+var _ basetypes.ObjectValuable = DnsAutoscalerValue{}
+
+type DnsAutoscalerValue struct {
+	IsEnabled basetypes.BoolValue   `tfsdk:"is_enabled"`
+	Params    basetypes.MapValue    `tfsdk:"params"`
+	Phase     basetypes.StringValue `tfsdk:"phase"`
+	Version   basetypes.StringValue `tfsdk:"version"`
+	state     attr.ValueState
+}
+
+func (v DnsAutoscalerValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["is_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["params"] = basetypes.MapType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["phase"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.IsEnabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_enabled"] = val
+
+		val, err = v.Params.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["params"] = val
+
+		val, err = v.Phase.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["phase"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v DnsAutoscalerValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v DnsAutoscalerValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v DnsAutoscalerValue) String() string {
+	return "DnsAutoscalerValue"
+}
+
+func (v DnsAutoscalerValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"is_enabled": v.IsEnabled,
+			"params":     paramsVal,
+			"phase":      v.Phase,
+			"version":    v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v DnsAutoscalerValue) Equal(o attr.Value) bool {
+	other, ok := o.(DnsAutoscalerValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.IsEnabled.Equal(other.IsEnabled) {
+		return false
+	}
+
+	if !v.Params.Equal(other.Params) {
+		return false
+	}
+
+	if !v.Phase.Equal(other.Phase) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v DnsAutoscalerValue) Type(ctx context.Context) attr.Type {
+	return DnsAutoscalerType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v DnsAutoscalerValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"is_enabled": basetypes.BoolType{},
+		"params": basetypes.MapType{
+			ElemType: types.StringType,
+		},
+		"phase":   basetypes.StringType{},
+		"version": basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = KubernetesDashboardType{}
+
+type KubernetesDashboardType struct {
+	basetypes.ObjectType
+}
+
+func (t KubernetesDashboardType) Equal(o attr.Type) bool {
+	other, ok := o.(KubernetesDashboardType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t KubernetesDashboardType) String() string {
+	return "KubernetesDashboardType"
+}
+
+func (t KubernetesDashboardType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return nil, diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return nil, diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return KubernetesDashboardValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewKubernetesDashboardValueNull() KubernetesDashboardValue {
+	return KubernetesDashboardValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewKubernetesDashboardValueUnknown() KubernetesDashboardValue {
+	return KubernetesDashboardValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewKubernetesDashboardValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (KubernetesDashboardValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing KubernetesDashboardValue Attribute Value",
+				"While creating a KubernetesDashboardValue value, a missing attribute value was detected. "+
+					"A KubernetesDashboardValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("KubernetesDashboardValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid KubernetesDashboardValue Attribute Type",
+				"While creating a KubernetesDashboardValue value, an invalid attribute value was detected. "+
+					"A KubernetesDashboardValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("KubernetesDashboardValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("KubernetesDashboardValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra KubernetesDashboardValue Attribute Value",
+				"While creating a KubernetesDashboardValue value, an extra attribute value was detected. "+
+					"A KubernetesDashboardValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra KubernetesDashboardValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewKubernetesDashboardValueUnknown(), diags
+	}
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return NewKubernetesDashboardValueUnknown(), diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return NewKubernetesDashboardValueUnknown(), diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return NewKubernetesDashboardValueUnknown(), diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewKubernetesDashboardValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewKubernetesDashboardValueUnknown(), diags
+	}
+
+	return KubernetesDashboardValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewKubernetesDashboardValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) KubernetesDashboardValue {
+	object, diags := NewKubernetesDashboardValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewKubernetesDashboardValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t KubernetesDashboardType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewKubernetesDashboardValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewKubernetesDashboardValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewKubernetesDashboardValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewKubernetesDashboardValueMust(KubernetesDashboardValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t KubernetesDashboardType) ValueType(ctx context.Context) attr.Value {
+	return KubernetesDashboardValue{}
+}
+
+var _ basetypes.ObjectValuable = KubernetesDashboardValue{}
+
+type KubernetesDashboardValue struct {
+	IsEnabled basetypes.BoolValue   `tfsdk:"is_enabled"`
+	Params    basetypes.MapValue    `tfsdk:"params"`
+	Phase     basetypes.StringValue `tfsdk:"phase"`
+	Version   basetypes.StringValue `tfsdk:"version"`
+	state     attr.ValueState
+}
+
+func (v KubernetesDashboardValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["is_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["params"] = basetypes.MapType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["phase"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.IsEnabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_enabled"] = val
+
+		val, err = v.Params.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["params"] = val
+
+		val, err = v.Phase.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["phase"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v KubernetesDashboardValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v KubernetesDashboardValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v KubernetesDashboardValue) String() string {
+	return "KubernetesDashboardValue"
+}
+
+func (v KubernetesDashboardValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"is_enabled": v.IsEnabled,
+			"params":     paramsVal,
+			"phase":      v.Phase,
+			"version":    v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v KubernetesDashboardValue) Equal(o attr.Value) bool {
+	other, ok := o.(KubernetesDashboardValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.IsEnabled.Equal(other.IsEnabled) {
+		return false
+	}
+
+	if !v.Params.Equal(other.Params) {
+		return false
+	}
+
+	if !v.Phase.Equal(other.Phase) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v KubernetesDashboardValue) Type(ctx context.Context) attr.Type {
+	return KubernetesDashboardType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v KubernetesDashboardValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"is_enabled": basetypes.BoolType{},
+		"params": basetypes.MapType{
+			ElemType: types.StringType,
+		},
+		"phase":   basetypes.StringType{},
+		"version": basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = KubevirtType{}
+
+type KubevirtType struct {
+	basetypes.ObjectType
+}
+
+func (t KubevirtType) Equal(o attr.Type) bool {
+	other, ok := o.(KubevirtType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t KubevirtType) String() string {
+	return "KubevirtType"
+}
+
+func (t KubevirtType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return nil, diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return nil, diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return KubevirtValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewKubevirtValueNull() KubevirtValue {
+	return KubevirtValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewKubevirtValueUnknown() KubevirtValue {
+	return KubevirtValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewKubevirtValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (KubevirtValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing KubevirtValue Attribute Value",
+				"While creating a KubevirtValue value, a missing attribute value was detected. "+
+					"A KubevirtValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("KubevirtValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid KubevirtValue Attribute Type",
+				"While creating a KubevirtValue value, an invalid attribute value was detected. "+
+					"A KubevirtValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("KubevirtValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("KubevirtValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra KubevirtValue Attribute Value",
+				"While creating a KubevirtValue value, an extra attribute value was detected. "+
+					"A KubevirtValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra KubevirtValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewKubevirtValueUnknown(), diags
+	}
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return NewKubevirtValueUnknown(), diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return NewKubevirtValueUnknown(), diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return NewKubevirtValueUnknown(), diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewKubevirtValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewKubevirtValueUnknown(), diags
+	}
+
+	return KubevirtValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewKubevirtValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) KubevirtValue {
+	object, diags := NewKubevirtValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewKubevirtValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t KubevirtType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewKubevirtValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewKubevirtValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewKubevirtValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewKubevirtValueMust(KubevirtValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t KubevirtType) ValueType(ctx context.Context) attr.Value {
+	return KubevirtValue{}
+}
+
+var _ basetypes.ObjectValuable = KubevirtValue{}
+
+type KubevirtValue struct {
+	IsEnabled basetypes.BoolValue   `tfsdk:"is_enabled"`
+	Params    basetypes.MapValue    `tfsdk:"params"`
+	Phase     basetypes.StringValue `tfsdk:"phase"`
+	Version   basetypes.StringValue `tfsdk:"version"`
+	state     attr.ValueState
+}
+
+func (v KubevirtValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["is_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["params"] = basetypes.MapType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["phase"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.IsEnabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_enabled"] = val
+
+		val, err = v.Params.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["params"] = val
+
+		val, err = v.Phase.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["phase"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v KubevirtValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v KubevirtValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v KubevirtValue) String() string {
+	return "KubevirtValue"
+}
+
+func (v KubevirtValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"is_enabled": v.IsEnabled,
+			"params":     paramsVal,
+			"phase":      v.Phase,
+			"version":    v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v KubevirtValue) Equal(o attr.Value) bool {
+	other, ok := o.(KubevirtValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.IsEnabled.Equal(other.IsEnabled) {
+		return false
+	}
+
+	if !v.Params.Equal(other.Params) {
+		return false
+	}
+
+	if !v.Phase.Equal(other.Phase) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v KubevirtValue) Type(ctx context.Context) attr.Type {
+	return KubevirtType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v KubevirtValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"is_enabled": basetypes.BoolType{},
+		"params": basetypes.MapType{
+			ElemType: types.StringType,
+		},
+		"phase":   basetypes.StringType{},
+		"version": basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = LuigiType{}
+
+type LuigiType struct {
+	basetypes.ObjectType
+}
+
+func (t LuigiType) Equal(o attr.Type) bool {
+	other, ok := o.(LuigiType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t LuigiType) String() string {
+	return "LuigiType"
+}
+
+func (t LuigiType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return nil, diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return nil, diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return LuigiValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewLuigiValueNull() LuigiValue {
+	return LuigiValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewLuigiValueUnknown() LuigiValue {
+	return LuigiValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewLuigiValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (LuigiValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing LuigiValue Attribute Value",
+				"While creating a LuigiValue value, a missing attribute value was detected. "+
+					"A LuigiValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("LuigiValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid LuigiValue Attribute Type",
+				"While creating a LuigiValue value, an invalid attribute value was detected. "+
+					"A LuigiValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("LuigiValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("LuigiValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra LuigiValue Attribute Value",
+				"While creating a LuigiValue value, an extra attribute value was detected. "+
+					"A LuigiValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra LuigiValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewLuigiValueUnknown(), diags
+	}
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return NewLuigiValueUnknown(), diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return NewLuigiValueUnknown(), diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return NewLuigiValueUnknown(), diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewLuigiValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewLuigiValueUnknown(), diags
+	}
+
+	return LuigiValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewLuigiValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) LuigiValue {
+	object, diags := NewLuigiValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewLuigiValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t LuigiType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewLuigiValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewLuigiValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewLuigiValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewLuigiValueMust(LuigiValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t LuigiType) ValueType(ctx context.Context) attr.Value {
+	return LuigiValue{}
+}
+
+var _ basetypes.ObjectValuable = LuigiValue{}
+
+type LuigiValue struct {
+	IsEnabled basetypes.BoolValue   `tfsdk:"is_enabled"`
+	Params    basetypes.MapValue    `tfsdk:"params"`
+	Phase     basetypes.StringValue `tfsdk:"phase"`
+	Version   basetypes.StringValue `tfsdk:"version"`
+	state     attr.ValueState
+}
+
+func (v LuigiValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["is_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["params"] = basetypes.MapType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["phase"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.IsEnabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_enabled"] = val
+
+		val, err = v.Params.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["params"] = val
+
+		val, err = v.Phase.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["phase"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v LuigiValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v LuigiValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v LuigiValue) String() string {
+	return "LuigiValue"
+}
+
+func (v LuigiValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"is_enabled": v.IsEnabled,
+			"params":     paramsVal,
+			"phase":      v.Phase,
+			"version":    v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v LuigiValue) Equal(o attr.Value) bool {
+	other, ok := o.(LuigiValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.IsEnabled.Equal(other.IsEnabled) {
+		return false
+	}
+
+	if !v.Params.Equal(other.Params) {
+		return false
+	}
+
+	if !v.Phase.Equal(other.Phase) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v LuigiValue) Type(ctx context.Context) attr.Type {
+	return LuigiType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v LuigiValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"is_enabled": basetypes.BoolType{},
+		"params": basetypes.MapType{
+			ElemType: types.StringType,
+		},
+		"phase":   basetypes.StringType{},
+		"version": basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = Metal3Type{}
+
+type Metal3Type struct {
+	basetypes.ObjectType
+}
+
+func (t Metal3Type) Equal(o attr.Type) bool {
+	other, ok := o.(Metal3Type)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t Metal3Type) String() string {
+	return "Metal3Type"
+}
+
+func (t Metal3Type) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return nil, diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return nil, diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return Metal3Value{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewMetal3ValueNull() Metal3Value {
+	return Metal3Value{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewMetal3ValueUnknown() Metal3Value {
+	return Metal3Value{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewMetal3Value(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (Metal3Value, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing Metal3Value Attribute Value",
+				"While creating a Metal3Value value, a missing attribute value was detected. "+
+					"A Metal3Value must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Metal3Value Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid Metal3Value Attribute Type",
+				"While creating a Metal3Value value, an invalid attribute value was detected. "+
+					"A Metal3Value must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Metal3Value Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("Metal3Value Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra Metal3Value Attribute Value",
+				"While creating a Metal3Value value, an extra attribute value was detected. "+
+					"A Metal3Value must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra Metal3Value Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewMetal3ValueUnknown(), diags
+	}
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return NewMetal3ValueUnknown(), diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return NewMetal3ValueUnknown(), diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return NewMetal3ValueUnknown(), diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewMetal3ValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewMetal3ValueUnknown(), diags
+	}
+
+	return Metal3Value{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewMetal3ValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) Metal3Value {
+	object, diags := NewMetal3Value(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewMetal3ValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t Metal3Type) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewMetal3ValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewMetal3ValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewMetal3ValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewMetal3ValueMust(Metal3Value{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t Metal3Type) ValueType(ctx context.Context) attr.Value {
+	return Metal3Value{}
+}
+
+var _ basetypes.ObjectValuable = Metal3Value{}
+
+type Metal3Value struct {
+	IsEnabled basetypes.BoolValue   `tfsdk:"is_enabled"`
+	Params    basetypes.MapValue    `tfsdk:"params"`
+	Phase     basetypes.StringValue `tfsdk:"phase"`
+	Version   basetypes.StringValue `tfsdk:"version"`
+	state     attr.ValueState
+}
+
+func (v Metal3Value) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["is_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["params"] = basetypes.MapType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["phase"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.IsEnabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_enabled"] = val
+
+		val, err = v.Params.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["params"] = val
+
+		val, err = v.Phase.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["phase"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v Metal3Value) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v Metal3Value) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v Metal3Value) String() string {
+	return "Metal3Value"
+}
+
+func (v Metal3Value) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"is_enabled": v.IsEnabled,
+			"params":     paramsVal,
+			"phase":      v.Phase,
+			"version":    v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v Metal3Value) Equal(o attr.Value) bool {
+	other, ok := o.(Metal3Value)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.IsEnabled.Equal(other.IsEnabled) {
+		return false
+	}
+
+	if !v.Params.Equal(other.Params) {
+		return false
+	}
+
+	if !v.Phase.Equal(other.Phase) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v Metal3Value) Type(ctx context.Context) attr.Type {
+	return Metal3Type{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v Metal3Value) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"is_enabled": basetypes.BoolType{},
+		"params": basetypes.MapType{
+			ElemType: types.StringType,
+		},
+		"phase":   basetypes.StringType{},
+		"version": basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = MetallbType{}
+
+type MetallbType struct {
+	basetypes.ObjectType
+}
+
+func (t MetallbType) Equal(o attr.Type) bool {
+	other, ok := o.(MetallbType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t MetallbType) String() string {
+	return "MetallbType"
+}
+
+func (t MetallbType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return nil, diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return nil, diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return MetallbValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewMetallbValueNull() MetallbValue {
+	return MetallbValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewMetallbValueUnknown() MetallbValue {
+	return MetallbValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewMetallbValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (MetallbValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing MetallbValue Attribute Value",
+				"While creating a MetallbValue value, a missing attribute value was detected. "+
+					"A MetallbValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("MetallbValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid MetallbValue Attribute Type",
+				"While creating a MetallbValue value, an invalid attribute value was detected. "+
+					"A MetallbValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("MetallbValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("MetallbValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra MetallbValue Attribute Value",
+				"While creating a MetallbValue value, an extra attribute value was detected. "+
+					"A MetallbValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra MetallbValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewMetallbValueUnknown(), diags
+	}
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return NewMetallbValueUnknown(), diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return NewMetallbValueUnknown(), diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return NewMetallbValueUnknown(), diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewMetallbValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewMetallbValueUnknown(), diags
+	}
+
+	return MetallbValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewMetallbValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) MetallbValue {
+	object, diags := NewMetallbValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewMetallbValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t MetallbType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewMetallbValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewMetallbValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewMetallbValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewMetallbValueMust(MetallbValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t MetallbType) ValueType(ctx context.Context) attr.Value {
+	return MetallbValue{}
+}
+
+var _ basetypes.ObjectValuable = MetallbValue{}
+
+type MetallbValue struct {
+	IsEnabled basetypes.BoolValue   `tfsdk:"is_enabled"`
+	Params    basetypes.MapValue    `tfsdk:"params"`
+	Phase     basetypes.StringValue `tfsdk:"phase"`
+	Version   basetypes.StringValue `tfsdk:"version"`
+	state     attr.ValueState
+}
+
+func (v MetallbValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["is_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["params"] = basetypes.MapType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["phase"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.IsEnabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_enabled"] = val
+
+		val, err = v.Params.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["params"] = val
+
+		val, err = v.Phase.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["phase"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v MetallbValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v MetallbValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v MetallbValue) String() string {
+	return "MetallbValue"
+}
+
+func (v MetallbValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"is_enabled": v.IsEnabled,
+			"params":     paramsVal,
+			"phase":      v.Phase,
+			"version":    v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v MetallbValue) Equal(o attr.Value) bool {
+	other, ok := o.(MetallbValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.IsEnabled.Equal(other.IsEnabled) {
+		return false
+	}
+
+	if !v.Params.Equal(other.Params) {
+		return false
+	}
+
+	if !v.Phase.Equal(other.Phase) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v MetallbValue) Type(ctx context.Context) attr.Type {
+	return MetallbType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v MetallbValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"is_enabled": basetypes.BoolType{},
+		"params": basetypes.MapType{
+			ElemType: types.StringType,
+		},
+		"phase":   basetypes.StringType{},
+		"version": basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = MetricsServerType{}
+
+type MetricsServerType struct {
+	basetypes.ObjectType
+}
+
+func (t MetricsServerType) Equal(o attr.Type) bool {
+	other, ok := o.(MetricsServerType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t MetricsServerType) String() string {
+	return "MetricsServerType"
+}
+
+func (t MetricsServerType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return nil, diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return nil, diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return MetricsServerValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewMetricsServerValueNull() MetricsServerValue {
+	return MetricsServerValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewMetricsServerValueUnknown() MetricsServerValue {
+	return MetricsServerValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewMetricsServerValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (MetricsServerValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing MetricsServerValue Attribute Value",
+				"While creating a MetricsServerValue value, a missing attribute value was detected. "+
+					"A MetricsServerValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("MetricsServerValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid MetricsServerValue Attribute Type",
+				"While creating a MetricsServerValue value, an invalid attribute value was detected. "+
+					"A MetricsServerValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("MetricsServerValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("MetricsServerValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra MetricsServerValue Attribute Value",
+				"While creating a MetricsServerValue value, an extra attribute value was detected. "+
+					"A MetricsServerValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra MetricsServerValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewMetricsServerValueUnknown(), diags
+	}
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return NewMetricsServerValueUnknown(), diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return NewMetricsServerValueUnknown(), diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return NewMetricsServerValueUnknown(), diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewMetricsServerValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewMetricsServerValueUnknown(), diags
+	}
+
+	return MetricsServerValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewMetricsServerValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) MetricsServerValue {
+	object, diags := NewMetricsServerValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewMetricsServerValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t MetricsServerType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewMetricsServerValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewMetricsServerValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewMetricsServerValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewMetricsServerValueMust(MetricsServerValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t MetricsServerType) ValueType(ctx context.Context) attr.Value {
+	return MetricsServerValue{}
+}
+
+var _ basetypes.ObjectValuable = MetricsServerValue{}
+
+type MetricsServerValue struct {
+	IsEnabled basetypes.BoolValue   `tfsdk:"is_enabled"`
+	Params    basetypes.MapValue    `tfsdk:"params"`
+	Phase     basetypes.StringValue `tfsdk:"phase"`
+	Version   basetypes.StringValue `tfsdk:"version"`
+	state     attr.ValueState
+}
+
+func (v MetricsServerValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["is_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["params"] = basetypes.MapType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["phase"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.IsEnabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_enabled"] = val
+
+		val, err = v.Params.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["params"] = val
+
+		val, err = v.Phase.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["phase"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v MetricsServerValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v MetricsServerValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v MetricsServerValue) String() string {
+	return "MetricsServerValue"
+}
+
+func (v MetricsServerValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"is_enabled": v.IsEnabled,
+			"params":     paramsVal,
+			"phase":      v.Phase,
+			"version":    v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v MetricsServerValue) Equal(o attr.Value) bool {
+	other, ok := o.(MetricsServerValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.IsEnabled.Equal(other.IsEnabled) {
+		return false
+	}
+
+	if !v.Params.Equal(other.Params) {
+		return false
+	}
+
+	if !v.Phase.Equal(other.Phase) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v MetricsServerValue) Type(ctx context.Context) attr.Type {
+	return MetricsServerType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v MetricsServerValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"is_enabled": basetypes.BoolType{},
+		"params": basetypes.MapType{
+			ElemType: types.StringType,
+		},
+		"phase":   basetypes.StringType{},
+		"version": basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = MonitoringType{}
+
+type MonitoringType struct {
+	basetypes.ObjectType
+}
+
+func (t MonitoringType) Equal(o attr.Type) bool {
+	other, ok := o.(MonitoringType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t MonitoringType) String() string {
+	return "MonitoringType"
+}
+
+func (t MonitoringType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return nil, diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return nil, diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return MonitoringValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewMonitoringValueNull() MonitoringValue {
+	return MonitoringValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewMonitoringValueUnknown() MonitoringValue {
+	return MonitoringValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewMonitoringValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (MonitoringValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing MonitoringValue Attribute Value",
+				"While creating a MonitoringValue value, a missing attribute value was detected. "+
+					"A MonitoringValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("MonitoringValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid MonitoringValue Attribute Type",
+				"While creating a MonitoringValue value, an invalid attribute value was detected. "+
+					"A MonitoringValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("MonitoringValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("MonitoringValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra MonitoringValue Attribute Value",
+				"While creating a MonitoringValue value, an extra attribute value was detected. "+
+					"A MonitoringValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra MonitoringValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewMonitoringValueUnknown(), diags
+	}
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return NewMonitoringValueUnknown(), diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return NewMonitoringValueUnknown(), diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return NewMonitoringValueUnknown(), diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewMonitoringValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewMonitoringValueUnknown(), diags
+	}
+
+	return MonitoringValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewMonitoringValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) MonitoringValue {
+	object, diags := NewMonitoringValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewMonitoringValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t MonitoringType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewMonitoringValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewMonitoringValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewMonitoringValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewMonitoringValueMust(MonitoringValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t MonitoringType) ValueType(ctx context.Context) attr.Value {
+	return MonitoringValue{}
+}
+
+var _ basetypes.ObjectValuable = MonitoringValue{}
+
+type MonitoringValue struct {
+	IsEnabled basetypes.BoolValue   `tfsdk:"is_enabled"`
+	Params    basetypes.MapValue    `tfsdk:"params"`
+	Phase     basetypes.StringValue `tfsdk:"phase"`
+	Version   basetypes.StringValue `tfsdk:"version"`
+	state     attr.ValueState
+}
+
+func (v MonitoringValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["is_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["params"] = basetypes.MapType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["phase"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.IsEnabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_enabled"] = val
+
+		val, err = v.Params.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["params"] = val
+
+		val, err = v.Phase.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["phase"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v MonitoringValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v MonitoringValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v MonitoringValue) String() string {
+	return "MonitoringValue"
+}
+
+func (v MonitoringValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"is_enabled": v.IsEnabled,
+			"params":     paramsVal,
+			"phase":      v.Phase,
+			"version":    v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v MonitoringValue) Equal(o attr.Value) bool {
+	other, ok := o.(MonitoringValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.IsEnabled.Equal(other.IsEnabled) {
+		return false
+	}
+
+	if !v.Params.Equal(other.Params) {
+		return false
+	}
+
+	if !v.Phase.Equal(other.Phase) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v MonitoringValue) Type(ctx context.Context) attr.Type {
+	return MonitoringType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v MonitoringValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"is_enabled": basetypes.BoolType{},
+		"params": basetypes.MapType{
+			ElemType: types.StringType,
+		},
+		"phase":   basetypes.StringType{},
+		"version": basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = ProfileAgentType{}
+
+type ProfileAgentType struct {
+	basetypes.ObjectType
+}
+
+func (t ProfileAgentType) Equal(o attr.Type) bool {
+	other, ok := o.(ProfileAgentType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t ProfileAgentType) String() string {
+	return "ProfileAgentType"
+}
+
+func (t ProfileAgentType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return nil, diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return nil, diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return ProfileAgentValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewProfileAgentValueNull() ProfileAgentValue {
+	return ProfileAgentValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewProfileAgentValueUnknown() ProfileAgentValue {
+	return ProfileAgentValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewProfileAgentValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ProfileAgentValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing ProfileAgentValue Attribute Value",
+				"While creating a ProfileAgentValue value, a missing attribute value was detected. "+
+					"A ProfileAgentValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("ProfileAgentValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid ProfileAgentValue Attribute Type",
+				"While creating a ProfileAgentValue value, an invalid attribute value was detected. "+
+					"A ProfileAgentValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("ProfileAgentValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("ProfileAgentValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra ProfileAgentValue Attribute Value",
+				"While creating a ProfileAgentValue value, an extra attribute value was detected. "+
+					"A ProfileAgentValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra ProfileAgentValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewProfileAgentValueUnknown(), diags
+	}
+
+	isEnabledAttribute, ok := attributes["is_enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`is_enabled is missing from object`)
+
+		return NewProfileAgentValueUnknown(), diags
+	}
+
+	isEnabledVal, ok := isEnabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`is_enabled expected to be basetypes.BoolValue, was: %T`, isEnabledAttribute))
+	}
+
+	paramsAttribute, ok := attributes["params"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`params is missing from object`)
+
+		return NewProfileAgentValueUnknown(), diags
+	}
+
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return NewProfileAgentValueUnknown(), diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewProfileAgentValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewProfileAgentValueUnknown(), diags
+	}
+
+	return ProfileAgentValue{
+		IsEnabled: isEnabledVal,
+		Params:    paramsVal,
+		Phase:     phaseVal,
+		Version:   versionVal,
+		state:     attr.ValueStateKnown,
+	}, diags
+}
+
+func NewProfileAgentValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ProfileAgentValue {
+	object, diags := NewProfileAgentValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewProfileAgentValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t ProfileAgentType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewProfileAgentValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewProfileAgentValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewProfileAgentValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewProfileAgentValueMust(ProfileAgentValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t ProfileAgentType) ValueType(ctx context.Context) attr.Value {
+	return ProfileAgentValue{}
+}
+
+var _ basetypes.ObjectValuable = ProfileAgentValue{}
+
+type ProfileAgentValue struct {
+	IsEnabled basetypes.BoolValue   `tfsdk:"is_enabled"`
+	Params    basetypes.MapValue    `tfsdk:"params"`
+	Phase     basetypes.StringValue `tfsdk:"phase"`
+	Version   basetypes.StringValue `tfsdk:"version"`
+	state     attr.ValueState
+}
+
+func (v ProfileAgentValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["is_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["params"] = basetypes.MapType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["phase"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.IsEnabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["is_enabled"] = val
+
+		val, err = v.Params.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["params"] = val
+
+		val, err = v.Phase.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["phase"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v ProfileAgentValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v ProfileAgentValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v ProfileAgentValue) String() string {
+	return "ProfileAgentValue"
+}
+
+func (v ProfileAgentValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"is_enabled": basetypes.BoolType{},
+			"params": basetypes.MapType{
+				ElemType: types.StringType,
+			},
+			"phase":   basetypes.StringType{},
+			"version": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"is_enabled": v.IsEnabled,
+			"params":     paramsVal,
+			"phase":      v.Phase,
+			"version":    v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v ProfileAgentValue) Equal(o attr.Value) bool {
+	other, ok := o.(ProfileAgentValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.IsEnabled.Equal(other.IsEnabled) {
+		return false
+	}
+
+	if !v.Params.Equal(other.Params) {
+		return false
+	}
+
+	if !v.Phase.Equal(other.Phase) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v ProfileAgentValue) Type(ctx context.Context) attr.Type {
+	return ProfileAgentType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v ProfileAgentValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"is_enabled": basetypes.BoolType{},
+		"params": basetypes.MapType{
+			ElemType: types.StringType,
+		},
+		"phase":   basetypes.StringType{},
 		"version": basetypes.StringType{},
 	}
 }

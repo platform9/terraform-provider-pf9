@@ -2506,93 +2506,665 @@
 					{
 						"name": "custom_registry_url",
 						"string": {
-							"computed_optional_required": "computed_optional"
-						}
-					},
-					{
-						"name": "custom_registry_repo_path",
-						"string": {
-							"computed_optional_required": "computed_optional"
-						}
-					},
-					{
-						"name": "custom_registry_username",
-						"string": {
-							"computed_optional_required": "computed_optional"
-						}
-					},
-					{
-						"name": "custom_registry_password",
-						"string": {
-							"computed_optional_required": "computed_optional"
-						}
-					},
-					{
-						"name": "custom_registry_skip_tls",
-						"bool": {
-							"computed_optional_required": "computed_optional"
-						}
-					},
-					{
-						"name": "custom_registry_self_signed_certs",
-						"bool": {
-							"computed_optional_required": "computed_optional"
-						}
-					},
-					{
-						"name": "custom_registry_cert_path",
-						"string": {
-							"computed_optional_required": "computed_optional"
-						}
-					},
-					{
-						"name": "addons",
-						"set_nested": {
-							"computed_optional_required": "optional",
-							"description": "Addons to be installed on the cluster",
+							"computed_optional_required": "computed_optional",
 							"plan_modifiers": [
 								{
 									"custom": {
 										"imports": [
 											{
-												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 											}
 										],
-										"schema_definition": "setplanmodifier.UseStateForUnknown()"
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_repo_path",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_username",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_password",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_skip_tls",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_self_signed_certs",
+						"bool": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "custom_registry_cert_path",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+											}
+										],
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "addons",
+						"single_nested": {
+							"computed_optional_required": "computed_optional",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+											}
+										],
+										"schema_definition": "objectplanmodifier.UseStateForUnknown()"
 									}
 								}
 							],
-							"nested_object": {
-								"attributes": [
-									{
-										"name": "name",
-										"string": {
-											"computed_optional_required": "computed_optional"
-										}
-									},
-									{
-										"name": "version",
-										"string": {
-											"computed_optional_required": "computed_optional"
-										}
-									},
-									{
-										"name": "enabled",
-										"bool": {
-											"computed_optional_required": "computed_optional"
-										}
-									},
-									{
-										"name": "config",
-										"map": {
-											"computed_optional_required": "computed_optional",
-											"element_type": {
-												"string": {}
+							"attributes": [
+								{
+									"name": "kubernetes_dashboard",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+														}
+													],
+													"schema_definition": "objectplanmodifier.UseStateForUnknown()"
+												}
 											}
-										}
+										],
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
 									}
-								]
-							}
+								},
+								{
+									"name": "metrics_server",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "kubevirt",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "luigi",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "coredns",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"plan_modifiers": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+														}
+													],
+													"schema_definition": "objectplanmodifier.UseStateForUnknown()"
+												}
+											}
+										],
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+																	}
+																],
+																"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
+																	}
+																],
+																"schema_definition": "mapplanmodifier.UseStateForUnknown()"
+															}
+														}
+													],
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "monitoring",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "metallb",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "metal3",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "profile_agent",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "dns_autoscaler",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "is_enabled",
+												"bool": {
+													"computed_optional_required": "computed_optional",
+													"plan_modifiers": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+																	}
+																],
+																"schema_definition": "boolplanmodifier.UseStateForUnknown()"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "version",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "params",
+												"map": {
+													"computed_optional_required": "computed_optional",
+													"element_type": {
+														"string": {}
+													}
+												}
+											},
+											{
+												"name": "phase",
+												"string": {
+													"computed_optional_required": "computed"
+												}
+											}
+										]
+									}
+								}
+							]
 						}
 					}
 				]
