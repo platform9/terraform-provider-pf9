@@ -10,7 +10,7 @@ import (
 	"github.com/platform9/terraform-provider-pf9/internal/provider/resource_cluster"
 )
 
-func (r *clusterResource) reconcileCorednsAddon(ctx context.Context, clusterID string, coredns basetypes.ObjectValue, stateAddonsMap map[string]sunpikev1alpha2.ClusterAddon) diag.Diagnostics {
+func (r *clusterResource) reconcileCorednsAddon(ctx context.Context, clusterID string, addonName string, coredns basetypes.ObjectValue, stateAddon *sunpikev1alpha2.ClusterAddon, defaultAddonVersion string) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var planVersion string
 	var isVersionDifferent, isParamDifferent bool
@@ -21,15 +21,20 @@ func (r *clusterResource) reconcileCorednsAddon(ctx context.Context, clusterID s
 	if diags.HasError() {
 		return diags
 	}
-	planCoredns := objValueable.(resource_cluster.CorednsValue)
-	if planCoredns.IsEnabled.ValueBool() {
-		if _, found := stateAddonsMap["coredns"]; !found {
+	addonValue := objValueable.(resource_cluster.CorednsValue)
+	if addonValue.IsEnabled.ValueBool() {
+		if stateAddon == nil {
+			var version string
+			if !addonValue.Version.IsNull() && !addonValue.Version.IsUnknown() {
+				version = addonValue.Version.ValueString()
+			} else {
+				version = defaultAddonVersion
+			}
 			tflog.Debug(ctx, "Enabling addon")
 			err := r.enableAddon(ctx, AddonSpec{
 				ClusterID: clusterID,
-				// TODO: Use API to get the version
-				// Version:   planCoredns.Version.ValueString(),
-				Type:      "coredns",
+				Version:   version,
+				Type:      addonName,
 				ParamsMap: map[string]string{},
 			})
 			if err != nil {
@@ -38,35 +43,35 @@ func (r *clusterResource) reconcileCorednsAddon(ctx context.Context, clusterID s
 			}
 		} else {
 			tflog.Debug(ctx, "Checking if addon version and params needs to be patched")
-			if !planCoredns.Version.IsNull() && !planCoredns.Version.IsUnknown() {
+			if !addonValue.Version.IsNull() && !addonValue.Version.IsUnknown() {
 				// TODO: Define string addon names in const.go
-				planVersion = planCoredns.Version.ValueString()
-				stateVersion := stateAddonsMap["coredns"].Spec.Version
+				planVersion = addonValue.Version.ValueString()
+				stateVersion := stateAddon.Spec.Version
 				if planVersion != stateVersion {
 					isVersionDifferent = true
 				}
 			}
 			planParams := map[string]string{}
-			if !planCoredns.Params.IsNull() && !planCoredns.Params.IsUnknown() {
-				diags.Append(planCoredns.Params.ElementsAs(ctx, &planParams, false)...)
+			if !addonValue.Params.IsNull() && !addonValue.Params.IsUnknown() {
+				diags.Append(addonValue.Params.ElementsAs(ctx, &planParams, false)...)
 				if diags.HasError() {
 					// TODO: Decide whether to return or proceed when error with one attr
 					return diags
 				}
-				stateParams := convertParamsToMap(stateAddonsMap["coredns"].Spec.Override.Params)
+				stateParams := convertParamsToMap(stateAddon.Spec.Override.Params)
 				if areMapsDifferent(planParams, stateParams) {
 					isParamDifferent = true
 				}
 			}
 			if isVersionDifferent || isParamDifferent {
-				diags.Append(r.patchAddon(ctx, stateAddonsMap["coredns"], isVersionDifferent, isParamDifferent, planVersion, planParams)...)
+				diags.Append(r.patchAddon(ctx, *stateAddon, isVersionDifferent, isParamDifferent, planVersion, planParams)...)
 				if diags.HasError() {
 					return diags
 				}
 			}
 		}
 	} else {
-		if _, found := stateAddonsMap["coredns"]; found {
+		if stateAddon != nil {
 			tflog.Debug(ctx, "Disabling addon")
 			err := r.disableAddon(ctx, clusterID, "coredns")
 			if err != nil {

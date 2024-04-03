@@ -26,6 +26,7 @@ import (
 )
 
 var _ resource.Resource = (*clusterResource)(nil)
+var _ resource.ResourceWithModifyPlan = (*clusterResource)(nil)
 
 func NewClusterResource() resource.Resource {
 	return &clusterResource{}
@@ -48,6 +49,78 @@ func (r *clusterResource) Configure(ctx context.Context, req resource.ConfigureR
 		return
 	}
 	r.client = req.ProviderData.(*pmk.HTTPClient)
+}
+
+func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		// resource is being destroyed
+		return
+	}
+	// Ref: https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification
+	var kubeRoleVersion basetypes.StringValue
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("kube_role_version"), &kubeRoleVersion)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if kubeRoleVersion.IsNull() || kubeRoleVersion.IsUnknown() {
+		// Create API call logic
+		authInfo, err := r.client.Authenticator().Auth(ctx)
+		if err != nil {
+			tflog.Error(ctx, "Failed to authenticate", map[string]interface{}{"error": err})
+			resp.Diagnostics.AddError("Failed to authenticate", err.Error())
+			return
+		}
+		tflog.Debug(ctx, "kube_role_version is not provided in the plan; defaulting to the latest")
+		// https://platform9.com/docs/qbert/ref#getprovides-a-list-of-supported-pf9-kube-roles-for-a-cluster-
+		supportedKubeRoleVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
+		if err != nil {
+			tflog.Error(ctx, "Failed to get supported versions", map[string]interface{}{"error": err})
+			resp.Diagnostics.AddError("Failed to get supported versions", err.Error())
+			return
+		}
+		if len(supportedKubeRoleVersions.Roles) > 0 {
+			latestKubeRoleVersion := findLatestKubeRoleVersion(supportedKubeRoleVersions.Roles)
+			resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("kube_role_version"), latestKubeRoleVersion.RoleVersion)...)
+		} else {
+			resp.Diagnostics.AddError("No supported kube role versions found", "No supported kube role versions found")
+		}
+	}
+	if !req.State.Raw.IsNull() && !req.Plan.Raw.IsNull() {
+		// Update API call logic
+		var addons resource_cluster.AddonsValue
+		resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("addons"), &addons)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if !addons.IsNull() && !addons.IsUnknown() {
+			var id basetypes.StringValue
+			resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("id"), &id)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			clusterID := id.ValueString()
+			defaultAddonVersions, err := r.client.Qbert().ListSupportedAddonVersions(ctx, clusterID)
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to get supported addon versions", err.Error())
+				return
+			}
+
+			objValuable, diags := resource_cluster.CorednsType{}.ValueFromObject(ctx, addons.Coredns)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			addonValue := objValuable.(resource_cluster.CorednsValue)
+			if addonValue.IsEnabled.ValueBool() {
+				if addonValue.Version.IsNull() || addonValue.Version.IsUnknown() {
+					if version, found := defaultAddonVersions["coredns"]; found {
+						resp.Plan.SetAttribute(ctx, path.Root("addons").AtName("coredns").AtName("version"), version)
+					}
+				}
+			}
+			// TODO: Add other addons
+		}
+	}
 }
 
 func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -113,15 +186,8 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	if createClusterReq.KubeRoleVersion == "" {
-		tflog.Debug(ctx, "Kube role version not provided")
-		if len(supportedKubeRoleVersions.Roles) > 0 {
-			latestKubeRoleVersion := findLatestKubeRoleVersion(supportedKubeRoleVersions.Roles)
-			createClusterReq.KubeRoleVersion = latestKubeRoleVersion.RoleVersion
-			tflog.Debug(ctx, "Using the latest kubeRoleVersion from supported versions", map[string]interface{}{"latestKubeRoleVersion": latestKubeRoleVersion.RoleVersion})
-		} else {
-			resp.Diagnostics.AddError("No supported kube role versions found", "No supported kube role versions found")
-			return
-		}
+		// This cannot happen because plan modifier sets kube_role_version to the latest if the practitioner does not provide it
+		resp.Diagnostics.AddError("No supported kube role versions found", "No supported kube role versions found")
 	}
 
 	tflog.Debug(ctx, "Mapping addons to addon-flags inside create cluster request")
@@ -163,7 +229,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 				if resp.Diagnostics.HasError() {
 					return
 				}
-				if metallbCidr, found := params["metallbIpRange"]; found {
+				if metallbCidr, found := params["MetallbIpRange"]; found {
 					createClusterReq.MetallbCidr = metallbCidr
 					createClusterReq.EnableMetalLb = true
 				} else {
@@ -190,17 +256,6 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 				} else {
 					createClusterReq.Monitoring.RetentionTime = ptr.To("7d")
 				}
-			}
-		}
-		if !data.Addons.ProfileAgent.IsNull() && !data.Addons.ProfileAgent.IsUnknown() {
-			objValuable, diags := resource_cluster.ProfileAgentType{}.ValueFromObject(ctx, data.Addons.ProfileAgent)
-			resp.Diagnostics.Append(diags...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			profileAgentValue := objValuable.(resource_cluster.ProfileAgentValue)
-			if profileAgentValue.IsEnabled.ValueBool() {
-				createClusterReq.EnableProfileAgent = true
 			}
 		}
 	}
@@ -259,18 +314,12 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	// diags = resp.State.SetAttribute(ctx, path.Root("addons"), stateAddons)
-	// resp.Diagnostics.Append(diags...)
-	// if resp.Diagnostics.HasError() {
-	// 	return
-	// }
-
 	// Create a map key=addonName value=sunpikeAddon for lookup during reconcilation
-	stateAddonsMap := map[string]sunpikev1alpha2.ClusterAddon{}
+	stateAddonsMap := map[string]*sunpikev1alpha2.ClusterAddon{}
 	for _, qbertAddon := range sunpikeAddons {
-		stateAddonsMap[qbertAddon.Spec.Type] = qbertAddon
+		stateAddonsMap[qbertAddon.Spec.Type] = &qbertAddon
 	}
-	resp.Diagnostics.Append(r.reconcileAddons(ctx, clusterID, data.Addons, stateAddons, stateAddonsMap)...)
+	resp.Diagnostics.Append(r.reconcileAddons(ctx, clusterID, data.Addons, stateAddonsMap)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -317,7 +366,7 @@ func sunpikeAddonsToTerraformAddons(ctx context.Context, clusterAddon []sunpikev
 				return addons, diags
 			}
 		case "kubernetes-dashboard":
-			addons.KubernetesDashboard, diags = resource_cluster.KubernetesDashboardValue{
+			addons.Dashboard, diags = resource_cluster.DashboardValue{
 				IsEnabled: types.BoolValue(true),
 				Params:    params,
 				Phase:     phase,
@@ -386,19 +435,10 @@ func sunpikeAddonsToTerraformAddons(ctx context.Context, clusterAddon []sunpikev
 			if diags.HasError() {
 				return addons, diags
 			}
-		case "pf9-profile-agent":
-			addons.ProfileAgent, diags = resource_cluster.ProfileAgentValue{
-				IsEnabled: types.BoolValue(true),
-				Params:    params,
-				Phase:     phase,
-				Version:   version,
-			}.ToObjectValue(ctx)
-			if diags.HasError() {
-				return addons, diags
-			}
 		default:
 			tflog.Error(ctx, "The addon is not currently supported by terraform provider", map[string]interface{}{"name": addon.Spec.Type})
-			// TODO: Support other addons dynamically
+			// TODO: Support unknwon addons dynamically
+			// https://developer.hashicorp.com/terraform/plugin/framework/handling-data/types/dynamic
 		}
 	}
 	// Make addons known
@@ -417,37 +457,30 @@ func sunpikeAddonsToTerraformAddons(ctx context.Context, clusterAddon []sunpikev
 }
 
 func (r *clusterResource) reconcileAddons(ctx context.Context, clusterID string, planAddonsValue resource_cluster.AddonsValue,
-	stateAddonsValue resource_cluster.AddonsValue, stateAddonsMap map[string]sunpikev1alpha2.ClusterAddon) diag.Diagnostics {
+	stateAddonsMap map[string]*sunpikev1alpha2.ClusterAddon) diag.Diagnostics {
 
 	var diags diag.Diagnostics
+	// kubernetes_dashboard : enabled by default, non-configurable
+	// metrics_server: enabled by default with params {"metricsCpuLimit": "100m","metricsMemoryLimit": "300Mi"}
+	// monitoring: enabled by default, with params {"retentionTime": "7d"}
+	// coredns: enabled by default, with params {"dnsDomain": "cluster.local","dnsMemoryLimit": "170Mi"}
 
-	if !stateAddonsValue.IsUnknown() {
-		if planAddonsValue.IsNull() {
-			if !stateAddonsValue.IsNull() {
-				tflog.Debug(ctx, "Practitioner removed addons; it is null in the plan but non-null in the state")
-				// disable all addons from the state
-			} else {
-				tflog.Debug(ctx, "addons is null in the plan and the state")
-			}
-		}
-		if planAddonsValue.IsUnknown() {
-			// this can never happen if useStateForUnknowns plan modifier is used
-			if !stateAddonsValue.IsNull() {
-				tflog.Debug(ctx, "Practitioner removed addons from addons; it is unknown in the plan but non-null in the state")
-			} else {
-				tflog.Debug(ctx, "addons is unknown in the plan, null in the state")
-			}
-		}
-	} else {
-		tflog.Debug(ctx, "Create()")
+	defaultAddonVersions, err := r.client.Qbert().ListSupportedAddonVersions(ctx, clusterID)
+	if err != nil {
+		diags.AddError("Failed to get supported addon versions", err.Error())
+		return diags
 	}
 
-	// Note: planAddonsValue remains always known
+	diags.Append(r.reconcileCorednsAddon(ctx, clusterID, "coredns", planAddonsValue.Coredns, stateAddonsMap["coredns"], defaultAddonVersions["coredns"])...)
+	// diags.Append(r.reconcileMonitoringAddon(ctx, clusterID, "monitoring", planAddonsValue.Monitoring, stateAddonsMap)...)
+	// diags.Append(r.reconcileMetallbAddon(ctx, clusterID, "metallb", planAddonsValue.Metallb, stateAddonsMap)...)
+	// diags.Append(r.reconcileKubevirtAddon(ctx, clusterID, "kubevirt", planAddonsValue.Kubevirt, stateAddonsMap)...)
+	// diags.Append(r.reconcileLuigiAddon(ctx, clusterID, "luigi", planAddonsValue.Luigi, stateAddonsMap)...)
+	// diags.Append(r.reconcileMetal3Addon(ctx, clusterID, "metal3", planAddonsValue.Metal3, stateAddonsMap)...)
+	// diags.Append(r.reconcileMetricsServerAddon(ctx, clusterID, "metrics-server", planAddonsValue.MetricsServer, stateAddonsMap)...)
+	// diags.Append(r.reconcileProfileAgentAddon(ctx, clusterID, "pf9-profile-agent", planAddonsValue.ProfileAgent, stateAddonsMap)...)
 
-	diags.Append(r.reconcileCorednsAddon(ctx, clusterID, planAddonsValue.Coredns, stateAddonsMap)...)
-	diags.Append(r.reconcileMonitoringAddon(ctx, clusterID, "monitoring", planAddonsValue.Monitoring, stateAddonsMap)...)
-	diags.Append(r.reconcileMetallbAddon(ctx, clusterID, "metallb", planAddonsValue.Metallb, stateAddonsMap)...)
-	// TODO: Add other
+	// TODO: Add other addons
 
 	return diags
 }
@@ -541,7 +574,8 @@ func (r *clusterResource) enableAddon(ctx context.Context, spec AddonSpec) error
 	}
 	return r.client.Sunpike().Create(ctx, &sunpikev1alpha2.ClusterAddon{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s", spec.ClusterID, spec.Type),
+			Name:      fmt.Sprintf("%s-%s", spec.ClusterID, spec.Type),
+			Namespace: "default",
 			Labels: map[string]string{
 				"sunpike.pf9.io/cluster": spec.ClusterID,
 				"type":                   spec.Type,
@@ -698,14 +732,14 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		editClusterReq.CertExpiryHrs = int(plan.CertExpiryHrs.ValueInt64())
 	}
 
-	if !plan.ContainersCidr.Equal(state.ContainersCidr) {
-		editRequired = true
-		editClusterReq.ContainersCidr = plan.ContainersCidr.ValueString()
-	}
-	if !plan.ServicesCidr.Equal(state.ServicesCidr) {
-		editRequired = true
-		editClusterReq.ServicesCidr = plan.ServicesCidr.ValueString()
-	}
+	// if !plan.ContainersCidr.Equal(state.ContainersCidr) {
+	// 	editRequired = true
+	// 	editClusterReq.ContainersCidr = plan.ContainersCidr.ValueString()
+	// }
+	// if !plan.ServicesCidr.Equal(state.ServicesCidr) {
+	// 	editRequired = true
+	// 	editClusterReq.ServicesCidr = plan.ServicesCidr.ValueString()
+	// }
 
 	// TODO: Add following fields are in provider_code_spec.json; if needed
 	// editClusterReq.KubeProxyMode = plan.KubeProxyMode.ValueString()
@@ -818,11 +852,11 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
 		return
 	}
-	stateAddonsMap := map[string]sunpikev1alpha2.ClusterAddon{}
+	stateAddonsMap := map[string]*sunpikev1alpha2.ClusterAddon{}
 	for _, qbertAddon := range qbertAddons.Items {
-		stateAddonsMap[qbertAddon.Spec.Type] = qbertAddon
+		stateAddonsMap[qbertAddon.Spec.Type] = &qbertAddon
 	}
-	resp.Diagnostics.Append(r.reconcileAddons(ctx, clusterID, plan.Addons, state.Addons, stateAddonsMap)...)
+	resp.Diagnostics.Append(r.reconcileAddons(ctx, clusterID, plan.Addons, stateAddonsMap)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -964,9 +998,9 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.CalicoIpv4DetectionMethod = types.StringValue(in.CalicoIPv4DetectionMethod)
 	out.NetworkPlugin = types.StringValue(in.NetworkPlugin)
 	out.ContainerRuntime = types.StringValue(in.ContainerRuntime)
-	out.RuntimeConfig = types.StringValue(in.RuntimeConfig)
+	out.RuntimeConfig = emptyStringToNull(in.RuntimeConfig)
 
-	out.ExternalDnsName = types.StringValue(in.ExternalDnsName)
+	out.ExternalDnsName = emptyStringToNull(in.ExternalDnsName)
 	out.CertExpiryHrs = types.Int64Value(int64(in.CertExpiryHrs))
 	out.CalicoNodeCpuLimit = types.StringValue(in.CalicoNodeCpuLimit)
 	out.CalicoNodeMemoryLimit = types.StringValue(in.CalicoNodeMemoryLimit)
@@ -978,8 +1012,8 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	// Computed attributes
 	out.CreatedAt = types.StringValue(in.CreatedAt)
 	out.Status = types.StringValue(in.Status)
-	out.FlannelIfaceLabel = types.StringValue(in.FlannelIfaceLabel)
-	out.FlannelPublicIfaceLabel = types.StringValue(in.FlannelPublicIfaceLabel)
+	out.FlannelIfaceLabel = emptyStringToNull(in.FlannelIfaceLabel)
+	out.FlannelPublicIfaceLabel = emptyStringToNull(in.FlannelPublicIfaceLabel)
 	out.DockerRoot = types.StringValue(in.DockerRoot)
 	out.EtcdDataDir = types.StringValue(in.EtcdDataDir)
 	out.LastOp = types.StringValue(in.LastOp)
@@ -993,7 +1027,7 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.CalicoIpv6 = types.StringValue(in.CalicoIPv6)
 	out.CalicoIpv6DetectionMethod = types.StringValue(in.CalicoIPv6DetectionMethod)
 	out.CalicoRouterId = types.StringValue(in.CalicoRouterID)
-	out.CalicoIpv6PoolCidr = types.StringValue(in.CalicoIPv6PoolCidr)
+	out.CalicoIpv6PoolCidr = emptyStringToNull(in.CalicoIPv6PoolCidr)
 	out.CalicoIpv6PoolBlockSize = types.StringValue(in.CalicoIPv6PoolBlockSize)
 	out.CalicoIpv6PoolNatOutgoing = types.BoolValue(in.CalicoIPv6PoolNatOutgoing != 0)
 	out.FelixIpv6Support = types.BoolValue(in.FelixIPv6Support != 0)
@@ -1034,7 +1068,7 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.K8sPrivateRegistry = types.StringValue(in.K8sPrivateRegistry)
 	out.DockerCentosPackageRepoUrl = types.StringValue(in.DockerCentosPackageRepoUrl)
 	out.DockerUbuntuPackageRepoUrl = types.StringValue(in.DockerUbuntuPackageRepoUrl)
-	out.AddonOperatorImageTag = types.StringValue(in.AddonOperatorImageTag)
+	out.AddonOperatorImageTag = emptyStringToNull(in.AddonOperatorImageTag)
 	out.InterfaceReachableIp = types.StringValue(in.InterfaceReachableIP)
 	out.CustomRegistryUrl = types.StringValue(in.CustomRegistryUrl)
 	out.CustomRegistryRepoPath = types.StringValue(in.CustomRegistryRepoPath)
@@ -1182,8 +1216,9 @@ func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projec
 		req.EtcdBackup.MaxIntervalBackupCount = int(in.EtcdBackup.MaxIntervalBackupCount.ValueInt64())
 	}
 	req.ExternalDNSName = in.ExternalDnsName.ValueString()
-	req.CertExpiryHrs = ptr.To(int(in.CertExpiryHrs.ValueInt64()))
-
+	if !in.CertExpiryHrs.IsNull() && !in.CertExpiryHrs.IsUnknown() {
+		req.CertExpiryHrs = ptr.To(int(in.CertExpiryHrs.ValueInt64()))
+	}
 	req.CalicoNodeCpuLimit = in.CalicoNodeCpuLimit.ValueString()
 	req.CalicoNodeMemoryLimit = in.CalicoNodeMemoryLimit.ValueString()
 	req.CalicoTyphaCpuLimit = in.CalicoTyphaCpuLimit.ValueString()
@@ -1371,4 +1406,13 @@ func areNotMutuallyExclusive(slice1, slice2 []string) bool {
 		}
 	}
 	return false
+}
+
+// qbert API returns empty string for null values, this function converts empty string to null to prevent
+// Provider produced inconsistent result after apply, .external_dns_name: was null, but now cty.StringVal("")
+func emptyStringToNull(s string) basetypes.StringValue {
+	if s == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(s)
 }

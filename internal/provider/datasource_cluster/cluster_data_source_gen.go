@@ -200,10 +200,10 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"etcd_election_timeout_ms": schema.Int64Attribute{
-				Computed: true,
+				Optional: true,
 			},
 			"etcd_heartbeat_interval_ms": schema.Int64Attribute{
-				Computed: true,
+				Optional: true,
 			},
 			"etcd_version": schema.StringAttribute{
 				Computed: true,
