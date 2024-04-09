@@ -32,50 +32,40 @@ import (
 func ClusterResourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"addons": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"coredns": schema.SingleNestedAttribute{
-						Attributes: map[string]schema.Attribute{
-							"params": schema.MapAttribute{
-								ElementType: types.StringType,
-								Optional:    true,
-								Computed:    true,
-								PlanModifiers: []planmodifier.Map{
-									mapplanmodifier.UseStateForUnknown(),
-								},
-							},
-							"phase": schema.StringAttribute{
-								Computed: true,
-							},
-							"version": schema.StringAttribute{
-								Optional: true,
-								Computed: true,
-								PlanModifiers: []planmodifier.String{
-									stringplanmodifier.UseStateForUnknown(),
-								},
+			"addons": schema.MapNestedAttribute{
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"params": schema.MapAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Map{
+								mapplanmodifier.UseStateForUnknown(),
 							},
 						},
-						CustomType: CorednsType{
-							ObjectType: types.ObjectType{
-								AttrTypes: CorednsValue{}.AttributeTypes(ctx),
+						"phase": schema.StringAttribute{
+							Computed: true,
+						},
+						"version": schema.StringAttribute{
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
 							},
 						},
-						Optional: true,
-						Computed: true,
-						PlanModifiers: []planmodifier.Object{
-							objectplanmodifier.UseStateForUnknown(),
+					},
+					CustomType: AddonsType{
+						ObjectType: types.ObjectType{
+							AttrTypes: AddonsValue{}.AttributeTypes(ctx),
 						},
 					},
 				},
-				CustomType: AddonsType{
-					ObjectType: types.ObjectType{
-						AttrTypes: AddonsValue{}.AttributeTypes(ctx),
-					},
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Map{
+					mapplanmodifier.UseStateForUnknown(),
 				},
-				Required: true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
+				Default: DefaultAddons(),
 			},
 			"allow_workloads_on_master": schema.BoolAttribute{
 				Optional:            true,
@@ -87,6 +77,14 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					boolplanmodifier.RequiresReplace(),
 				},
 				Default: booldefault.StaticBool(false),
+			},
+			"batch_upgrade_percent": schema.Int64Attribute{
+				Optional:            true,
+				Description:         "Percentage of nodes to upgrade at a time during a batch upgrade. If this attribute is omitted then nodes will be sequentially upgraded, one after the other.",
+				MarkdownDescription: "Percentage of nodes to upgrade at a time during a batch upgrade. If this attribute is omitted then nodes will be sequentially upgraded, one after the other.",
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"calico_controller_cpu_limit": schema.StringAttribute{
 				Optional:            true,
@@ -558,14 +556,10 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "kube role version to be used when bringing up the cluster.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"last_ok": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"last_op": schema.StringAttribute{
 				Computed: true,
@@ -718,6 +712,14 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: stringdefault.StaticString("none"),
 			},
+			"upgrade_kube_role_version": schema.StringAttribute{
+				Computed:            true,
+				Description:         "kube role version to which the cluster can be upgraded.",
+				MarkdownDescription: "kube role version to which the cluster can be upgraded.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"use_hostname": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -742,8 +744,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 }
 
 type ClusterModel struct {
-	Addons                        AddonsValue     `tfsdk:"addons"`
+	Addons                        types.Map       `tfsdk:"addons"`
 	AllowWorkloadsOnMaster        types.Bool      `tfsdk:"allow_workloads_on_master"`
+	BatchUpgradePercent           types.Int64     `tfsdk:"batch_upgrade_percent"`
 	CalicoControllerCpuLimit      types.String    `tfsdk:"calico_controller_cpu_limit"`
 	CalicoControllerMemoryLimit   types.String    `tfsdk:"calico_controller_memory_limit"`
 	CalicoIpIpMode                types.String    `tfsdk:"calico_ip_ip_mode"`
@@ -823,6 +826,7 @@ type ClusterModel struct {
 	TaskError                     types.String    `tfsdk:"task_error"`
 	TaskStatus                    types.String    `tfsdk:"task_status"`
 	TopologyManagerPolicy         types.String    `tfsdk:"topology_manager_policy"`
+	UpgradeKubeRoleVersion        types.String    `tfsdk:"upgrade_kube_role_version"`
 	UseHostname                   types.Bool      `tfsdk:"use_hostname"`
 	WorkerNodes                   types.Set       `tfsdk:"worker_nodes"`
 	WorkerStatus                  types.String    `tfsdk:"worker_status"`
@@ -853,22 +857,58 @@ func (t AddonsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 
 	attributes := in.Attributes()
 
-	corednsAttribute, ok := attributes["coredns"]
+	paramsAttribute, ok := attributes["params"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`coredns is missing from object`)
+			`params is missing from object`)
 
 		return nil, diags
 	}
 
-	corednsVal, ok := corednsAttribute.(basetypes.ObjectValue)
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`coredns expected to be basetypes.ObjectValue, was: %T`, corednsAttribute))
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return nil, diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
 	}
 
 	if diags.HasError() {
@@ -876,7 +916,9 @@ func (t AddonsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 	}
 
 	return AddonsValue{
-		Coredns: corednsVal,
+		Params:  paramsVal,
+		Phase:   phaseVal,
+		Version: versionVal,
 		state:   attr.ValueStateKnown,
 	}, diags
 }
@@ -944,22 +986,58 @@ func NewAddonsValue(attributeTypes map[string]attr.Type, attributes map[string]a
 		return NewAddonsValueUnknown(), diags
 	}
 
-	corednsAttribute, ok := attributes["coredns"]
+	paramsAttribute, ok := attributes["params"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`coredns is missing from object`)
+			`params is missing from object`)
 
 		return NewAddonsValueUnknown(), diags
 	}
 
-	corednsVal, ok := corednsAttribute.(basetypes.ObjectValue)
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`coredns expected to be basetypes.ObjectValue, was: %T`, corednsAttribute))
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
+	}
+
+	phaseAttribute, ok := attributes["phase"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`phase is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
 	}
 
 	if diags.HasError() {
@@ -967,7 +1045,9 @@ func NewAddonsValue(attributeTypes map[string]attr.Type, attributes map[string]a
 	}
 
 	return AddonsValue{
-		Coredns: corednsVal,
+		Params:  paramsVal,
+		Phase:   phaseVal,
+		Version: versionVal,
 		state:   attr.ValueStateKnown,
 	}, diags
 }
@@ -1040,430 +1120,13 @@ func (t AddonsType) ValueType(ctx context.Context) attr.Value {
 var _ basetypes.ObjectValuable = AddonsValue{}
 
 type AddonsValue struct {
-	Coredns basetypes.ObjectValue `tfsdk:"coredns"`
-	state   attr.ValueState
-}
-
-func (v AddonsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 1)
-
-	var val tftypes.Value
-	var err error
-
-	attrTypes["coredns"] = basetypes.ObjectType{
-		AttrTypes: CorednsValue{}.AttributeTypes(ctx),
-	}.TerraformType(ctx)
-
-	objectType := tftypes.Object{AttributeTypes: attrTypes}
-
-	switch v.state {
-	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 1)
-
-		val, err = v.Coredns.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["coredns"] = val
-
-		if err := tftypes.ValidateValue(objectType, vals); err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		return tftypes.NewValue(objectType, vals), nil
-	case attr.ValueStateNull:
-		return tftypes.NewValue(objectType, nil), nil
-	case attr.ValueStateUnknown:
-		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
-	default:
-		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
-	}
-}
-
-func (v AddonsValue) IsNull() bool {
-	return v.state == attr.ValueStateNull
-}
-
-func (v AddonsValue) IsUnknown() bool {
-	return v.state == attr.ValueStateUnknown
-}
-
-func (v AddonsValue) String() string {
-	return "AddonsValue"
-}
-
-func (v AddonsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	var coredns basetypes.ObjectValue
-
-	if v.Coredns.IsNull() {
-		coredns = types.ObjectNull(
-			CorednsValue{}.AttributeTypes(ctx),
-		)
-	}
-
-	if v.Coredns.IsUnknown() {
-		coredns = types.ObjectUnknown(
-			CorednsValue{}.AttributeTypes(ctx),
-		)
-	}
-
-	if !v.Coredns.IsNull() && !v.Coredns.IsUnknown() {
-		coredns = types.ObjectValueMust(
-			CorednsValue{}.AttributeTypes(ctx),
-			v.Coredns.Attributes(),
-		)
-	}
-
-	objVal, diags := types.ObjectValue(
-		map[string]attr.Type{
-			"coredns": basetypes.ObjectType{
-				AttrTypes: CorednsValue{}.AttributeTypes(ctx),
-			},
-		},
-		map[string]attr.Value{
-			"coredns": coredns,
-		})
-
-	return objVal, diags
-}
-
-func (v AddonsValue) Equal(o attr.Value) bool {
-	other, ok := o.(AddonsValue)
-
-	if !ok {
-		return false
-	}
-
-	if v.state != other.state {
-		return false
-	}
-
-	if v.state != attr.ValueStateKnown {
-		return true
-	}
-
-	if !v.Coredns.Equal(other.Coredns) {
-		return false
-	}
-
-	return true
-}
-
-func (v AddonsValue) Type(ctx context.Context) attr.Type {
-	return AddonsType{
-		basetypes.ObjectType{
-			AttrTypes: v.AttributeTypes(ctx),
-		},
-	}
-}
-
-func (v AddonsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
-	return map[string]attr.Type{
-		"coredns": basetypes.ObjectType{
-			AttrTypes: CorednsValue{}.AttributeTypes(ctx),
-		},
-	}
-}
-
-var _ basetypes.ObjectTypable = CorednsType{}
-
-type CorednsType struct {
-	basetypes.ObjectType
-}
-
-func (t CorednsType) Equal(o attr.Type) bool {
-	other, ok := o.(CorednsType)
-
-	if !ok {
-		return false
-	}
-
-	return t.ObjectType.Equal(other.ObjectType)
-}
-
-func (t CorednsType) String() string {
-	return "CorednsType"
-}
-
-func (t CorednsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	attributes := in.Attributes()
-
-	paramsAttribute, ok := attributes["params"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`params is missing from object`)
-
-		return nil, diags
-	}
-
-	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
-	}
-
-	phaseAttribute, ok := attributes["phase"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`phase is missing from object`)
-
-		return nil, diags
-	}
-
-	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
-	}
-
-	versionAttribute, ok := attributes["version"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`version is missing from object`)
-
-		return nil, diags
-	}
-
-	versionVal, ok := versionAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
-	}
-
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return CorednsValue{
-		Params:  paramsVal,
-		Phase:   phaseVal,
-		Version: versionVal,
-		state:   attr.ValueStateKnown,
-	}, diags
-}
-
-func NewCorednsValueNull() CorednsValue {
-	return CorednsValue{
-		state: attr.ValueStateNull,
-	}
-}
-
-func NewCorednsValueUnknown() CorednsValue {
-	return CorednsValue{
-		state: attr.ValueStateUnknown,
-	}
-}
-
-func NewCorednsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (CorednsValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
-	ctx := context.Background()
-
-	for name, attributeType := range attributeTypes {
-		attribute, ok := attributes[name]
-
-		if !ok {
-			diags.AddError(
-				"Missing CorednsValue Attribute Value",
-				"While creating a CorednsValue value, a missing attribute value was detected. "+
-					"A CorednsValue must contain values for all attributes, even if null or unknown. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("CorednsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
-			)
-
-			continue
-		}
-
-		if !attributeType.Equal(attribute.Type(ctx)) {
-			diags.AddError(
-				"Invalid CorednsValue Attribute Type",
-				"While creating a CorednsValue value, an invalid attribute value was detected. "+
-					"A CorednsValue must use a matching attribute type for the value. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("CorednsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("CorednsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
-			)
-		}
-	}
-
-	for name := range attributes {
-		_, ok := attributeTypes[name]
-
-		if !ok {
-			diags.AddError(
-				"Extra CorednsValue Attribute Value",
-				"While creating a CorednsValue value, an extra attribute value was detected. "+
-					"A CorednsValue must not contain values beyond the expected attribute types. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra CorednsValue Attribute Name: %s", name),
-			)
-		}
-	}
-
-	if diags.HasError() {
-		return NewCorednsValueUnknown(), diags
-	}
-
-	paramsAttribute, ok := attributes["params"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`params is missing from object`)
-
-		return NewCorednsValueUnknown(), diags
-	}
-
-	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
-	}
-
-	phaseAttribute, ok := attributes["phase"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`phase is missing from object`)
-
-		return NewCorednsValueUnknown(), diags
-	}
-
-	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
-	}
-
-	versionAttribute, ok := attributes["version"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`version is missing from object`)
-
-		return NewCorednsValueUnknown(), diags
-	}
-
-	versionVal, ok := versionAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
-	}
-
-	if diags.HasError() {
-		return NewCorednsValueUnknown(), diags
-	}
-
-	return CorednsValue{
-		Params:  paramsVal,
-		Phase:   phaseVal,
-		Version: versionVal,
-		state:   attr.ValueStateKnown,
-	}, diags
-}
-
-func NewCorednsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) CorednsValue {
-	object, diags := NewCorednsValue(attributeTypes, attributes)
-
-	if diags.HasError() {
-		// This could potentially be added to the diag package.
-		diagsStrings := make([]string, 0, len(diags))
-
-		for _, diagnostic := range diags {
-			diagsStrings = append(diagsStrings, fmt.Sprintf(
-				"%s | %s | %s",
-				diagnostic.Severity(),
-				diagnostic.Summary(),
-				diagnostic.Detail()))
-		}
-
-		panic("NewCorednsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
-	}
-
-	return object
-}
-
-func (t CorednsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
-	if in.Type() == nil {
-		return NewCorednsValueNull(), nil
-	}
-
-	if !in.Type().Equal(t.TerraformType(ctx)) {
-		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
-	}
-
-	if !in.IsKnown() {
-		return NewCorednsValueUnknown(), nil
-	}
-
-	if in.IsNull() {
-		return NewCorednsValueNull(), nil
-	}
-
-	attributes := map[string]attr.Value{}
-
-	val := map[string]tftypes.Value{}
-
-	err := in.As(&val)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range val {
-		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
-
-		if err != nil {
-			return nil, err
-		}
-
-		attributes[k] = a
-	}
-
-	return NewCorednsValueMust(CorednsValue{}.AttributeTypes(ctx), attributes), nil
-}
-
-func (t CorednsType) ValueType(ctx context.Context) attr.Value {
-	return CorednsValue{}
-}
-
-var _ basetypes.ObjectValuable = CorednsValue{}
-
-type CorednsValue struct {
 	Params  basetypes.MapValue    `tfsdk:"params"`
 	Phase   basetypes.StringValue `tfsdk:"phase"`
 	Version basetypes.StringValue `tfsdk:"version"`
 	state   attr.ValueState
 }
 
-func (v CorednsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v AddonsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 3)
 
 	var val tftypes.Value
@@ -1519,19 +1182,19 @@ func (v CorednsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, erro
 	}
 }
 
-func (v CorednsValue) IsNull() bool {
+func (v AddonsValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v CorednsValue) IsUnknown() bool {
+func (v AddonsValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v CorednsValue) String() string {
-	return "CorednsValue"
+func (v AddonsValue) String() string {
+	return "AddonsValue"
 }
 
-func (v CorednsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v AddonsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
@@ -1565,8 +1228,8 @@ func (v CorednsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue,
 	return objVal, diags
 }
 
-func (v CorednsValue) Equal(o attr.Value) bool {
-	other, ok := o.(CorednsValue)
+func (v AddonsValue) Equal(o attr.Value) bool {
+	other, ok := o.(AddonsValue)
 
 	if !ok {
 		return false
@@ -1595,15 +1258,15 @@ func (v CorednsValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v CorednsValue) Type(ctx context.Context) attr.Type {
-	return CorednsType{
+func (v AddonsValue) Type(ctx context.Context) attr.Type {
+	return AddonsType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v CorednsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v AddonsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"params": basetypes.MapType{
 			ElemType: types.StringType,

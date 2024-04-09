@@ -29,6 +29,11 @@ output "example" {
 
 - `id` (String) UUID of the cluster
 
+### Optional
+
+- `etcd_election_timeout_ms` (Number)
+- `etcd_heartbeat_interval_ms` (Number)
+
 ### Read-Only
 
 - `addon_operator_image_tag` (String)
@@ -73,8 +78,6 @@ output "example" {
 - `enable_etcd_encryption` (Boolean)
 - `etcd_backup` (Attributes) (see [below for nested schema](#nestedatt--etcd_backup))
 - `etcd_data_dir` (String)
-- `etcd_election_timeout_ms` (Number)
-- `etcd_heartbeat_interval_ms` (Number)
 - `etcd_version` (String)
 - `external_dns_name` (String)
 - `felix_ipv6_support` (Boolean)

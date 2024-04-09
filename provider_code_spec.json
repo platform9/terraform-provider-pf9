@@ -648,86 +648,73 @@
 						}
 					},
 					{
-						"name": "clusters",
+						"name": "kubeconfigs",
 						"list_nested": {
 							"computed_optional_required": "computed",
-							"description": "List of clusters",
 							"nested_object": {
 								"attributes": [
 									{
 										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the kubeconfig context"
+										}
+									},
+									{
+										"name": "cluster",
 										"string": {
 											"computed_optional_required": "computed",
 											"description": "Name of the cluster"
 										}
 									},
 									{
-										"name": "cluster",
-										"single_nested": {
-											"computed_optional_required": "computed",
-											"attributes": [
-												{
-													"name": "server",
-													"string": {
-														"computed_optional_required": "computed",
-														"description": "API server URL"
-													}
-												},
-												{
-													"name": "certificate_authority",
-													"string": {
-														"computed_optional_required": "computed",
-														"description": "CA certificate"
-													}
-												}
-											]
-										}
-									}
-								]
-							}
-						}
-					},
-					{
-						"name": "users",
-						"list_nested": {
-							"computed_optional_required": "computed",
-							"description": "List of users",
-							"nested_object": {
-								"attributes": [
-									{
-										"name": "name",
+										"name": "username",
 										"string": {
 											"computed_optional_required": "computed",
 											"description": "Name of the user"
 										}
 									},
 									{
-										"name": "user",
-										"single_nested": {
+										"name": "host",
+										"string": {
 											"computed_optional_required": "computed",
-											"attributes": [
-												{
-													"name": "token",
-													"string": {
-														"computed_optional_required": "computed",
-														"description": "Token"
-													}
-												},
-												{
-													"name": "client_certificate",
-													"string": {
-														"computed_optional_required": "computed",
-														"description": "Client certificate"
-													}
-												},
-												{
-													"name": "client_key",
-													"string": {
-														"computed_optional_required": "computed",
-														"description": "Client key"
-													}
-												}
-											]
+											"description": "Kube api server api endpoint"
+										}
+									},
+									{
+										"name": "token",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Token of your service account",
+											"sensitive": true
+										}
+									},
+									{
+										"name": "cluster_ca_certificate",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Path to the certificate authority file"
+										}
+									},
+									{
+										"name": "client_certificate",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Path to the client certificate file"
+										}
+									},
+									{
+										"name": "client_key",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Path to the client key file"
+										}
+									},
+									{
+										"name": "insecure",
+										"bool": {
+											"computed_optional_required": "computed",
+											"description": "If the server should be accessed without verifying the TLS certificate"
 										}
 									}
 								]
@@ -1617,7 +1604,16 @@
 										],
 										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
 									}
-								},
+								}
+							]
+						}
+					},
+					{
+						"name": "upgrade_kube_role_version",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "kube role version to which the cluster can be upgraded.",
+							"plan_modifiers": [
 								{
 									"custom": {
 										"imports": [
@@ -1625,7 +1621,26 @@
 												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 											}
 										],
-										"schema_definition": "stringplanmodifier.RequiresReplace()"
+										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "batch_upgrade_percent",
+						"int64": {
+							"computed_optional_required": "optional",
+							"description": "Percentage of nodes to upgrade at a time during a batch upgrade. If this attribute is omitted then nodes will be sequentially upgraded, one after the other.",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+											}
+										],
+										"schema_definition": "int64planmodifier.UseStateForUnknown()"
 									}
 								}
 							]
@@ -2277,19 +2292,7 @@
 					{
 						"name": "last_ok",
 						"string": {
-							"computed_optional_required": "computed",
-							"plan_modifiers": [
-								{
-									"custom": {
-										"imports": [
-											{
-												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-											}
-										],
-										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
-									}
-								}
-							]
+							"computed_optional_required": "computed"
 						}
 					},
 					{
@@ -2714,87 +2717,74 @@
 					},
 					{
 						"name": "addons",
-						"single_nested": {
-							"computed_optional_required": "required",
+						"map_nested": {
+							"computed_optional_required": "computed_optional",
+							"default": {
+								"custom": {
+									"schema_definition": "DefaultAddons()"
+								}
+							},
 							"plan_modifiers": [
 								{
 									"custom": {
 										"imports": [
 											{
-												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 											}
 										],
-										"schema_definition": "objectplanmodifier.UseStateForUnknown()"
+										"schema_definition": "mapplanmodifier.UseStateForUnknown()"
 									}
 								}
 							],
-							"attributes": [
-								{
-									"name": "coredns",
-									"single_nested": {
-										"computed_optional_required": "computed_optional",
-										"plan_modifiers": [
-											{
-												"custom": {
-													"imports": [
-														{
-															"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
-														}
-													],
-													"schema_definition": "objectplanmodifier.UseStateForUnknown()"
-												}
-											}
-										],
-										"attributes": [
-											{
-												"name": "version",
-												"string": {
-													"computed_optional_required": "computed_optional",
-													"plan_modifiers": [
-														{
-															"custom": {
-																"imports": [
-																	{
-																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-																	}
-																],
-																"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "version",
+										"string": {
+											"computed_optional_required": "computed_optional",
+											"plan_modifiers": [
+												{
+													"custom": {
+														"imports": [
+															{
+																"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 															}
-														}
-													]
+														],
+														"schema_definition": "stringplanmodifier.UseStateForUnknown()"
+													}
 												}
+											]
+										}
+									},
+									{
+										"name": "params",
+										"map": {
+											"computed_optional_required": "computed_optional",
+											"element_type": {
+												"string": {}
 											},
-											{
-												"name": "params",
-												"map": {
-													"computed_optional_required": "computed_optional",
-													"element_type": {
-														"string": {}
-													},
-													"plan_modifiers": [
-														{
-															"custom": {
-																"imports": [
-																	{
-																		"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
-																	}
-																],
-																"schema_definition": "mapplanmodifier.UseStateForUnknown()"
+											"plan_modifiers": [
+												{
+													"custom": {
+														"imports": [
+															{
+																"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 															}
-														}
-													]
+														],
+														"schema_definition": "mapplanmodifier.UseStateForUnknown()"
+													}
 												}
-											},
-											{
-												"name": "phase",
-												"string": {
-													"computed_optional_required": "computed"
-												}
-											}
-										]
+											]
+										}
+									},
+									{
+										"name": "phase",
+										"string": {
+											"computed_optional_required": "computed"
+										}
 									}
-								}
-							]
+								]
+							}
 						}
 					}
 				]

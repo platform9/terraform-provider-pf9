@@ -91,13 +91,62 @@ func (d *kubeconfigDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		resp.Diagnostics.AddError("Failed to unmarshal kubeconfig", err.Error())
 		return
 	}
-	var diags diag.Diagnostics
-	data.Clusters, diags = types.ListValueFrom(ctx, data.Clusters.ElementType(ctx), kubeConfig.Clusters)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+
+	usersMap := map[string]User{}
+	for _, user := range kubeConfig.Users {
+		usersMap[user.Name] = user
 	}
-	data.Users, diags = types.ListValueFrom(ctx, data.Users.ElementType(ctx), kubeConfig.Users)
+	clustersMap := map[string]Cluster{}
+	for _, cluster := range kubeConfig.Clusters {
+		clustersMap[cluster.Name] = cluster
+	}
+
+	kcSlice := []datasource_kubeconfig.KubeconfigsValue{}
+	for _, kubectx := range kubeConfig.Contexts {
+		kc := datasource_kubeconfig.KubeconfigsValue{
+			Cluster:  types.StringValue(kubectx.Context.Cluster),
+			Username: types.StringValue(kubectx.Context.User),
+			Name:     types.StringValue(kubectx.Name),
+		}
+		if user, ok := usersMap[kubectx.Context.User]; ok {
+			if user.User.Token != "" {
+				kc.Token = types.StringValue(user.User.Token)
+			} else {
+				kc.Token = types.StringNull()
+			}
+			if user.User.ClientCertificateData != "" {
+				kc.ClientCertificate = types.StringValue(user.User.ClientCertificateData)
+			} else {
+				kc.ClientCertificate = types.StringNull()
+			}
+			if user.User.ClientKeyData != "" {
+				kc.ClientKey = types.StringValue(user.User.ClientKeyData)
+			} else {
+				kc.ClientKey = types.StringNull()
+			}
+		}
+		if cluster, ok := clustersMap[kubectx.Context.Cluster]; ok {
+			kc.Host = types.StringValue(cluster.Cluster.Server)
+			if cluster.Cluster.CertificateAuthorityData != "" {
+				kc.ClusterCaCertificate = types.StringValue(cluster.Cluster.CertificateAuthorityData)
+			} else {
+				kc.ClusterCaCertificate = types.StringNull()
+			}
+		}
+		kcObjValue, diags := kc.ToObjectValue(ctx)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		kcObjValuable, diags := datasource_kubeconfig.KubeconfigsType{}.ValueFromObject(ctx, kcObjValue)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		kcSlice = append(kcSlice, kcObjValuable.(datasource_kubeconfig.KubeconfigsValue))
+	}
+	var diags diag.Diagnostics
+	data.Kubeconfigs, diags = types.ListValueFrom(ctx, datasource_kubeconfig.KubeconfigsValue{}.Type(ctx), kcSlice)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -16,12 +15,10 @@ import (
 	"github.com/platform9/pf9-sdk-go/pf9/pmk"
 	"github.com/platform9/pf9-sdk-go/pf9/qbert"
 	"github.com/platform9/terraform-provider-pf9/internal/provider/resource_cluster"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	sunpikev1alpha2 "github.com/platform9/pf9-sdk-go/pf9/apis/sunpike/v1alpha2"
 	// sunpikev1alpha2 "github.com/platform9/pf9-sdk-go/pf9/apis/sunpike/v1alpha2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8slabels "k8s.io/apimachinery/pkg/labels"
+
 	"k8s.io/utils/ptr"
 )
 
@@ -52,11 +49,12 @@ func (r *clusterResource) Configure(ctx context.Context, req resource.ConfigureR
 }
 
 func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	// Ref: https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification
 	if req.Plan.Raw.IsNull() {
 		// resource is being destroyed
 		return
 	}
-	// Ref: https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification
+
 	var kubeRoleVersion basetypes.StringValue
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("kube_role_version"), &kubeRoleVersion)...)
 	if resp.Diagnostics.HasError() {
@@ -68,58 +66,64 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}
-	if kubeRoleVersion.IsNull() || kubeRoleVersion.IsUnknown() {
-		// Create API call logic
-		tflog.Debug(ctx, "kube_role_version is not provided in the plan; defaulting to the latest")
-		// https://platform9.com/docs/qbert/ref#getprovides-a-list-of-supported-pf9-kube-roles-for-a-cluster-
-		supportedKubeRoleVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
-		if err != nil {
-			tflog.Error(ctx, "Failed to get supported versions", map[string]interface{}{"error": err})
-			resp.Diagnostics.AddError("Failed to get supported versions", err.Error())
-			return
-		}
-		if len(supportedKubeRoleVersions.Roles) > 0 {
-			latestKubeRoleVersion := findLatestKubeRoleVersion(supportedKubeRoleVersions.Roles)
-			resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("kube_role_version"), latestKubeRoleVersion.RoleVersion)...)
-		} else {
-			resp.Diagnostics.AddError("No supported kube role versions found", "No supported kube role versions found")
-		}
-	}
-	if !req.State.Raw.IsNull() && !req.Plan.Raw.IsNull() {
-		// Update API call logic
-		var addons resource_cluster.AddonsValue
-		resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("addons"), &addons)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		if !addons.IsNull() && !addons.IsUnknown() {
-			var id basetypes.StringValue
-			resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("id"), &id)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			clusterID := id.ValueString()
-			defaultAddonVersions, err := r.client.Qbert().ListSupportedAddonVersions(ctx, clusterID)
+	if req.State.Raw.IsNull() && !req.Plan.Raw.IsNull() {
+		// Pre-Create
+		if !kubeRoleVersion.IsNull() && !kubeRoleVersion.IsUnknown() {
+			tflog.Debug(ctx, "Validating if kube_role_version is supported", map[string]interface{}{"kube_role_version": kubeRoleVersion.ValueString()})
+			supportedKubeRoleVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
 			if err != nil {
-				resp.Diagnostics.AddError("Failed to get supported addon versions", err.Error())
+				resp.Diagnostics.AddError("Failed to get supported versions", err.Error())
 				return
 			}
-			if !addons.Coredns.IsNull() && !addons.Coredns.IsUnknown() {
-				objValuable, diags := resource_cluster.CorednsType{}.ValueFromObject(ctx, addons.Coredns)
-				resp.Diagnostics.Append(diags...)
+			allowedKubeRoleVersions := []string{}
+			for _, role := range supportedKubeRoleVersions.Roles {
+				allowedKubeRoleVersions = append(allowedKubeRoleVersions, role.RoleVersion)
+			}
+			if !StrSliceContains(allowedKubeRoleVersions, kubeRoleVersion.ValueString()) {
+				resp.Diagnostics.AddAttributeError(path.Root("kube_role_version"), "kube_role_version provided is unsupported", fmt.Sprintf("Supported versions: %v", allowedKubeRoleVersions))
+				return
+			}
+		} else {
+			tflog.Debug(ctx, "kube_role_version is not provided in the plan; defaulting to the latest")
+			// https://platform9.com/docs/qbert/ref#getprovides-a-list-of-supported-pf9-kube-roles-for-a-cluster-
+			supportedKubeRoleVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
+			if err != nil {
+				tflog.Error(ctx, "Failed to get supported versions", map[string]interface{}{"error": err})
+				resp.Diagnostics.AddError("Failed to get supported versions", err.Error())
+				return
+			}
+			if len(supportedKubeRoleVersions.Roles) > 0 {
+				latestKubeRoleVersion := findLatestKubeRoleVersion(supportedKubeRoleVersions.Roles)
+				resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("kube_role_version"), latestKubeRoleVersion.RoleVersion)...)
 				if resp.Diagnostics.HasError() {
 					return
 				}
-				addonValue := objValuable.(resource_cluster.CorednsValue)
-				if addonValue.Version.IsNull() || addonValue.Version.IsUnknown() {
-					if version, found := defaultAddonVersions["coredns"]; found {
-						resp.Plan.SetAttribute(ctx, path.Root("addons").AtName("coredns").AtName("version"), version)
-					} else {
-						tflog.Debug(ctx, "No default version found for coredns")
-					}
-				}
+			} else {
+				resp.Diagnostics.AddError("No supported kube role versions found", "No supported kube role versions found")
+				return
 			}
-			// TODO: Add other addons
+		}
+	}
+	if !req.State.Raw.IsNull() && !req.Plan.Raw.IsNull() {
+		// Pre-Update
+		var stateKubeRoleVersion basetypes.StringValue
+		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("kube_role_version"),
+			&stateKubeRoleVersion)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if !kubeRoleVersion.Equal(stateKubeRoleVersion) {
+			var upgradeToKubeRoleVersion basetypes.StringValue
+			resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("upgrade_kube_role_version"),
+				&upgradeToKubeRoleVersion)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			if !upgradeToKubeRoleVersion.Equal(kubeRoleVersion) {
+				resp.Diagnostics.AddAttributeError(path.Root("kube_role_version"), "kube_role_version provided is unsupported",
+					fmt.Sprintf("This cluster can only be upgraded to the version: %v", upgradeToKubeRoleVersion.ValueString()))
+				return
+			}
 		}
 	}
 }
@@ -142,28 +146,6 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	projectID := authInfo.ProjectID
 
-	tflog.Debug(ctx, "Listing supported kubeRoleVersions for validations and defaulting to the latest")
-	// https://platform9.com/docs/qbert/ref#getprovides-a-list-of-supported-pf9-kube-roles-for-a-cluster-
-	supportedKubeRoleVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
-	if err != nil {
-		tflog.Error(ctx, "Failed to get supported versions", map[string]interface{}{"error": err})
-		resp.Diagnostics.AddError("Failed to get supported versions", err.Error())
-		return
-	}
-	if !data.KubeRoleVersion.IsNull() && !data.KubeRoleVersion.IsUnknown() {
-		tflog.Debug(ctx, "Validating if kube_role_version is supported", map[string]interface{}{"kube_role_version": data.KubeRoleVersion.ValueString()})
-		// Validate using the response of
-		allowedKubeRoleVersions := []string{}
-		for _, role := range supportedKubeRoleVersions.Roles {
-			allowedKubeRoleVersions = append(allowedKubeRoleVersions, role.RoleVersion)
-		}
-		if !StrSliceContains(allowedKubeRoleVersions, data.KubeRoleVersion.ValueString()) {
-			// TODO: Do this in plan modifier or validate phase
-			resp.Diagnostics.AddAttributeError(path.Root("kube_role_version"), "kube_role_version provided is not supported", fmt.Sprintf("Supported versions: %v", allowedKubeRoleVersions))
-			return
-		}
-	}
-
 	createClusterReq, d := r.CreateCreateClusterRequest(ctx, authInfo.ProjectID, &data)
 	resp.Diagnostics.Append(d...)
 	if resp.Diagnostics.HasError() {
@@ -171,21 +153,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	if createClusterReq.KubeRoleVersion == "" {
-		// This cannot happen because plan modifier sets kube_role_version to the latest if the practitioner does not provide it
-		resp.Diagnostics.AddError("No supported kube role versions found", "No supported kube role versions found")
-	}
-
-	tflog.Debug(ctx, "Mapping addons to addon-flags inside create cluster request")
-
-	// TODO: Add check for the level; marshalling is only required for logging purpose
-	reqBody, err := json.Marshal(createClusterReq)
-	if err != nil {
-		tflog.Error(ctx, "Failed to marshal create cluster request", map[string]interface{}{"error": err})
-		resp.Diagnostics.AddError("Failed to marshal create cluster request", err.Error())
-		return
-	}
-	tflog.Info(ctx, "Creating a cluster in qbert", map[string]interface{}{"req": string(reqBody)})
+	tflog.Info(ctx, "Creating a cluster")
 	qbertClient := r.client.Qbert()
 	clusterID, err := qbertClient.CreateCluster(*createClusterReq, projectID, qbert.CreateClusterOptions{})
 	if err != nil {
@@ -225,21 +193,102 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 	// TODO: Should we save an intermediate state between multiple requests?
-	tflog.Debug(ctx, "Getting list of enabled addons including that are enabled by the backend")
-	stateAddons, sunpikeAddons, diags := r.readAddonsFromRemote(ctx, clusterID, data.Addons)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
+	// This will prevent inconsistency between the local state and the remote state
+	tflog.Debug(ctx, "Getting list of enabled addons")
+	sunpikeAddons, err := r.readAddonsFromRemote(ctx, clusterID)
+	if err != nil {
+		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
+		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
 		return
 	}
 
-	// Create a map key=addonName value=sunpikeAddon for lookup during reconcilation
-	stateAddonsMap := map[string]*sunpikev1alpha2.ClusterAddon{}
-	for _, qbertAddon := range sunpikeAddons {
-		stateAddonsMap[qbertAddon.Spec.Type] = &qbertAddon
+	// Create a map key=addonName value=sunpikeAddon for lookup during plan-state comparison
+	sunpikeAddonsMap := map[string]sunpikev1alpha2.ClusterAddon{}
+	for _, sunpikeAddon := range sunpikeAddons {
+		sunpikeAddonsMap[sunpikeAddon.Spec.Type] = sunpikeAddon
 	}
-	resp.Diagnostics.Append(r.reconcileAddons(ctx, clusterID, data.Addons, stateAddons, stateAddonsMap, true)...)
+	defaultAddonVersions, err := r.client.Qbert().ListSupportedAddonVersions(ctx, clusterID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get default addon versions", err.Error())
+		return
+	}
+	tfAddonsMap := map[string]resource_cluster.AddonsValue{}
+	resp.Diagnostics.Append(data.Addons.ElementsAs(ctx, &tfAddonsMap, false)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+	for addonName, tfAddon := range tfAddonsMap {
+		// sunpikeAddon represents remote state and tfAddon represents plan state
+		if sunpikeAddon, found := sunpikeAddonsMap[addonName]; found {
+			// Case 1:
+			// if addon with the same name is available at both places, difference bw
+			// the two should be patched, prefering the plan instance.
+			tflog.Debug(ctx, "Checking if addon version and params needs to be patched")
+			var addonVersion string
+			if !tfAddon.Version.IsNull() && !tfAddon.Version.IsUnknown() {
+				addonVersion = tfAddon.Version.ValueString()
+			} else {
+				// version is optional in the plan, because user cannot determine the version.
+				// API call provides the default version
+				addonVersion = defaultAddonVersions[addonName]
+			}
+			paramsInPlan := map[string]string{}
+			resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			resp.Diagnostics.Append(r.patchAddon(ctx, &sunpikeAddon, AddonSpec{
+				ClusterID: clusterID,
+				Type:      addonName,
+				Version:   addonVersion,
+				ParamsMap: paramsInPlan,
+			})...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+		} else {
+			// Case 2:
+			// The addon in the plan, tfAddon is not present in the remote state, sunpikeAddonsMap.
+			// Make the remote state same as the plan state by enabling the addon.
+			tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": addonName})
+			paramsInPlan := map[string]string{}
+			resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			var addonVersion string
+			if !tfAddon.Version.IsNull() && !tfAddon.Version.IsUnknown() {
+				addonVersion = tfAddon.Version.ValueString()
+			} else {
+				addonVersion = defaultAddonVersions[addonName]
+			}
+			err = r.enableAddon(ctx, AddonSpec{
+				ClusterID: clusterID,
+				Type:      addonName,
+				Version:   addonVersion,
+				ParamsMap: paramsInPlan,
+			})
+			if err != nil {
+				tflog.Error(ctx, "Failed to enable addon", map[string]interface{}{"addon": addonName, "error": err})
+				resp.Diagnostics.AddError("Failed to enable addon", err.Error())
+				return
+			}
+		}
+	}
+	for addonName := range sunpikeAddonsMap {
+		if _, found := tfAddonsMap[addonName]; !found {
+			// Case 3:
+			// The addon is present in the remote state, sunpikeAddonsMap
+			// but not present in the plan, tfAddonsMap. Disabling the addon
+			// will make the remote state same as the plan state.
+			tflog.Debug(ctx, "Disabling addon", map[string]interface{}{"addon": addonName})
+			err = r.disableAddon(ctx, clusterID, addonName)
+			if err != nil {
+				tflog.Error(ctx, "Failed to disable addon", map[string]interface{}{"addon": addonName, "error": err})
+				resp.Diagnostics.AddError("Failed to disable addon", err.Error())
+				return
+			}
+		}
 	}
 
 	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state)...)
@@ -248,246 +297,56 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Save data into Terraform state
-	stateAddons, _, diags = r.readAddonsFromRemote(ctx, clusterID, data.Addons)
+	addonsOnRemote, err := r.readAddonsFromRemote(ctx, clusterID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
+		return
+	}
+	tfAddonsMapState, diags := sunpikeAddonsToTerraformAddons(ctx, addonsOnRemote)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	state.Addons, diags = types.MapValueFrom(ctx, resource_cluster.AddonsValue{}.Type(ctx), tfAddonsMapState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	state.Addons = stateAddons
+	// This attr is useful in Update only, copied value from state to prevent inconsistency
+	state.BatchUpgradePercent = data.BatchUpgradePercent
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func sunpikeAddonsToTerraformAddons(ctx context.Context, clusterAddon []sunpikev1alpha2.ClusterAddon, planAddonsValue resource_cluster.AddonsValue) (resource_cluster.AddonsValue, diag.Diagnostics) {
-	addons := resource_cluster.AddonsValue{}
+func sunpikeAddonsToTerraformAddons(ctx context.Context, sunpikeAddons []sunpikev1alpha2.ClusterAddon) (map[string]resource_cluster.AddonsValue, diag.Diagnostics) {
+	tfAddonsMap := map[string]resource_cluster.AddonsValue{}
 	var diags diag.Diagnostics
-	for _, addon := range clusterAddon {
-		version := types.StringValue(addon.Spec.Version)
-		phase := types.StringValue(string(addon.Status.Phase))
+	for _, sunpikeAddon := range sunpikeAddons {
+		version := types.StringValue(sunpikeAddon.Spec.Version)
+		phase := types.StringValue(string(sunpikeAddon.Status.Phase))
 		paramMap := map[string]string{}
-		for _, param := range addon.Spec.Override.Params {
+		for _, param := range sunpikeAddon.Spec.Override.Params {
 			paramMap[param.Name] = param.Value
 		}
 		var params basetypes.MapValue
-		switch addon.Spec.Type {
-		case "coredns":
-			objValuable, diags := resource_cluster.CorednsType{}.ValueFromObject(ctx, planAddonsValue.Coredns)
-			diags.Append(diags...)
-			if diags.HasError() {
-				return addons, diags
-			}
-			addonValue := objValuable.(resource_cluster.CorednsValue)
-			newStateParams := map[string]string{}
-			if !addonValue.Params.IsNull() && !addonValue.Params.IsUnknown() {
-				planAddonParams := map[string]string{}
-				diags.Append(addonValue.Params.ElementsAs(ctx, &planAddonParams, false)...)
-				if diags.HasError() {
-					return addons, diags
-				}
-				// only set those keys which are in the plan to avoid inconsistent state after apply error
-				for key, value := range paramMap {
-					if _, found := planAddonParams[key]; found {
-						newStateParams[key] = value
-					}
-				}
-			}
-			if len(newStateParams) == 0 {
-				params = basetypes.NewMapNull(types.StringType)
-			} else {
-				params, diags = types.MapValueFrom(ctx, types.StringType, newStateParams)
-				if diags.HasError() {
-					return addons, diags
-				}
-			}
-			addons.Coredns, diags = resource_cluster.CorednsValue{
-				Params:  params,
-				Phase:   phase,
-				Version: version,
-			}.ToObjectValue(ctx)
-			if diags.HasError() {
-				return addons, diags
-			}
-		default:
-			tflog.Error(ctx, "The addon is not currently supported by terraform provider", map[string]interface{}{"name": addon.Spec.Type})
-			// TODO: Support unknwon addons dynamically
-			// https://developer.hashicorp.com/terraform/plugin/framework/handling-data/types/dynamic
+		params, diags = types.MapValueFrom(ctx, types.StringType, paramMap)
+		if diags.HasError() {
+			return tfAddonsMap, diags
 		}
-	}
-	// Make addons known
-	// https://discuss.hashicorp.com/t/using-terraform-plugin-codegen-framework-generated-code-to-instantiate-nested-objects/64026
-	addonsObjectValue, diags := addons.ToObjectValue(ctx)
-	if diags.HasError() {
-		return addons, diags
-	}
-	addonsObjValuable, diags := resource_cluster.AddonsType{}.ValueFromObject(ctx, addonsObjectValue)
-	diags.Append(diags...)
-	if diags.HasError() {
-		return addons, diags
-	}
-	addons = addonsObjValuable.(resource_cluster.AddonsValue)
-	return addons, diags
-}
-
-func (r *clusterResource) reconcileAddons(ctx context.Context, clusterID string, planAddonsValue resource_cluster.AddonsValue,
-	stateAddonsValue resource_cluster.AddonsValue, stateAddonsMap map[string]*sunpikev1alpha2.ClusterAddon, isCreate bool) diag.Diagnostics {
-
-	var diags diag.Diagnostics
-	// kubernetes_dashboard : enabled by default, non-configurable
-	// metrics_server: enabled by default with params {"metricsCpuLimit": "100m","metricsMemoryLimit": "300Mi"}
-	// monitoring: enabled by default, with params {"retentionTime": "7d"}
-	// coredns: enabled by default, with params {"dnsDomain": "cluster.local","dnsMemoryLimit": "170Mi"}
-
-	defaultAddonVersions, err := r.client.Qbert().ListSupportedAddonVersions(ctx, clusterID)
-	if err != nil {
-		diags.AddError("Failed to get supported addon versions", err.Error())
-		return diags
-	}
-
-	diags.Append(r.reconcileCorednsAddon(ctx, clusterID, "coredns", planAddonsValue.Coredns, stateAddonsValue.Coredns, stateAddonsMap["coredns"], defaultAddonVersions["coredns"], isCreate)...)
-	// diags.Append(r.reconcileMonitoringAddon(ctx, clusterID, "monitoring", planAddonsValue.Monitoring, stateAddonsMap)...)
-	// diags.Append(r.reconcileMetallbAddon(ctx, clusterID, "metallb", planAddonsValue.Metallb, stateAddonsMap)...)
-	// diags.Append(r.reconcileKubevirtAddon(ctx, clusterID, "kubevirt", planAddonsValue.Kubevirt, stateAddonsMap)...)
-	// diags.Append(r.reconcileLuigiAddon(ctx, clusterID, "luigi", planAddonsValue.Luigi, stateAddonsMap)...)
-	// diags.Append(r.reconcileMetal3Addon(ctx, clusterID, "metal3", planAddonsValue.Metal3, stateAddonsMap)...)
-	// diags.Append(r.reconcileMetricsServerAddon(ctx, clusterID, "metrics-server", planAddonsValue.MetricsServer, stateAddonsMap)...)
-	// diags.Append(r.reconcileProfileAgentAddon(ctx, clusterID, "pf9-profile-agent", planAddonsValue.ProfileAgent, stateAddonsMap)...)
-
-	// TODO: Add other addons
-
-	return diags
-}
-
-func convertParamsToMap(params []sunpikev1alpha2.Params) map[string]string {
-	paramsMap := map[string]string{}
-	for _, param := range params {
-		paramsMap[param.Name] = param.Value
-	}
-	return paramsMap
-}
-
-func areMapsDifferent(planParams map[string]string, stateParams map[string]string) bool {
-	if len(planParams) == 0 {
-		return false
-	}
-	for key, value := range planParams {
-		if stateValue, found := stateParams[key]; found && stateValue != value {
-			return true
+		addonObjVal, diags := resource_cluster.AddonsValue{
+			Version: version,
+			Phase:   phase,
+			Params:  params,
+		}.ToObjectValue(ctx)
+		if diags.HasError() {
+			return tfAddonsMap, diags
 		}
+		addonObjValuable, diags := resource_cluster.AddonsType{}.ValueFromObject(ctx, addonObjVal)
+		if diags.HasError() {
+			return tfAddonsMap, diags
+		}
+		tfAddonsMap[sunpikeAddon.Spec.Type] = addonObjValuable.(resource_cluster.AddonsValue)
 	}
-	return false
-}
-
-func (r *clusterResource) listAddonsByLabels(ctx context.Context, clusterID string, addonType string) ([]sunpikev1alpha2.ClusterAddon, error) {
-	labelSelector := k8slabels.SelectorFromSet(map[string]string{
-		"sunpike.pf9.io/cluster": clusterID,
-		"type":                   addonType,
-	})
-
-	listOptions := &client.ListOptions{
-		Namespace:     "default",
-		LabelSelector: labelSelector,
-	}
-
-	var clusterAddonsList sunpikev1alpha2.ClusterAddonList
-	err := r.client.Sunpike().List(ctx, &clusterAddonsList, listOptions)
-	if err != nil {
-		return nil, err
-	}
-	return clusterAddonsList.Items, nil
-}
-
-func (r *clusterResource) disableAddon(ctx context.Context, clusterID string, addonType string) error {
-	clusterAddons, err := r.listAddonsByLabels(ctx, clusterID, addonType)
-	if err != nil {
-		return err
-	}
-	if len(clusterAddons) == 0 {
-		tflog.Debug(ctx, "Addon is already disabled")
-		return nil
-	}
-	clusterAddon := clusterAddons[0]
-	return r.client.Sunpike().Delete(ctx, &clusterAddon)
-}
-
-type AddonSpec struct {
-	ClusterID string
-	Version   string
-	Type      string
-	ParamsMap map[string]string
-}
-
-func (r *clusterResource) enableAddon(ctx context.Context, spec AddonSpec) error {
-	// UI sends the following POST
-	// {
-	// 	"kind": "ClusterAddon",
-	// 	"apiVersion": "sunpike.platform9.com/v1alpha2",
-	// 	"metadata": {
-	// 		"name": "791d2744-f23f-4170-bd85-37d5b771b7bd-luigi",
-	// 		"labels": {
-	// 			"sunpike.pf9.io/cluster": "791d2744-f23f-4170-bd85-37d5b771b7bd",
-	// 			"type": "luigi"
-	// 		}
-	// 	},
-	// 	"spec": {
-	// 		"clusterID": "791d2744-f23f-4170-bd85-37d5b771b7bd",
-	// 		"version": "0.5.4",
-	// 		"type": "luigi",
-	// 		"override": {},
-	// 		"watch": true
-	// 	}
-	// }
-	tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": spec.Type})
-	var params []sunpikev1alpha2.Params
-	for key, value := range spec.ParamsMap {
-		params = append(params, sunpikev1alpha2.Params{
-			Name:  key,
-			Value: value,
-		})
-	}
-	return r.client.Sunpike().Create(ctx, &sunpikev1alpha2.ClusterAddon{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s", spec.ClusterID, spec.Type),
-			Namespace: "default",
-			Labels: map[string]string{
-				"sunpike.pf9.io/cluster": spec.ClusterID,
-				"type":                   spec.Type,
-			},
-		},
-		Spec: sunpikev1alpha2.ClusterAddonSpec{
-			Type:    spec.Type,
-			Version: spec.Version,
-			Override: sunpikev1alpha2.Override{
-				Params: params,
-			},
-		},
-	})
-}
-
-// patchAddon patches Addon using sunpike API, patch includes changing overrides and version
-func (r *clusterResource) patchAddon(ctx context.Context, stateAddon sunpikev1alpha2.ClusterAddon,
-	isParamPatchNeeded bool, versionToPatch string, paramsToPatch map[string]string) diag.Diagnostics {
-	var diags diag.Diagnostics
-	var params []sunpikev1alpha2.Params
-	for key, value := range paramsToPatch {
-		params = append(params, sunpikev1alpha2.Params{
-			Name:  key,
-			Value: value,
-		})
-	}
-
-	//`{"spec: {"override":{"params":[{"name":"retentionTime","value":"7d"}]},"version":"0.68.0"}`
-	tflog.Debug(ctx, "Patching addon", map[string]interface{}{"addon": stateAddon.Spec.Type})
-	patch := client.MergeFrom(stateAddon.DeepCopy())
-	if isParamPatchNeeded {
-		stateAddon.Spec.Override.Params = params
-	}
-	stateAddon.Spec.Version = versionToPatch
-	err := r.client.Sunpike().Patch(ctx, &stateAddon, patch)
-	if err != nil {
-		tflog.Error(ctx, "Failed to patch addon", map[string]interface{}{"error": err})
-		diags.AddError("Failed to patch addon", err.Error())
-		return diags
-	}
-	return diags
+	return tfAddonsMap, diags
 }
 
 func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -515,12 +374,21 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// Save updated state into Terraform state
-	stateAddons, _, diags := r.readAddonsFromRemote(ctx, clusterID, data.Addons)
+	addonsOnRemote, err := r.readAddonsFromRemote(ctx, clusterID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get sunpike addons", err.Error())
+		return
+	}
+	tfAddonsMapState, diags := sunpikeAddonsToTerraformAddons(ctx, addonsOnRemote)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	state.Addons, diags = types.MapValueFrom(ctx, resource_cluster.AddonsValue{}.Type(ctx), tfAddonsMapState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	state.Addons = stateAddons
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -577,8 +445,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		editClusterReq.EtcdBackup = &etcdConfig
 	}
 
-	// TODO: The following attrributes are not in the swagger: https://platform9.com/docs/qbert/ref#putupdate-the-properties-of-a-cluster-specified-by-the-cluster-u
-	// but available in the qbert server code: https://github.com/platform9/pf9-qbert/blob/d23bce9c9cb64caf786a561627c8d0b98dfdbc7c/server/api/handlers/v1/index.js#L267
+	// Check if update works for this fields
 	if !plan.CertExpiryHrs.Equal(state.CertExpiryHrs) {
 		editRequired = true
 		editClusterReq.CertExpiryHrs = int(plan.CertExpiryHrs.ValueInt64())
@@ -604,38 +471,41 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	var upgradeRequired bool
-	var latestKubeRoleVersion string
 	var upgradeClusterReq qbert.UpgradeClusterRequest
 	if !plan.KubeRoleVersion.Equal(state.KubeRoleVersion) {
-		tflog.Info(ctx, "upgrading kube role version", map[string]interface{}{"from": state.KubeRoleVersion, "to": plan.KubeRoleVersion})
-		supportedVersions, err := r.client.Qbert().ListSupportedVersions(projectID)
+		tflog.Info(ctx, "Requested upgrade of the cluster", map[string]interface{}{"from": state.KubeRoleVersion, "to": plan.KubeRoleVersion})
+		tflog.Info(ctx, "Reading cluster from qbert", map[string]interface{}{"clusterID": clusterID})
+		cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
 		if err != nil {
-			resp.Diagnostics.AddError("Failed to find kube role versions for a cluster", err.Error())
+			resp.Diagnostics.AddError("Failed to get cluster", err.Error())
+			return
+		}
+		if !cluster.CanUpgrade {
+			resp.Diagnostics.AddError("Cluster cannot be upgraded", "Cluster is not in a state to be upgraded")
+			return
+		}
+		var allowedTargetVersion string
+		if cluster.CanMinorUpgrade == 1 {
+			allowedTargetVersion = cluster.MinorUpgradeRoleVersion
+			upgradeClusterReq.KubeRoleVersionUpgradeType = "minor"
+		}
+		if cluster.CanPatchUpgrade == 1 {
+			allowedTargetVersion = cluster.PatchUpgradeRoleVersion
+			upgradeClusterReq.KubeRoleVersionUpgradeType = "patch"
+		}
+		if allowedTargetVersion == "" {
+			resp.Diagnostics.AddError("Cluster cannot be upgraded", "Cluster is not in a state to be upgraded")
 			return
 		}
 		planVersion := plan.KubeRoleVersion.ValueString()
-		if planVersion == "latest" {
-			// We will get the latest version from the supported versions
-			latestKubeRoleVersion = findLatestKubeRoleVersion(supportedVersions.Roles).RoleVersion
-			planVersion = latestKubeRoleVersion
-		}
-		var upgradeAllowed bool
-		for _, version := range supportedVersions.Roles {
-			if version.RoleVersion == planVersion {
-				upgradeAllowed = true
-				break
-			}
-		}
-		if !upgradeAllowed {
-			resp.Diagnostics.AddAttributeError(path.Root("kube_role_version"), "Kube role version cannot be upgraded to this version", fmt.Sprintf("Allowed versions are: %v", supportedVersions.Roles))
+		if planVersion != allowedTargetVersion {
+			resp.Diagnostics.AddError("Kube role version cannot be upgraded to this version", fmt.Sprintf("Allowed version is: %v", allowedTargetVersion))
 			return
 		}
-		// TODO: https://platform9.com/docs/qbert/ref#postupgrade-a-cluster-identified-by-the-uuid /upgrade?type=minor query param not documented
-		// TODO:?? What to sent with batchUpgradePercent or batchUpgradeNodes ??
+		if !plan.BatchUpgradePercent.IsNull() && !plan.BatchUpgradePercent.IsUnknown() {
+			upgradeClusterReq.BatchUpgradePercent = int(plan.BatchUpgradePercent.ValueInt64())
+		}
 		upgradeRequired = true
-		planVersionRole := qbert.ParseVersion(planVersion)
-		stateVersionRole := qbert.ParseVersion(state.KubeRoleVersion.ValueString())
-		upgradeClusterReq.KubeRoleVersionUpgradeType = planVersionRole.UpgradeType(stateVersionRole)
 	}
 
 	// We did not add addonVersions inside upgradeClusterReq; because it will be upgraded using sunpike apis later
@@ -647,40 +517,120 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	}
 
-	// Terraform calls Read() before Update() to get the current state. Hence state.Addons is already updated
-	// TODO: Decide whether to load from remote or convert from stateAddonsValue
-	tflog.Debug(ctx, "Getting list of enabled addons including that are enabled by the backend")
-	qbertAddons, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
+	tflog.Debug(ctx, "Getting list of enabled addons")
+	sunpikeAddonsList, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
 	if err != nil {
 		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
 		return
 	}
-	stateAddonsMap := map[string]*sunpikev1alpha2.ClusterAddon{}
-	for _, qbertAddon := range qbertAddons.Items {
-		stateAddonsMap[qbertAddon.Spec.Type] = &qbertAddon
+	sunpikeAddonsMap := map[string]sunpikev1alpha2.ClusterAddon{}
+	for _, sunpikeAddon := range sunpikeAddonsList.Items {
+		sunpikeAddonsMap[sunpikeAddon.Spec.Type] = sunpikeAddon
 	}
-	resp.Diagnostics.Append(r.reconcileAddons(ctx, clusterID, plan.Addons, state.Addons, stateAddonsMap, false)...)
+	// Load plan addons into a map
+	tfAddonsMap := map[string]resource_cluster.AddonsValue{}
+	resp.Diagnostics.Append(plan.Addons.ElementsAs(ctx, &tfAddonsMap, false)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+	defaultAddonVersions, err := r.client.Qbert().ListSupportedAddonVersions(ctx, clusterID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get default addon versions", err.Error())
+		return
+	}
+	for addonName, tfAddon := range tfAddonsMap {
+		if sunpikeAddon, found := sunpikeAddonsMap[addonName]; found {
+			// Patch the addon
+			tflog.Debug(ctx, "Checking if addon version and params needs to be patched")
+			var addonVersion string
+			if tfAddon.Version.IsNull() || tfAddon.Version.IsUnknown() {
+				tflog.Debug(ctx, "Version is not provided in the plan, getting default version")
+				addonVersion = defaultAddonVersions[addonName]
+			} else {
+				addonVersion = tfAddon.Version.ValueString()
+			}
+			paramsInPlan := map[string]string{}
+			resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			resp.Diagnostics.Append(r.patchAddon(ctx, &sunpikeAddon, AddonSpec{
+				ClusterID: clusterID,
+				Type:      addonName,
+				Version:   addonVersion,
+				ParamsMap: paramsInPlan,
+			})...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+		} else {
+			// Enable the addon
+			tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": addonName})
+			paramsInPlan := map[string]string{}
+			resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			var addonVersion string
+			if tfAddon.Version.IsNull() || tfAddon.Version.IsUnknown() {
+				tflog.Debug(ctx, "Version is not provided in the plan, getting default version")
+				addonVersion = defaultAddonVersions[addonName]
+			} else {
+				addonVersion = tfAddon.Version.ValueString()
+			}
+			err = r.enableAddon(ctx, AddonSpec{
+				ClusterID: clusterID,
+				Type:      addonName,
+				Version:   addonVersion,
+				ParamsMap: paramsInPlan,
+			})
+			if err != nil {
+				tflog.Error(ctx, "Failed to enable addon", map[string]interface{}{"addon": addonName, "error": err})
+				resp.Diagnostics.AddError("Failed to enable addon", err.Error())
+				return
+			}
+		}
+	}
+	for addonName := range sunpikeAddonsMap {
+		if _, found := tfAddonsMap[addonName]; !found {
+			tflog.Debug(ctx, "Disabling addon", map[string]interface{}{"addon": addonName})
+			err = r.disableAddon(ctx, clusterID, addonName)
+			if err != nil {
+				tflog.Error(ctx, "Failed to disable addon", map[string]interface{}{"addon": addonName, "error": err})
+				resp.Diagnostics.AddError("Failed to disable addon", err.Error())
+				return
+			}
+		}
 	}
 
 	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if plan.KubeRoleVersion.ValueString() == "latest" && state.KubeRoleVersion.ValueString() == latestKubeRoleVersion {
-		state.KubeRoleVersion = types.StringValue("latest")
-	}
 
 	// Save data into Terraform state
-	stateAddons, _, diags := r.readAddonsFromRemote(ctx, clusterID, plan.Addons)
+	sunpikeAddons, err := r.readAddonsFromRemote(ctx, clusterID)
+	if err != nil {
+		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
+		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
+		return
+	}
+	tfAddonsMapState, diags := sunpikeAddonsToTerraformAddons(ctx, sunpikeAddons)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	state.Addons, diags = types.MapValueFrom(ctx, resource_cluster.AddonsValue{}.Type(ctx), tfAddonsMapState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	state.Addons = stateAddons
 
+	// Copy the batch upgrade percent from the plan to the state
+	// To prevent inconsistency. This attr is read only in case
+	// of upgrade cluster, it is not associated with any remote attribute
+	state.BatchUpgradePercent = plan.BatchUpgradePercent
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -724,22 +674,6 @@ func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, pr
 		return diags
 	}
 	return diags
-}
-
-func (r *clusterResource) readAddonsFromRemote(ctx context.Context, clusterID string, planAddonsValue resource_cluster.AddonsValue) (resource_cluster.AddonsValue, []sunpikev1alpha2.ClusterAddon, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	tflog.Info(ctx, "Listing addons enabled on the cluster", map[string]interface{}{"clusterID": clusterID})
-	qbertAddons, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
-	if err != nil {
-		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
-		diags.AddError("Failed to get cluster addons", err.Error())
-		return resource_cluster.NewAddonsValueUnknown(), nil, diags
-	}
-	addonsValue, diags := sunpikeAddonsToTerraformAddons(ctx, qbertAddons.Items, planAddonsValue)
-	if diags.HasError() {
-		return resource_cluster.NewAddonsValueUnknown(), nil, diags
-	}
-	return addonsValue, qbertAddons.Items, diags
 }
 
 func (r *clusterResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -883,6 +817,17 @@ func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out 
 	out.CustomRegistrySkipTls = types.BoolValue(in.CustomRegistrySkipTls != 0)
 	out.CustomRegistrySelfSignedCerts = types.BoolValue(in.CustomRegistrySelfSignedCerts != 0)
 	out.CustomRegistryCertPath = types.StringValue(in.CustomRegistryCertPath)
+	if in.CanUpgrade {
+		if in.CanMinorUpgrade == 1 {
+			out.UpgradeKubeRoleVersion = types.StringValue(in.MinorUpgradeRoleVersion)
+		} else if in.CanPatchUpgrade == 1 {
+			out.UpgradeKubeRoleVersion = types.StringValue(in.PatchUpgradeRoleVersion)
+		} else {
+			out.UpgradeKubeRoleVersion = types.StringNull()
+		}
+	} else {
+		out.UpgradeKubeRoleVersion = types.StringNull()
+	}
 
 	if in.EnableEtcdEncryption == "true" {
 		out.EnableEtcdEncryption = types.BoolValue(true)
@@ -1121,9 +1066,6 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, plan resource_c
 		tflog.Debug(ctx, "Attaching nodes", map[string]interface{}{"nodeList": nodeList})
 		err := r.client.Qbert().AttachNodes(state.Id.ValueString(), nodeList)
 		if err != nil {
-			// Error: error attaching node <> to cluster <x>: node already attached to cluster <x>
-			// TODO: Ignore the above error if the node is already attached to the same cluster
-			tflog.Error(ctx, "Failed to attach nodes", map[string]interface{}{"error": err})
 			diags.AddError("Failed to attach nodes", err.Error())
 			return diags
 		}

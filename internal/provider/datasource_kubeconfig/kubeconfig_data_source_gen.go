@@ -28,98 +28,73 @@ func KubeconfigDataSourceSchema(ctx context.Context) schema.Schema {
 					stringvalidator.OneOf("token", "password", "certificate"),
 				},
 			},
-			"clusters": schema.ListNestedAttribute{
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"cluster": schema.SingleNestedAttribute{
-							Attributes: map[string]schema.Attribute{
-								"certificate_authority": schema.StringAttribute{
-									Computed:            true,
-									Description:         "CA certificate",
-									MarkdownDescription: "CA certificate",
-								},
-								"server": schema.StringAttribute{
-									Computed:            true,
-									Description:         "API server URL",
-									MarkdownDescription: "API server URL",
-								},
-							},
-							CustomType: ClusterType{
-								ObjectType: types.ObjectType{
-									AttrTypes: ClusterValue{}.AttributeTypes(ctx),
-								},
-							},
-							Computed: true,
-						},
-						"name": schema.StringAttribute{
-							Computed:            true,
-							Description:         "Name of the cluster",
-							MarkdownDescription: "Name of the cluster",
-						},
-					},
-					CustomType: ClustersType{
-						ObjectType: types.ObjectType{
-							AttrTypes: ClustersValue{}.AttributeTypes(ctx),
-						},
-					},
-				},
-				Computed:            true,
-				Description:         "List of clusters",
-				MarkdownDescription: "List of clusters",
-			},
 			"id": schema.StringAttribute{
 				Required:            true,
 				Description:         "UUID of the cluster",
 				MarkdownDescription: "UUID of the cluster",
 			},
-			"raw": schema.StringAttribute{
-				Computed:            true,
-				Description:         "Kubeconfig blob",
-				MarkdownDescription: "Kubeconfig blob",
-			},
-			"users": schema.ListNestedAttribute{
+			"kubeconfigs": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
+						"client_certificate": schema.StringAttribute{
+							Computed:            true,
+							Description:         "Path to the client certificate file",
+							MarkdownDescription: "Path to the client certificate file",
+						},
+						"client_key": schema.StringAttribute{
+							Computed:            true,
+							Description:         "Path to the client key file",
+							MarkdownDescription: "Path to the client key file",
+						},
+						"cluster": schema.StringAttribute{
+							Computed:            true,
+							Description:         "Name of the cluster",
+							MarkdownDescription: "Name of the cluster",
+						},
+						"cluster_ca_certificate": schema.StringAttribute{
+							Computed:            true,
+							Description:         "Path to the certificate authority file",
+							MarkdownDescription: "Path to the certificate authority file",
+						},
+						"host": schema.StringAttribute{
+							Computed:            true,
+							Description:         "Kube api server api endpoint",
+							MarkdownDescription: "Kube api server api endpoint",
+						},
+						"insecure": schema.BoolAttribute{
+							Computed:            true,
+							Description:         "If the server should be accessed without verifying the TLS certificate",
+							MarkdownDescription: "If the server should be accessed without verifying the TLS certificate",
+						},
 						"name": schema.StringAttribute{
+							Computed:            true,
+							Description:         "Name of the kubeconfig context",
+							MarkdownDescription: "Name of the kubeconfig context",
+						},
+						"token": schema.StringAttribute{
+							Computed:            true,
+							Sensitive:           true,
+							Description:         "Token of your service account",
+							MarkdownDescription: "Token of your service account",
+						},
+						"username": schema.StringAttribute{
 							Computed:            true,
 							Description:         "Name of the user",
 							MarkdownDescription: "Name of the user",
 						},
-						"user": schema.SingleNestedAttribute{
-							Attributes: map[string]schema.Attribute{
-								"client_certificate": schema.StringAttribute{
-									Computed:            true,
-									Description:         "Client certificate",
-									MarkdownDescription: "Client certificate",
-								},
-								"client_key": schema.StringAttribute{
-									Computed:            true,
-									Description:         "Client key",
-									MarkdownDescription: "Client key",
-								},
-								"token": schema.StringAttribute{
-									Computed:            true,
-									Description:         "Token",
-									MarkdownDescription: "Token",
-								},
-							},
-							CustomType: UserType{
-								ObjectType: types.ObjectType{
-									AttrTypes: UserValue{}.AttributeTypes(ctx),
-								},
-							},
-							Computed: true,
-						},
 					},
-					CustomType: UsersType{
+					CustomType: KubeconfigsType{
 						ObjectType: types.ObjectType{
-							AttrTypes: UsersValue{}.AttributeTypes(ctx),
+							AttrTypes: KubeconfigsValue{}.AttributeTypes(ctx),
 						},
 					},
 				},
+				Computed: true,
+			},
+			"raw": schema.StringAttribute{
 				Computed:            true,
-				Description:         "List of users",
-				MarkdownDescription: "List of users",
+				Description:         "Kubeconfig blob",
+				MarkdownDescription: "Kubeconfig blob",
 			},
 		},
 	}
@@ -127,20 +102,19 @@ func KubeconfigDataSourceSchema(ctx context.Context) schema.Schema {
 
 type KubeconfigModel struct {
 	AuthenticationMethod types.String `tfsdk:"authentication_method"`
-	Clusters             types.List   `tfsdk:"clusters"`
 	Id                   types.String `tfsdk:"id"`
+	Kubeconfigs          types.List   `tfsdk:"kubeconfigs"`
 	Raw                  types.String `tfsdk:"raw"`
-	Users                types.List   `tfsdk:"users"`
 }
 
-var _ basetypes.ObjectTypable = ClustersType{}
+var _ basetypes.ObjectTypable = KubeconfigsType{}
 
-type ClustersType struct {
+type KubeconfigsType struct {
 	basetypes.ObjectType
 }
 
-func (t ClustersType) Equal(o attr.Type) bool {
-	other, ok := o.(ClustersType)
+func (t KubeconfigsType) Equal(o attr.Type) bool {
+	other, ok := o.(KubeconfigsType)
 
 	if !ok {
 		return false
@@ -149,14 +123,50 @@ func (t ClustersType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t ClustersType) String() string {
-	return "ClustersType"
+func (t KubeconfigsType) String() string {
+	return "KubeconfigsType"
 }
 
-func (t ClustersType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t KubeconfigsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
+
+	clientCertificateAttribute, ok := attributes["client_certificate"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`client_certificate is missing from object`)
+
+		return nil, diags
+	}
+
+	clientCertificateVal, ok := clientCertificateAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`client_certificate expected to be basetypes.StringValue, was: %T`, clientCertificateAttribute))
+	}
+
+	clientKeyAttribute, ok := attributes["client_key"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`client_key is missing from object`)
+
+		return nil, diags
+	}
+
+	clientKeyVal, ok := clientKeyAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`client_key expected to be basetypes.StringValue, was: %T`, clientKeyAttribute))
+	}
 
 	clusterAttribute, ok := attributes["cluster"]
 
@@ -168,12 +178,66 @@ func (t ClustersType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 		return nil, diags
 	}
 
-	clusterVal, ok := clusterAttribute.(basetypes.ObjectValue)
+	clusterVal, ok := clusterAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`cluster expected to be basetypes.ObjectValue, was: %T`, clusterAttribute))
+			fmt.Sprintf(`cluster expected to be basetypes.StringValue, was: %T`, clusterAttribute))
+	}
+
+	clusterCaCertificateAttribute, ok := attributes["cluster_ca_certificate"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`cluster_ca_certificate is missing from object`)
+
+		return nil, diags
+	}
+
+	clusterCaCertificateVal, ok := clusterCaCertificateAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`cluster_ca_certificate expected to be basetypes.StringValue, was: %T`, clusterCaCertificateAttribute))
+	}
+
+	hostAttribute, ok := attributes["host"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`host is missing from object`)
+
+		return nil, diags
+	}
+
+	hostVal, ok := hostAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`host expected to be basetypes.StringValue, was: %T`, hostAttribute))
+	}
+
+	insecureAttribute, ok := attributes["insecure"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`insecure is missing from object`)
+
+		return nil, diags
+	}
+
+	insecureVal, ok := insecureAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`insecure expected to be basetypes.BoolValue, was: %T`, insecureAttribute))
 	}
 
 	nameAttribute, ok := attributes["name"]
@@ -194,30 +258,73 @@ func (t ClustersType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
 	}
 
+	tokenAttribute, ok := attributes["token"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`token is missing from object`)
+
+		return nil, diags
+	}
+
+	tokenVal, ok := tokenAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`token expected to be basetypes.StringValue, was: %T`, tokenAttribute))
+	}
+
+	usernameAttribute, ok := attributes["username"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`username is missing from object`)
+
+		return nil, diags
+	}
+
+	usernameVal, ok := usernameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`username expected to be basetypes.StringValue, was: %T`, usernameAttribute))
+	}
+
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return ClustersValue{
-		Cluster: clusterVal,
-		Name:    nameVal,
-		state:   attr.ValueStateKnown,
+	return KubeconfigsValue{
+		ClientCertificate:    clientCertificateVal,
+		ClientKey:            clientKeyVal,
+		Cluster:              clusterVal,
+		ClusterCaCertificate: clusterCaCertificateVal,
+		Host:                 hostVal,
+		Insecure:             insecureVal,
+		Name:                 nameVal,
+		Token:                tokenVal,
+		Username:             usernameVal,
+		state:                attr.ValueStateKnown,
 	}, diags
 }
 
-func NewClustersValueNull() ClustersValue {
-	return ClustersValue{
+func NewKubeconfigsValueNull() KubeconfigsValue {
+	return KubeconfigsValue{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewClustersValueUnknown() ClustersValue {
-	return ClustersValue{
+func NewKubeconfigsValueUnknown() KubeconfigsValue {
+	return KubeconfigsValue{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewClustersValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ClustersValue, diag.Diagnostics) {
+func NewKubeconfigsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (KubeconfigsValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -228,11 +335,11 @@ func NewClustersValue(attributeTypes map[string]attr.Type, attributes map[string
 
 		if !ok {
 			diags.AddError(
-				"Missing ClustersValue Attribute Value",
-				"While creating a ClustersValue value, a missing attribute value was detected. "+
-					"A ClustersValue must contain values for all attributes, even if null or unknown. "+
+				"Missing KubeconfigsValue Attribute Value",
+				"While creating a KubeconfigsValue value, a missing attribute value was detected. "+
+					"A KubeconfigsValue must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ClustersValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("KubeconfigsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -240,12 +347,12 @@ func NewClustersValue(attributeTypes map[string]attr.Type, attributes map[string
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid ClustersValue Attribute Type",
-				"While creating a ClustersValue value, an invalid attribute value was detected. "+
-					"A ClustersValue must use a matching attribute type for the value. "+
+				"Invalid KubeconfigsValue Attribute Type",
+				"While creating a KubeconfigsValue value, an invalid attribute value was detected. "+
+					"A KubeconfigsValue must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ClustersValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("ClustersValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("KubeconfigsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("KubeconfigsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -255,17 +362,53 @@ func NewClustersValue(attributeTypes map[string]attr.Type, attributes map[string
 
 		if !ok {
 			diags.AddError(
-				"Extra ClustersValue Attribute Value",
-				"While creating a ClustersValue value, an extra attribute value was detected. "+
-					"A ClustersValue must not contain values beyond the expected attribute types. "+
+				"Extra KubeconfigsValue Attribute Value",
+				"While creating a KubeconfigsValue value, an extra attribute value was detected. "+
+					"A KubeconfigsValue must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra ClustersValue Attribute Name: %s", name),
+					fmt.Sprintf("Extra KubeconfigsValue Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return NewClustersValueUnknown(), diags
+		return NewKubeconfigsValueUnknown(), diags
+	}
+
+	clientCertificateAttribute, ok := attributes["client_certificate"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`client_certificate is missing from object`)
+
+		return NewKubeconfigsValueUnknown(), diags
+	}
+
+	clientCertificateVal, ok := clientCertificateAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`client_certificate expected to be basetypes.StringValue, was: %T`, clientCertificateAttribute))
+	}
+
+	clientKeyAttribute, ok := attributes["client_key"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`client_key is missing from object`)
+
+		return NewKubeconfigsValueUnknown(), diags
+	}
+
+	clientKeyVal, ok := clientKeyAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`client_key expected to be basetypes.StringValue, was: %T`, clientKeyAttribute))
 	}
 
 	clusterAttribute, ok := attributes["cluster"]
@@ -275,15 +418,69 @@ func NewClustersValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`cluster is missing from object`)
 
-		return NewClustersValueUnknown(), diags
+		return NewKubeconfigsValueUnknown(), diags
 	}
 
-	clusterVal, ok := clusterAttribute.(basetypes.ObjectValue)
+	clusterVal, ok := clusterAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`cluster expected to be basetypes.ObjectValue, was: %T`, clusterAttribute))
+			fmt.Sprintf(`cluster expected to be basetypes.StringValue, was: %T`, clusterAttribute))
+	}
+
+	clusterCaCertificateAttribute, ok := attributes["cluster_ca_certificate"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`cluster_ca_certificate is missing from object`)
+
+		return NewKubeconfigsValueUnknown(), diags
+	}
+
+	clusterCaCertificateVal, ok := clusterCaCertificateAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`cluster_ca_certificate expected to be basetypes.StringValue, was: %T`, clusterCaCertificateAttribute))
+	}
+
+	hostAttribute, ok := attributes["host"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`host is missing from object`)
+
+		return NewKubeconfigsValueUnknown(), diags
+	}
+
+	hostVal, ok := hostAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`host expected to be basetypes.StringValue, was: %T`, hostAttribute))
+	}
+
+	insecureAttribute, ok := attributes["insecure"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`insecure is missing from object`)
+
+		return NewKubeconfigsValueUnknown(), diags
+	}
+
+	insecureVal, ok := insecureAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`insecure expected to be basetypes.BoolValue, was: %T`, insecureAttribute))
 	}
 
 	nameAttribute, ok := attributes["name"]
@@ -293,7 +490,7 @@ func NewClustersValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`name is missing from object`)
 
-		return NewClustersValueUnknown(), diags
+		return NewKubeconfigsValueUnknown(), diags
 	}
 
 	nameVal, ok := nameAttribute.(basetypes.StringValue)
@@ -304,19 +501,62 @@ func NewClustersValue(attributeTypes map[string]attr.Type, attributes map[string
 			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
 	}
 
-	if diags.HasError() {
-		return NewClustersValueUnknown(), diags
+	tokenAttribute, ok := attributes["token"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`token is missing from object`)
+
+		return NewKubeconfigsValueUnknown(), diags
 	}
 
-	return ClustersValue{
-		Cluster: clusterVal,
-		Name:    nameVal,
-		state:   attr.ValueStateKnown,
+	tokenVal, ok := tokenAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`token expected to be basetypes.StringValue, was: %T`, tokenAttribute))
+	}
+
+	usernameAttribute, ok := attributes["username"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`username is missing from object`)
+
+		return NewKubeconfigsValueUnknown(), diags
+	}
+
+	usernameVal, ok := usernameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`username expected to be basetypes.StringValue, was: %T`, usernameAttribute))
+	}
+
+	if diags.HasError() {
+		return NewKubeconfigsValueUnknown(), diags
+	}
+
+	return KubeconfigsValue{
+		ClientCertificate:    clientCertificateVal,
+		ClientKey:            clientKeyVal,
+		Cluster:              clusterVal,
+		ClusterCaCertificate: clusterCaCertificateVal,
+		Host:                 hostVal,
+		Insecure:             insecureVal,
+		Name:                 nameVal,
+		Token:                tokenVal,
+		Username:             usernameVal,
+		state:                attr.ValueStateKnown,
 	}, diags
 }
 
-func NewClustersValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ClustersValue {
-	object, diags := NewClustersValue(attributeTypes, attributes)
+func NewKubeconfigsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) KubeconfigsValue {
+	object, diags := NewKubeconfigsValue(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -330,15 +570,15 @@ func NewClustersValueMust(attributeTypes map[string]attr.Type, attributes map[st
 				diagnostic.Detail()))
 		}
 
-		panic("NewClustersValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("NewKubeconfigsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t ClustersType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t KubeconfigsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewClustersValueNull(), nil
+		return NewKubeconfigsValueNull(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -346,11 +586,11 @@ func (t ClustersType) ValueFromTerraform(ctx context.Context, in tftypes.Value) 
 	}
 
 	if !in.IsKnown() {
-		return NewClustersValueUnknown(), nil
+		return NewKubeconfigsValueUnknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewClustersValueNull(), nil
+		return NewKubeconfigsValueNull(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -373,1236 +613,49 @@ func (t ClustersType) ValueFromTerraform(ctx context.Context, in tftypes.Value) 
 		attributes[k] = a
 	}
 
-	return NewClustersValueMust(ClustersValue{}.AttributeTypes(ctx), attributes), nil
+	return NewKubeconfigsValueMust(KubeconfigsValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t ClustersType) ValueType(ctx context.Context) attr.Value {
-	return ClustersValue{}
+func (t KubeconfigsType) ValueType(ctx context.Context) attr.Value {
+	return KubeconfigsValue{}
 }
 
-var _ basetypes.ObjectValuable = ClustersValue{}
-
-type ClustersValue struct {
-	Cluster basetypes.ObjectValue `tfsdk:"cluster"`
-	Name    basetypes.StringValue `tfsdk:"name"`
-	state   attr.ValueState
-}
-
-func (v ClustersValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 2)
-
-	var val tftypes.Value
-	var err error
-
-	attrTypes["cluster"] = basetypes.ObjectType{
-		AttrTypes: ClusterValue{}.AttributeTypes(ctx),
-	}.TerraformType(ctx)
-	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
-
-	objectType := tftypes.Object{AttributeTypes: attrTypes}
-
-	switch v.state {
-	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 2)
-
-		val, err = v.Cluster.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["cluster"] = val
-
-		val, err = v.Name.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["name"] = val
-
-		if err := tftypes.ValidateValue(objectType, vals); err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		return tftypes.NewValue(objectType, vals), nil
-	case attr.ValueStateNull:
-		return tftypes.NewValue(objectType, nil), nil
-	case attr.ValueStateUnknown:
-		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
-	default:
-		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
-	}
-}
-
-func (v ClustersValue) IsNull() bool {
-	return v.state == attr.ValueStateNull
-}
-
-func (v ClustersValue) IsUnknown() bool {
-	return v.state == attr.ValueStateUnknown
-}
-
-func (v ClustersValue) String() string {
-	return "ClustersValue"
-}
-
-func (v ClustersValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	var cluster basetypes.ObjectValue
-
-	if v.Cluster.IsNull() {
-		cluster = types.ObjectNull(
-			ClusterValue{}.AttributeTypes(ctx),
-		)
-	}
-
-	if v.Cluster.IsUnknown() {
-		cluster = types.ObjectUnknown(
-			ClusterValue{}.AttributeTypes(ctx),
-		)
-	}
-
-	if !v.Cluster.IsNull() && !v.Cluster.IsUnknown() {
-		cluster = types.ObjectValueMust(
-			ClusterValue{}.AttributeTypes(ctx),
-			v.Cluster.Attributes(),
-		)
-	}
-
-	objVal, diags := types.ObjectValue(
-		map[string]attr.Type{
-			"cluster": basetypes.ObjectType{
-				AttrTypes: ClusterValue{}.AttributeTypes(ctx),
-			},
-			"name": basetypes.StringType{},
-		},
-		map[string]attr.Value{
-			"cluster": cluster,
-			"name":    v.Name,
-		})
-
-	return objVal, diags
-}
-
-func (v ClustersValue) Equal(o attr.Value) bool {
-	other, ok := o.(ClustersValue)
-
-	if !ok {
-		return false
-	}
-
-	if v.state != other.state {
-		return false
-	}
-
-	if v.state != attr.ValueStateKnown {
-		return true
-	}
-
-	if !v.Cluster.Equal(other.Cluster) {
-		return false
-	}
-
-	if !v.Name.Equal(other.Name) {
-		return false
-	}
-
-	return true
-}
-
-func (v ClustersValue) Type(ctx context.Context) attr.Type {
-	return ClustersType{
-		basetypes.ObjectType{
-			AttrTypes: v.AttributeTypes(ctx),
-		},
-	}
-}
-
-func (v ClustersValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
-	return map[string]attr.Type{
-		"cluster": basetypes.ObjectType{
-			AttrTypes: ClusterValue{}.AttributeTypes(ctx),
-		},
-		"name": basetypes.StringType{},
-	}
-}
-
-var _ basetypes.ObjectTypable = ClusterType{}
-
-type ClusterType struct {
-	basetypes.ObjectType
-}
-
-func (t ClusterType) Equal(o attr.Type) bool {
-	other, ok := o.(ClusterType)
-
-	if !ok {
-		return false
-	}
-
-	return t.ObjectType.Equal(other.ObjectType)
-}
-
-func (t ClusterType) String() string {
-	return "ClusterType"
-}
-
-func (t ClusterType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	attributes := in.Attributes()
-
-	certificateAuthorityAttribute, ok := attributes["certificate_authority"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`certificate_authority is missing from object`)
-
-		return nil, diags
-	}
-
-	certificateAuthorityVal, ok := certificateAuthorityAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`certificate_authority expected to be basetypes.StringValue, was: %T`, certificateAuthorityAttribute))
-	}
-
-	serverAttribute, ok := attributes["server"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`server is missing from object`)
-
-		return nil, diags
-	}
-
-	serverVal, ok := serverAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`server expected to be basetypes.StringValue, was: %T`, serverAttribute))
-	}
-
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return ClusterValue{
-		CertificateAuthority: certificateAuthorityVal,
-		Server:               serverVal,
-		state:                attr.ValueStateKnown,
-	}, diags
-}
-
-func NewClusterValueNull() ClusterValue {
-	return ClusterValue{
-		state: attr.ValueStateNull,
-	}
-}
-
-func NewClusterValueUnknown() ClusterValue {
-	return ClusterValue{
-		state: attr.ValueStateUnknown,
-	}
-}
-
-func NewClusterValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ClusterValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
-	ctx := context.Background()
-
-	for name, attributeType := range attributeTypes {
-		attribute, ok := attributes[name]
-
-		if !ok {
-			diags.AddError(
-				"Missing ClusterValue Attribute Value",
-				"While creating a ClusterValue value, a missing attribute value was detected. "+
-					"A ClusterValue must contain values for all attributes, even if null or unknown. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ClusterValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
-			)
-
-			continue
-		}
-
-		if !attributeType.Equal(attribute.Type(ctx)) {
-			diags.AddError(
-				"Invalid ClusterValue Attribute Type",
-				"While creating a ClusterValue value, an invalid attribute value was detected. "+
-					"A ClusterValue must use a matching attribute type for the value. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("ClusterValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("ClusterValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
-			)
-		}
-	}
-
-	for name := range attributes {
-		_, ok := attributeTypes[name]
-
-		if !ok {
-			diags.AddError(
-				"Extra ClusterValue Attribute Value",
-				"While creating a ClusterValue value, an extra attribute value was detected. "+
-					"A ClusterValue must not contain values beyond the expected attribute types. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra ClusterValue Attribute Name: %s", name),
-			)
-		}
-	}
-
-	if diags.HasError() {
-		return NewClusterValueUnknown(), diags
-	}
-
-	certificateAuthorityAttribute, ok := attributes["certificate_authority"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`certificate_authority is missing from object`)
-
-		return NewClusterValueUnknown(), diags
-	}
-
-	certificateAuthorityVal, ok := certificateAuthorityAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`certificate_authority expected to be basetypes.StringValue, was: %T`, certificateAuthorityAttribute))
-	}
-
-	serverAttribute, ok := attributes["server"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`server is missing from object`)
-
-		return NewClusterValueUnknown(), diags
-	}
-
-	serverVal, ok := serverAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`server expected to be basetypes.StringValue, was: %T`, serverAttribute))
-	}
-
-	if diags.HasError() {
-		return NewClusterValueUnknown(), diags
-	}
-
-	return ClusterValue{
-		CertificateAuthority: certificateAuthorityVal,
-		Server:               serverVal,
-		state:                attr.ValueStateKnown,
-	}, diags
-}
-
-func NewClusterValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ClusterValue {
-	object, diags := NewClusterValue(attributeTypes, attributes)
-
-	if diags.HasError() {
-		// This could potentially be added to the diag package.
-		diagsStrings := make([]string, 0, len(diags))
-
-		for _, diagnostic := range diags {
-			diagsStrings = append(diagsStrings, fmt.Sprintf(
-				"%s | %s | %s",
-				diagnostic.Severity(),
-				diagnostic.Summary(),
-				diagnostic.Detail()))
-		}
-
-		panic("NewClusterValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
-	}
-
-	return object
-}
-
-func (t ClusterType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
-	if in.Type() == nil {
-		return NewClusterValueNull(), nil
-	}
-
-	if !in.Type().Equal(t.TerraformType(ctx)) {
-		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
-	}
-
-	if !in.IsKnown() {
-		return NewClusterValueUnknown(), nil
-	}
-
-	if in.IsNull() {
-		return NewClusterValueNull(), nil
-	}
-
-	attributes := map[string]attr.Value{}
-
-	val := map[string]tftypes.Value{}
-
-	err := in.As(&val)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range val {
-		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
-
-		if err != nil {
-			return nil, err
-		}
-
-		attributes[k] = a
-	}
-
-	return NewClusterValueMust(ClusterValue{}.AttributeTypes(ctx), attributes), nil
-}
-
-func (t ClusterType) ValueType(ctx context.Context) attr.Value {
-	return ClusterValue{}
-}
-
-var _ basetypes.ObjectValuable = ClusterValue{}
-
-type ClusterValue struct {
-	CertificateAuthority basetypes.StringValue `tfsdk:"certificate_authority"`
-	Server               basetypes.StringValue `tfsdk:"server"`
+var _ basetypes.ObjectValuable = KubeconfigsValue{}
+
+type KubeconfigsValue struct {
+	ClientCertificate    basetypes.StringValue `tfsdk:"client_certificate"`
+	ClientKey            basetypes.StringValue `tfsdk:"client_key"`
+	Cluster              basetypes.StringValue `tfsdk:"cluster"`
+	ClusterCaCertificate basetypes.StringValue `tfsdk:"cluster_ca_certificate"`
+	Host                 basetypes.StringValue `tfsdk:"host"`
+	Insecure             basetypes.BoolValue   `tfsdk:"insecure"`
+	Name                 basetypes.StringValue `tfsdk:"name"`
+	Token                basetypes.StringValue `tfsdk:"token"`
+	Username             basetypes.StringValue `tfsdk:"username"`
 	state                attr.ValueState
 }
 
-func (v ClusterValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 2)
-
-	var val tftypes.Value
-	var err error
-
-	attrTypes["certificate_authority"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["server"] = basetypes.StringType{}.TerraformType(ctx)
-
-	objectType := tftypes.Object{AttributeTypes: attrTypes}
-
-	switch v.state {
-	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 2)
-
-		val, err = v.CertificateAuthority.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["certificate_authority"] = val
-
-		val, err = v.Server.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["server"] = val
-
-		if err := tftypes.ValidateValue(objectType, vals); err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		return tftypes.NewValue(objectType, vals), nil
-	case attr.ValueStateNull:
-		return tftypes.NewValue(objectType, nil), nil
-	case attr.ValueStateUnknown:
-		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
-	default:
-		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
-	}
-}
-
-func (v ClusterValue) IsNull() bool {
-	return v.state == attr.ValueStateNull
-}
-
-func (v ClusterValue) IsUnknown() bool {
-	return v.state == attr.ValueStateUnknown
-}
-
-func (v ClusterValue) String() string {
-	return "ClusterValue"
-}
-
-func (v ClusterValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	objVal, diags := types.ObjectValue(
-		map[string]attr.Type{
-			"certificate_authority": basetypes.StringType{},
-			"server":                basetypes.StringType{},
-		},
-		map[string]attr.Value{
-			"certificate_authority": v.CertificateAuthority,
-			"server":                v.Server,
-		})
-
-	return objVal, diags
-}
-
-func (v ClusterValue) Equal(o attr.Value) bool {
-	other, ok := o.(ClusterValue)
-
-	if !ok {
-		return false
-	}
-
-	if v.state != other.state {
-		return false
-	}
-
-	if v.state != attr.ValueStateKnown {
-		return true
-	}
-
-	if !v.CertificateAuthority.Equal(other.CertificateAuthority) {
-		return false
-	}
-
-	if !v.Server.Equal(other.Server) {
-		return false
-	}
-
-	return true
-}
-
-func (v ClusterValue) Type(ctx context.Context) attr.Type {
-	return ClusterType{
-		basetypes.ObjectType{
-			AttrTypes: v.AttributeTypes(ctx),
-		},
-	}
-}
-
-func (v ClusterValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
-	return map[string]attr.Type{
-		"certificate_authority": basetypes.StringType{},
-		"server":                basetypes.StringType{},
-	}
-}
-
-var _ basetypes.ObjectTypable = UsersType{}
-
-type UsersType struct {
-	basetypes.ObjectType
-}
-
-func (t UsersType) Equal(o attr.Type) bool {
-	other, ok := o.(UsersType)
-
-	if !ok {
-		return false
-	}
-
-	return t.ObjectType.Equal(other.ObjectType)
-}
-
-func (t UsersType) String() string {
-	return "UsersType"
-}
-
-func (t UsersType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	attributes := in.Attributes()
-
-	nameAttribute, ok := attributes["name"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`name is missing from object`)
-
-		return nil, diags
-	}
-
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
-	}
-
-	userAttribute, ok := attributes["user"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`user is missing from object`)
-
-		return nil, diags
-	}
-
-	userVal, ok := userAttribute.(basetypes.ObjectValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`user expected to be basetypes.ObjectValue, was: %T`, userAttribute))
-	}
-
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return UsersValue{
-		Name:  nameVal,
-		User:  userVal,
-		state: attr.ValueStateKnown,
-	}, diags
-}
-
-func NewUsersValueNull() UsersValue {
-	return UsersValue{
-		state: attr.ValueStateNull,
-	}
-}
-
-func NewUsersValueUnknown() UsersValue {
-	return UsersValue{
-		state: attr.ValueStateUnknown,
-	}
-}
-
-func NewUsersValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (UsersValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
-	ctx := context.Background()
-
-	for name, attributeType := range attributeTypes {
-		attribute, ok := attributes[name]
-
-		if !ok {
-			diags.AddError(
-				"Missing UsersValue Attribute Value",
-				"While creating a UsersValue value, a missing attribute value was detected. "+
-					"A UsersValue must contain values for all attributes, even if null or unknown. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("UsersValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
-			)
-
-			continue
-		}
-
-		if !attributeType.Equal(attribute.Type(ctx)) {
-			diags.AddError(
-				"Invalid UsersValue Attribute Type",
-				"While creating a UsersValue value, an invalid attribute value was detected. "+
-					"A UsersValue must use a matching attribute type for the value. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("UsersValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("UsersValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
-			)
-		}
-	}
-
-	for name := range attributes {
-		_, ok := attributeTypes[name]
-
-		if !ok {
-			diags.AddError(
-				"Extra UsersValue Attribute Value",
-				"While creating a UsersValue value, an extra attribute value was detected. "+
-					"A UsersValue must not contain values beyond the expected attribute types. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra UsersValue Attribute Name: %s", name),
-			)
-		}
-	}
-
-	if diags.HasError() {
-		return NewUsersValueUnknown(), diags
-	}
-
-	nameAttribute, ok := attributes["name"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`name is missing from object`)
-
-		return NewUsersValueUnknown(), diags
-	}
-
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
-	}
-
-	userAttribute, ok := attributes["user"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`user is missing from object`)
-
-		return NewUsersValueUnknown(), diags
-	}
-
-	userVal, ok := userAttribute.(basetypes.ObjectValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`user expected to be basetypes.ObjectValue, was: %T`, userAttribute))
-	}
-
-	if diags.HasError() {
-		return NewUsersValueUnknown(), diags
-	}
-
-	return UsersValue{
-		Name:  nameVal,
-		User:  userVal,
-		state: attr.ValueStateKnown,
-	}, diags
-}
-
-func NewUsersValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) UsersValue {
-	object, diags := NewUsersValue(attributeTypes, attributes)
-
-	if diags.HasError() {
-		// This could potentially be added to the diag package.
-		diagsStrings := make([]string, 0, len(diags))
-
-		for _, diagnostic := range diags {
-			diagsStrings = append(diagsStrings, fmt.Sprintf(
-				"%s | %s | %s",
-				diagnostic.Severity(),
-				diagnostic.Summary(),
-				diagnostic.Detail()))
-		}
-
-		panic("NewUsersValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
-	}
-
-	return object
-}
-
-func (t UsersType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
-	if in.Type() == nil {
-		return NewUsersValueNull(), nil
-	}
-
-	if !in.Type().Equal(t.TerraformType(ctx)) {
-		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
-	}
-
-	if !in.IsKnown() {
-		return NewUsersValueUnknown(), nil
-	}
-
-	if in.IsNull() {
-		return NewUsersValueNull(), nil
-	}
-
-	attributes := map[string]attr.Value{}
-
-	val := map[string]tftypes.Value{}
-
-	err := in.As(&val)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range val {
-		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
-
-		if err != nil {
-			return nil, err
-		}
-
-		attributes[k] = a
-	}
-
-	return NewUsersValueMust(UsersValue{}.AttributeTypes(ctx), attributes), nil
-}
-
-func (t UsersType) ValueType(ctx context.Context) attr.Value {
-	return UsersValue{}
-}
-
-var _ basetypes.ObjectValuable = UsersValue{}
-
-type UsersValue struct {
-	Name  basetypes.StringValue `tfsdk:"name"`
-	User  basetypes.ObjectValue `tfsdk:"user"`
-	state attr.ValueState
-}
-
-func (v UsersValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 2)
-
-	var val tftypes.Value
-	var err error
-
-	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["user"] = basetypes.ObjectType{
-		AttrTypes: UserValue{}.AttributeTypes(ctx),
-	}.TerraformType(ctx)
-
-	objectType := tftypes.Object{AttributeTypes: attrTypes}
-
-	switch v.state {
-	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 2)
-
-		val, err = v.Name.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["name"] = val
-
-		val, err = v.User.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["user"] = val
-
-		if err := tftypes.ValidateValue(objectType, vals); err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		return tftypes.NewValue(objectType, vals), nil
-	case attr.ValueStateNull:
-		return tftypes.NewValue(objectType, nil), nil
-	case attr.ValueStateUnknown:
-		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
-	default:
-		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
-	}
-}
-
-func (v UsersValue) IsNull() bool {
-	return v.state == attr.ValueStateNull
-}
-
-func (v UsersValue) IsUnknown() bool {
-	return v.state == attr.ValueStateUnknown
-}
-
-func (v UsersValue) String() string {
-	return "UsersValue"
-}
-
-func (v UsersValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	var user basetypes.ObjectValue
-
-	if v.User.IsNull() {
-		user = types.ObjectNull(
-			UserValue{}.AttributeTypes(ctx),
-		)
-	}
-
-	if v.User.IsUnknown() {
-		user = types.ObjectUnknown(
-			UserValue{}.AttributeTypes(ctx),
-		)
-	}
-
-	if !v.User.IsNull() && !v.User.IsUnknown() {
-		user = types.ObjectValueMust(
-			UserValue{}.AttributeTypes(ctx),
-			v.User.Attributes(),
-		)
-	}
-
-	objVal, diags := types.ObjectValue(
-		map[string]attr.Type{
-			"name": basetypes.StringType{},
-			"user": basetypes.ObjectType{
-				AttrTypes: UserValue{}.AttributeTypes(ctx),
-			},
-		},
-		map[string]attr.Value{
-			"name": v.Name,
-			"user": user,
-		})
-
-	return objVal, diags
-}
-
-func (v UsersValue) Equal(o attr.Value) bool {
-	other, ok := o.(UsersValue)
-
-	if !ok {
-		return false
-	}
-
-	if v.state != other.state {
-		return false
-	}
-
-	if v.state != attr.ValueStateKnown {
-		return true
-	}
-
-	if !v.Name.Equal(other.Name) {
-		return false
-	}
-
-	if !v.User.Equal(other.User) {
-		return false
-	}
-
-	return true
-}
-
-func (v UsersValue) Type(ctx context.Context) attr.Type {
-	return UsersType{
-		basetypes.ObjectType{
-			AttrTypes: v.AttributeTypes(ctx),
-		},
-	}
-}
-
-func (v UsersValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
-	return map[string]attr.Type{
-		"name": basetypes.StringType{},
-		"user": basetypes.ObjectType{
-			AttrTypes: UserValue{}.AttributeTypes(ctx),
-		},
-	}
-}
-
-var _ basetypes.ObjectTypable = UserType{}
-
-type UserType struct {
-	basetypes.ObjectType
-}
-
-func (t UserType) Equal(o attr.Type) bool {
-	other, ok := o.(UserType)
-
-	if !ok {
-		return false
-	}
-
-	return t.ObjectType.Equal(other.ObjectType)
-}
-
-func (t UserType) String() string {
-	return "UserType"
-}
-
-func (t UserType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	attributes := in.Attributes()
-
-	clientCertificateAttribute, ok := attributes["client_certificate"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`client_certificate is missing from object`)
-
-		return nil, diags
-	}
-
-	clientCertificateVal, ok := clientCertificateAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`client_certificate expected to be basetypes.StringValue, was: %T`, clientCertificateAttribute))
-	}
-
-	clientKeyAttribute, ok := attributes["client_key"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`client_key is missing from object`)
-
-		return nil, diags
-	}
-
-	clientKeyVal, ok := clientKeyAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`client_key expected to be basetypes.StringValue, was: %T`, clientKeyAttribute))
-	}
-
-	tokenAttribute, ok := attributes["token"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`token is missing from object`)
-
-		return nil, diags
-	}
-
-	tokenVal, ok := tokenAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`token expected to be basetypes.StringValue, was: %T`, tokenAttribute))
-	}
-
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return UserValue{
-		ClientCertificate: clientCertificateVal,
-		ClientKey:         clientKeyVal,
-		Token:             tokenVal,
-		state:             attr.ValueStateKnown,
-	}, diags
-}
-
-func NewUserValueNull() UserValue {
-	return UserValue{
-		state: attr.ValueStateNull,
-	}
-}
-
-func NewUserValueUnknown() UserValue {
-	return UserValue{
-		state: attr.ValueStateUnknown,
-	}
-}
-
-func NewUserValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (UserValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
-	ctx := context.Background()
-
-	for name, attributeType := range attributeTypes {
-		attribute, ok := attributes[name]
-
-		if !ok {
-			diags.AddError(
-				"Missing UserValue Attribute Value",
-				"While creating a UserValue value, a missing attribute value was detected. "+
-					"A UserValue must contain values for all attributes, even if null or unknown. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("UserValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
-			)
-
-			continue
-		}
-
-		if !attributeType.Equal(attribute.Type(ctx)) {
-			diags.AddError(
-				"Invalid UserValue Attribute Type",
-				"While creating a UserValue value, an invalid attribute value was detected. "+
-					"A UserValue must use a matching attribute type for the value. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("UserValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("UserValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
-			)
-		}
-	}
-
-	for name := range attributes {
-		_, ok := attributeTypes[name]
-
-		if !ok {
-			diags.AddError(
-				"Extra UserValue Attribute Value",
-				"While creating a UserValue value, an extra attribute value was detected. "+
-					"A UserValue must not contain values beyond the expected attribute types. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra UserValue Attribute Name: %s", name),
-			)
-		}
-	}
-
-	if diags.HasError() {
-		return NewUserValueUnknown(), diags
-	}
-
-	clientCertificateAttribute, ok := attributes["client_certificate"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`client_certificate is missing from object`)
-
-		return NewUserValueUnknown(), diags
-	}
-
-	clientCertificateVal, ok := clientCertificateAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`client_certificate expected to be basetypes.StringValue, was: %T`, clientCertificateAttribute))
-	}
-
-	clientKeyAttribute, ok := attributes["client_key"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`client_key is missing from object`)
-
-		return NewUserValueUnknown(), diags
-	}
-
-	clientKeyVal, ok := clientKeyAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`client_key expected to be basetypes.StringValue, was: %T`, clientKeyAttribute))
-	}
-
-	tokenAttribute, ok := attributes["token"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`token is missing from object`)
-
-		return NewUserValueUnknown(), diags
-	}
-
-	tokenVal, ok := tokenAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`token expected to be basetypes.StringValue, was: %T`, tokenAttribute))
-	}
-
-	if diags.HasError() {
-		return NewUserValueUnknown(), diags
-	}
-
-	return UserValue{
-		ClientCertificate: clientCertificateVal,
-		ClientKey:         clientKeyVal,
-		Token:             tokenVal,
-		state:             attr.ValueStateKnown,
-	}, diags
-}
-
-func NewUserValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) UserValue {
-	object, diags := NewUserValue(attributeTypes, attributes)
-
-	if diags.HasError() {
-		// This could potentially be added to the diag package.
-		diagsStrings := make([]string, 0, len(diags))
-
-		for _, diagnostic := range diags {
-			diagsStrings = append(diagsStrings, fmt.Sprintf(
-				"%s | %s | %s",
-				diagnostic.Severity(),
-				diagnostic.Summary(),
-				diagnostic.Detail()))
-		}
-
-		panic("NewUserValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
-	}
-
-	return object
-}
-
-func (t UserType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
-	if in.Type() == nil {
-		return NewUserValueNull(), nil
-	}
-
-	if !in.Type().Equal(t.TerraformType(ctx)) {
-		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
-	}
-
-	if !in.IsKnown() {
-		return NewUserValueUnknown(), nil
-	}
-
-	if in.IsNull() {
-		return NewUserValueNull(), nil
-	}
-
-	attributes := map[string]attr.Value{}
-
-	val := map[string]tftypes.Value{}
-
-	err := in.As(&val)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range val {
-		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
-
-		if err != nil {
-			return nil, err
-		}
-
-		attributes[k] = a
-	}
-
-	return NewUserValueMust(UserValue{}.AttributeTypes(ctx), attributes), nil
-}
-
-func (t UserType) ValueType(ctx context.Context) attr.Value {
-	return UserValue{}
-}
-
-var _ basetypes.ObjectValuable = UserValue{}
-
-type UserValue struct {
-	ClientCertificate basetypes.StringValue `tfsdk:"client_certificate"`
-	ClientKey         basetypes.StringValue `tfsdk:"client_key"`
-	Token             basetypes.StringValue `tfsdk:"token"`
-	state             attr.ValueState
-}
-
-func (v UserValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 3)
+func (v KubeconfigsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 9)
 
 	var val tftypes.Value
 	var err error
 
 	attrTypes["client_certificate"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["client_key"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["cluster"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["cluster_ca_certificate"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["host"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["insecure"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["token"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["username"] = basetypes.StringType{}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 3)
+		vals := make(map[string]tftypes.Value, 9)
 
 		val, err = v.ClientCertificate.ToTerraformValue(ctx)
 
@@ -1620,6 +673,46 @@ func (v UserValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) 
 
 		vals["client_key"] = val
 
+		val, err = v.Cluster.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["cluster"] = val
+
+		val, err = v.ClusterCaCertificate.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["cluster_ca_certificate"] = val
+
+		val, err = v.Host.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["host"] = val
+
+		val, err = v.Insecure.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["insecure"] = val
+
+		val, err = v.Name.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["name"] = val
+
 		val, err = v.Token.ToTerraformValue(ctx)
 
 		if err != nil {
@@ -1627,6 +720,14 @@ func (v UserValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) 
 		}
 
 		vals["token"] = val
+
+		val, err = v.Username.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["username"] = val
 
 		if err := tftypes.ValidateValue(objectType, vals); err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
@@ -1642,38 +743,50 @@ func (v UserValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) 
 	}
 }
 
-func (v UserValue) IsNull() bool {
+func (v KubeconfigsValue) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v UserValue) IsUnknown() bool {
+func (v KubeconfigsValue) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v UserValue) String() string {
-	return "UserValue"
+func (v KubeconfigsValue) String() string {
+	return "KubeconfigsValue"
 }
 
-func (v UserValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v KubeconfigsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	objVal, diags := types.ObjectValue(
 		map[string]attr.Type{
-			"client_certificate": basetypes.StringType{},
-			"client_key":         basetypes.StringType{},
-			"token":              basetypes.StringType{},
+			"client_certificate":     basetypes.StringType{},
+			"client_key":             basetypes.StringType{},
+			"cluster":                basetypes.StringType{},
+			"cluster_ca_certificate": basetypes.StringType{},
+			"host":                   basetypes.StringType{},
+			"insecure":               basetypes.BoolType{},
+			"name":                   basetypes.StringType{},
+			"token":                  basetypes.StringType{},
+			"username":               basetypes.StringType{},
 		},
 		map[string]attr.Value{
-			"client_certificate": v.ClientCertificate,
-			"client_key":         v.ClientKey,
-			"token":              v.Token,
+			"client_certificate":     v.ClientCertificate,
+			"client_key":             v.ClientKey,
+			"cluster":                v.Cluster,
+			"cluster_ca_certificate": v.ClusterCaCertificate,
+			"host":                   v.Host,
+			"insecure":               v.Insecure,
+			"name":                   v.Name,
+			"token":                  v.Token,
+			"username":               v.Username,
 		})
 
 	return objVal, diags
 }
 
-func (v UserValue) Equal(o attr.Value) bool {
-	other, ok := o.(UserValue)
+func (v KubeconfigsValue) Equal(o attr.Value) bool {
+	other, ok := o.(KubeconfigsValue)
 
 	if !ok {
 		return false
@@ -1695,25 +808,55 @@ func (v UserValue) Equal(o attr.Value) bool {
 		return false
 	}
 
+	if !v.Cluster.Equal(other.Cluster) {
+		return false
+	}
+
+	if !v.ClusterCaCertificate.Equal(other.ClusterCaCertificate) {
+		return false
+	}
+
+	if !v.Host.Equal(other.Host) {
+		return false
+	}
+
+	if !v.Insecure.Equal(other.Insecure) {
+		return false
+	}
+
+	if !v.Name.Equal(other.Name) {
+		return false
+	}
+
 	if !v.Token.Equal(other.Token) {
+		return false
+	}
+
+	if !v.Username.Equal(other.Username) {
 		return false
 	}
 
 	return true
 }
 
-func (v UserValue) Type(ctx context.Context) attr.Type {
-	return UserType{
+func (v KubeconfigsValue) Type(ctx context.Context) attr.Type {
+	return KubeconfigsType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v UserValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v KubeconfigsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
-		"client_certificate": basetypes.StringType{},
-		"client_key":         basetypes.StringType{},
-		"token":              basetypes.StringType{},
+		"client_certificate":     basetypes.StringType{},
+		"client_key":             basetypes.StringType{},
+		"cluster":                basetypes.StringType{},
+		"cluster_ca_certificate": basetypes.StringType{},
+		"host":                   basetypes.StringType{},
+		"insecure":               basetypes.BoolType{},
+		"name":                   basetypes.StringType{},
+		"token":                  basetypes.StringType{},
+		"username":               basetypes.StringType{},
 	}
 }

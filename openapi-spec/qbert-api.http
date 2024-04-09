@@ -51,7 +51,6 @@ Content-Type: application/json
 X-Auth-Token: {{token}}
 
 ###
-
 @clusterID = {{clusters.response.body.0.uuid}}
 
 ###
@@ -103,8 +102,7 @@ X-Auth-Token: {{token}}
 
 ###
 
-@clusterID = {{createCluster.response.body.uuid}}
-@clusterID = f8e1689e-50a8-4a4e-b4c6-307d9d7ed62d
+# @clusterID = {{createCluster.response.body.uuid}}
 
 ###
 
@@ -153,3 +151,33 @@ X-Auth-Token: {{token}}
 
 GET {{DU_FQDN}}/qbert/v4/{{projectID}}/nodes
 X-Auth-Token: {{token}}
+
+###
+
+# @name supportedAddonOperatorTags
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}/supportedaddonoperatorversions
+X-Auth-Token: {{token}}
+
+###
+
+# @name addonversions
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}/addonversions
+X-Auth-Token: {{token}}
+
+###
+
+# @name supportedAddonVersionsMonitoring
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}/supportedaddonversions/monitoring
+X-Auth-Token: {{token}}
+
+###
+
+# @name clusterAddons
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/sunpike/apis/sunpike.platform9.com/v1alpha2/namespaces/default/clusteraddons
+X-Auth-Token: {{token}}
+
+###

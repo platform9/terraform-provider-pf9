@@ -31,41 +31,20 @@ data "pf9_kubeconfig" "example" {
 
 ### Read-Only
 
-- `clusters` (Attributes List) List of clusters (see [below for nested schema](#nestedatt--clusters))
+- `kubeconfigs` (Attributes List) (see [below for nested schema](#nestedatt--kubeconfigs))
 - `raw` (String) Kubeconfig blob
-- `users` (Attributes List) List of users (see [below for nested schema](#nestedatt--users))
 
-<a id="nestedatt--clusters"></a>
-### Nested Schema for `clusters`
-
-Read-Only:
-
-- `cluster` (Attributes) (see [below for nested schema](#nestedatt--clusters--cluster))
-- `name` (String) Name of the cluster
-
-<a id="nestedatt--clusters--cluster"></a>
-### Nested Schema for `clusters.cluster`
+<a id="nestedatt--kubeconfigs"></a>
+### Nested Schema for `kubeconfigs`
 
 Read-Only:
 
-- `certificate_authority` (String) CA certificate
-- `server` (String) API server URL
-
-
-
-<a id="nestedatt--users"></a>
-### Nested Schema for `users`
-
-Read-Only:
-
-- `name` (String) Name of the user
-- `user` (Attributes) (see [below for nested schema](#nestedatt--users--user))
-
-<a id="nestedatt--users--user"></a>
-### Nested Schema for `users.user`
-
-Read-Only:
-
-- `client_certificate` (String) Client certificate
-- `client_key` (String) Client key
-- `token` (String) Token
+- `client_certificate` (String) Path to the client certificate file
+- `client_key` (String) Path to the client key file
+- `cluster` (String) Name of the cluster
+- `cluster_ca_certificate` (String) Path to the certificate authority file
+- `host` (String) Kube api server api endpoint
+- `insecure` (Boolean) If the server should be accessed without verifying the TLS certificate
+- `name` (String) Name of the kubeconfig context
+- `token` (String, Sensitive) Token of your service account
+- `username` (String) Name of the user
