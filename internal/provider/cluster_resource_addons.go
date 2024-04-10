@@ -4,23 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sunpikev1alpha2 "github.com/platform9/pf9-sdk-go/pf9/apis/sunpike/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-func (r *clusterResource) readAddonsFromRemote(ctx context.Context, clusterID string) ([]sunpikev1alpha2.ClusterAddon, error) {
-	tflog.Info(ctx, "Listing addons enabled on the cluster", map[string]interface{}{"clusterID": clusterID})
-	qbertAddons, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
-	if err != nil {
-		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
-		return nil, err
-	}
-	return qbertAddons.Items, nil
-}
 
 type AddonSpec struct {
 	ClusterID string
@@ -29,27 +19,23 @@ type AddonSpec struct {
 	ParamsMap map[string]string
 }
 
-func (r *clusterResource) enableAddon(ctx context.Context, spec AddonSpec) error {
-	// UI sends the following POST
-	// {
-	// 	"kind": "ClusterAddon",
-	// 	"apiVersion": "sunpike.platform9.com/v1alpha2",
-	// 	"metadata": {
-	// 		"name": "791d2744-f23f-4170-bd85-37d5b771b7bd-luigi",
-	// 		"labels": {
-	// 			"sunpike.pf9.io/cluster": "791d2744-f23f-4170-bd85-37d5b771b7bd",
-	// 			"type": "luigi"
-	// 		}
-	// 	},
-	// 	"spec": {
-	// 		"clusterID": "791d2744-f23f-4170-bd85-37d5b771b7bd",
-	// 		"version": "0.5.4",
-	// 		"type": "luigi",
-	// 		"override": {},
-	// 		"watch": true
-	// 	}
-	// }
-	tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": spec.Type})
+type AddonsClient interface {
+	Get(ctx context.Context, addonName string) (sunpikev1alpha2.ClusterAddon, error)
+	List(ctx context.Context, clusterID string, addonType string) ([]sunpikev1alpha2.ClusterAddon, error)
+	Enable(ctx context.Context, addonSpec AddonSpec) error
+	Disable(ctx context.Context, addonSpec AddonSpec) error
+	Patch(ctx context.Context, addonSpec AddonSpec, refClusterAddon *sunpikev1alpha2.ClusterAddon) error
+}
+
+type addonsClient struct {
+	client client.Client
+}
+
+func NewAddonClient(sunpikeClient client.Client) AddonsClient {
+	return &addonsClient{client: sunpikeClient}
+}
+
+func (r *addonsClient) Enable(ctx context.Context, spec AddonSpec) error {
 	var params []sunpikev1alpha2.Params
 	for key, value := range spec.ParamsMap {
 		params = append(params, sunpikev1alpha2.Params{
@@ -57,7 +43,7 @@ func (r *clusterResource) enableAddon(ctx context.Context, spec AddonSpec) error
 			Value: value,
 		})
 	}
-	return r.client.Sunpike().Create(ctx, &sunpikev1alpha2.ClusterAddon{
+	return r.client.Create(ctx, &sunpikev1alpha2.ClusterAddon{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%s", spec.ClusterID, spec.Type),
 			Namespace: "default",
@@ -76,29 +62,9 @@ func (r *clusterResource) enableAddon(ctx context.Context, spec AddonSpec) error
 	})
 }
 
-type StrMap map[string]string
-
-func (p StrMap) Equals(other StrMap) bool {
-	if len(p) != len(other) {
-		return false
-	}
-	for key, value := range p {
-		if otherValue, found := other[key]; !found || otherValue != value {
-			return false
-		}
-	}
-	for key, value := range other {
-		if pValue, found := (p)[key]; !found || pValue != value {
-			return false
-		}
-	}
-	return true
-}
-
-// patchAddon patches Addon using sunpike API, patch includes changing overrides and version
-func (r *clusterResource) patchAddon(ctx context.Context, stateAddon *sunpikev1alpha2.ClusterAddon,
-	planAddonSpec AddonSpec) diag.Diagnostics {
-	var diags diag.Diagnostics
+// Patch patches Addon using sunpike API, patch includes changing overrides and version
+func (r *addonsClient) Patch(ctx context.Context,
+	planAddonSpec AddonSpec, stateAddon *sunpikev1alpha2.ClusterAddon) error {
 	var isParamPatchNeeded bool
 	stateParamsMap := convertParamsToMap(stateAddon.Spec.Override.Params)
 	if !StrMap(planAddonSpec.ParamsMap).Equals(StrMap(stateParamsMap)) {
@@ -113,7 +79,7 @@ func (r *clusterResource) patchAddon(ctx context.Context, stateAddon *sunpikev1a
 	}
 	if !isParamPatchNeeded && stateAddon.Spec.Version == planAddonSpec.Version {
 		tflog.Debug(ctx, "Addon is already in desired state", map[string]interface{}{"addon": stateAddon.Spec.Type})
-		return diags
+		return nil
 	}
 
 	tflog.Debug(ctx, "Patching addon", map[string]interface{}{"addon": stateAddon.Spec.Type})
@@ -130,13 +96,11 @@ func (r *clusterResource) patchAddon(ctx context.Context, stateAddon *sunpikev1a
 	}
 	// Version is always required for patching; whether it changed or not
 	stateAddon.Spec.Version = planAddonSpec.Version
-	err := r.client.Sunpike().Patch(ctx, stateAddon, patch)
+	err := r.client.Patch(ctx, stateAddon, patch)
 	if err != nil {
-		tflog.Error(ctx, "Failed to patch addon", map[string]interface{}{"error": err})
-		diags.AddError("Failed to patch addon", err.Error())
-		return diags
+		return fmt.Errorf("failed to patch addon: %w", err)
 	}
-	return diags
+	return nil
 }
 
 func convertParamsToMap(params []sunpikev1alpha2.Params) map[string]string {
@@ -147,27 +111,35 @@ func convertParamsToMap(params []sunpikev1alpha2.Params) map[string]string {
 	return paramsMap
 }
 
-func (r *clusterResource) listAddonsByLabels(ctx context.Context, clusterID string, addonType string) ([]sunpikev1alpha2.ClusterAddon, error) {
+func (r *addonsClient) Get(ctx context.Context, addonName string) (sunpikev1alpha2.ClusterAddon, error) {
+	var sunpikeAddon sunpikev1alpha2.ClusterAddon
+	err := r.client.Get(ctx, types.NamespacedName{
+		Name:      addonName,
+		Namespace: "default",
+	}, &sunpikeAddon)
+	return sunpikeAddon, err
+}
+
+func (r *addonsClient) List(ctx context.Context, clusterID string, addonType string) ([]sunpikev1alpha2.ClusterAddon, error) {
 	labelSelector := labels.SelectorFromSet(map[string]string{
 		"sunpike.pf9.io/cluster": clusterID,
 		"type":                   addonType,
 	})
-
 	listOptions := &client.ListOptions{
 		Namespace:     "default",
 		LabelSelector: labelSelector,
 	}
-
 	var clusterAddonsList sunpikev1alpha2.ClusterAddonList
-	err := r.client.Sunpike().List(ctx, &clusterAddonsList, listOptions)
+	err := r.client.List(ctx, &clusterAddonsList, listOptions)
 	if err != nil {
 		return nil, err
 	}
 	return clusterAddonsList.Items, nil
 }
 
-func (r *clusterResource) disableAddon(ctx context.Context, clusterID string, addonType string) error {
-	clusterAddons, err := r.listAddonsByLabels(ctx, clusterID, addonType)
+func (r *addonsClient) Disable(ctx context.Context, addonSpec AddonSpec) error {
+	// TODO: Use r.client.Get() assuming name = clusterID-addonType
+	clusterAddons, err := r.List(ctx, addonSpec.ClusterID, addonSpec.Type)
 	if err != nil {
 		return err
 	}
@@ -176,5 +148,22 @@ func (r *clusterResource) disableAddon(ctx context.Context, clusterID string, ad
 		return nil
 	}
 	clusterAddon := clusterAddons[0]
-	return r.client.Sunpike().Delete(ctx, &clusterAddon)
+	return r.client.Delete(ctx, &clusterAddon)
+}
+
+var addonAliases = map[string]string{
+	"kubevirt":             "kubevirtaddon",
+	"profile-agent":        "pf9-profile-agent",
+	"kubernetes-dashboard": "dashboard",
+}
+
+func getDefaultAddonVersion(defaults map[string]string, addonType string) string {
+	// APIs have different names for the same addon
+	if alias, ok := addonAliases[addonType]; ok {
+		addonType = alias
+	}
+	if version, ok := defaults[addonType]; ok {
+		return version
+	}
+	return ""
 }

@@ -5,8 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/platform9/pf9-sdk-go/pf9/keystone"
 	"github.com/platform9/pf9-sdk-go/pf9/pmk"
 	"github.com/platform9/terraform-provider-pf9/internal/provider/datasource_node"
 )
@@ -49,20 +47,15 @@ func (d *nodeDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	nodeID := data.Id.ValueString()
 
 	// Read API call logic
-	authInfo, err := d.client.Authenticator().Auth(ctx, keystone.AuthOptions{
-		PropagateCacheErrors: true,
-	})
+	authInfo, err := d.client.Authenticator().Auth(ctx)
 	if err != nil {
-		tflog.Error(ctx, "Failed to authenticate", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}
-
 	projectID := authInfo.ProjectID
 
 	nodes, err := d.client.Qbert().ListNodes(projectID)
 	if err != nil {
-		tflog.Error(ctx, "Failed to list nodes", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to list nodes", err.Error())
 		return
 	}

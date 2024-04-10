@@ -522,6 +522,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+				Validators: []validator.String{
+					stringvalidator.OneOf("FirstFound", "InterfaceName", "InterfaceReachableIP"),
+				},
 			},
 			"interface_name": schema.StringAttribute{
 				Optional:            true,

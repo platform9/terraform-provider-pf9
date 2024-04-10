@@ -129,6 +129,7 @@ func (p *pf9Provider) DataSources(ctx context.Context) []func() datasource.DataS
 		NewClusterDataSource,
 		NewClustersDataSource,
 		NewKubeconfigDataSource,
+		NewHostDataSource,
 	}
 }
 

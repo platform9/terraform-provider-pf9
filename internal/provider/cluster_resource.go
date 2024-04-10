@@ -17,7 +17,6 @@ import (
 	"github.com/platform9/terraform-provider-pf9/internal/provider/resource_cluster"
 
 	sunpikev1alpha2 "github.com/platform9/pf9-sdk-go/pf9/apis/sunpike/v1alpha2"
-	// sunpikev1alpha2 "github.com/platform9/pf9-sdk-go/pf9/apis/sunpike/v1alpha2"
 
 	"k8s.io/utils/ptr"
 )
@@ -30,7 +29,8 @@ func NewClusterResource() resource.Resource {
 }
 
 type clusterResource struct {
-	client *pmk.HTTPClient
+	client       *pmk.HTTPClient
+	addonsClient AddonsClient
 }
 
 func (r *clusterResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -46,12 +46,24 @@ func (r *clusterResource) Configure(ctx context.Context, req resource.ConfigureR
 		return
 	}
 	r.client = req.ProviderData.(*pmk.HTTPClient)
+	r.addonsClient = NewAddonClient(r.client.Sunpike())
 }
 
 func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	// Ref: https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification
 	if req.Plan.Raw.IsNull() {
 		// resource is being destroyed
+		return
+	}
+
+	var containersCidr basetypes.StringValue
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("containers_cidr"), &containersCidr)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	var servicesCidr basetypes.StringValue
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("services_cidr"), &servicesCidr)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -62,19 +74,20 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 	}
 	authInfo, err := r.client.Authenticator().Auth(ctx)
 	if err != nil {
-		tflog.Error(ctx, "Failed to authenticate", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}
 	if req.State.Raw.IsNull() && !req.Plan.Raw.IsNull() {
 		// Pre-Create
+
+		// https://platform9.com/docs/qbert/ref#getprovides-a-list-of-supported-pf9-kube-roles-for-a-cluster-
+		supportedKubeRoleVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to get supported versions", err.Error())
+			return
+		}
 		if !kubeRoleVersion.IsNull() && !kubeRoleVersion.IsUnknown() {
 			tflog.Debug(ctx, "Validating if kube_role_version is supported", map[string]interface{}{"kube_role_version": kubeRoleVersion.ValueString()})
-			supportedKubeRoleVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
-			if err != nil {
-				resp.Diagnostics.AddError("Failed to get supported versions", err.Error())
-				return
-			}
 			allowedKubeRoleVersions := []string{}
 			for _, role := range supportedKubeRoleVersions.Roles {
 				allowedKubeRoleVersions = append(allowedKubeRoleVersions, role.RoleVersion)
@@ -85,13 +98,6 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 			}
 		} else {
 			tflog.Debug(ctx, "kube_role_version is not provided in the plan; defaulting to the latest")
-			// https://platform9.com/docs/qbert/ref#getprovides-a-list-of-supported-pf9-kube-roles-for-a-cluster-
-			supportedKubeRoleVersions, err := r.client.Qbert().ListSupportedVersions(authInfo.ProjectID)
-			if err != nil {
-				tflog.Error(ctx, "Failed to get supported versions", map[string]interface{}{"error": err})
-				resp.Diagnostics.AddError("Failed to get supported versions", err.Error())
-				return
-			}
 			if len(supportedKubeRoleVersions.Roles) > 0 {
 				latestKubeRoleVersion := findLatestKubeRoleVersion(supportedKubeRoleVersions.Roles)
 				resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("kube_role_version"), latestKubeRoleVersion.RoleVersion)...)
@@ -102,6 +108,39 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 				resp.Diagnostics.AddError("No supported kube role versions found", "No supported kube role versions found")
 				return
 			}
+		}
+
+		// Containers & ServiceCidr has different default value for single-node cluster(one-click cluster)
+		workerNodes := []string{}
+		resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("worker_nodes"), &workerNodes)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if len(workerNodes) == 0 {
+			if containersCidr.IsNull() || containersCidr.IsUnknown() {
+				resp.Diagnostics.Append(req.Plan.SetAttribute(ctx, path.Root("containers_cidr"), "10.20.0.0/22")...)
+			}
+			if servicesCidr.IsNull() || servicesCidr.IsUnknown() {
+				resp.Diagnostics.Append(req.Plan.SetAttribute(ctx, path.Root("services_cidr"), "10.21.0.0/22")...)
+			}
+		} else {
+			// UI behavior: If the cluster is a single-node cluster(one-click cluster on UI) then
+			// interface_detection_method is not sent to the backend.
+			// Otherwise default value of the interface_detection_method is FirstFound
+			// This else block corresponds to the case when the cluster is not a single-node cluster.
+			var interfaceDetectionMethod basetypes.StringValue
+			resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("interface_detection_method"), &interfaceDetectionMethod)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			if interfaceDetectionMethod.IsNull() || interfaceDetectionMethod.IsUnknown() {
+				resp.Diagnostics.Append(req.Plan.SetAttribute(ctx, path.Root("interface_detection_method"), "FirstFound")...)
+			}
+		}
+		var addonsMapVal types.Map
+		resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("addons"), &addonsMapVal)...)
+		if resp.Diagnostics.HasError() {
+			return
 		}
 	}
 	if !req.State.Raw.IsNull() && !req.Plan.Raw.IsNull() {
@@ -114,25 +153,39 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 		}
 		if !kubeRoleVersion.Equal(stateKubeRoleVersion) {
 			var upgradeToKubeRoleVersion basetypes.StringValue
-			resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("upgrade_kube_role_version"),
+			resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("upgrade_kube_role_version"),
 				&upgradeToKubeRoleVersion)...)
 			if resp.Diagnostics.HasError() {
 				return
 			}
-			if !upgradeToKubeRoleVersion.Equal(kubeRoleVersion) {
-				resp.Diagnostics.AddAttributeError(path.Root("kube_role_version"), "kube_role_version provided is unsupported",
-					fmt.Sprintf("This cluster can only be upgraded to the version: %v", upgradeToKubeRoleVersion.ValueString()))
+			if !upgradeToKubeRoleVersion.IsNull() && !upgradeToKubeRoleVersion.IsUnknown() {
+				if !upgradeToKubeRoleVersion.Equal(kubeRoleVersion) {
+					resp.Diagnostics.AddAttributeError(path.Root("kube_role_version"), "kube_role_version provided is unsupported",
+						fmt.Sprintf("This cluster can only be upgraded to the version: %v", upgradeToKubeRoleVersion.ValueString()))
+					return
+				}
+			} else {
+				resp.Diagnostics.AddError("Refresh state required", "Refresh the local state to upgrade the cluster")
 				return
 			}
+		}
+	}
+	if !containersCidr.IsNull() && !servicesCidr.IsNull() {
+		isOverlap, err := CheckCIDROverlap(containersCidr.ValueString(), servicesCidr.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("Error checking cidr overlap", err.Error())
+			return
+		}
+		if isOverlap {
+			resp.Diagnostics.AddAttributeError(path.Root("containers_cidr"), "CIDRs overlap", "containers_cidr and services_cidr cannot overlap")
+			return
 		}
 	}
 }
 
 func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data, state resource_cluster.ClusterModel
-
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -140,24 +193,32 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	// Create API call logic
 	authInfo, err := r.client.Authenticator().Auth(ctx)
 	if err != nil {
-		tflog.Error(ctx, "Failed to authenticate", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}
 	projectID := authInfo.ProjectID
-
-	createClusterReq, d := r.CreateCreateClusterRequest(ctx, authInfo.ProjectID, &data)
-	resp.Diagnostics.Append(d...)
+	createClusterReq, diags := createCreateClusterRequest(ctx, &data)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
-		tflog.Error(ctx, "Failed to create create cluster object")
+		tflog.Error(ctx, "Failed to create createClusterRequest")
 		return
+	}
+	if !data.NodePoolUuid.IsNull() && !data.NodePoolUuid.IsUnknown() {
+		createClusterReq.NodePoolUUID = data.NodePoolUuid.ValueString()
+	} else {
+		defaultNodePoolUUID, err := r.client.Qbert().GetNodePoolID(projectID)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to get default node pool uuid", err.Error())
+			return
+		}
+		tflog.Debug(ctx, "Got default node pool", map[string]interface{}{"nodePoolUUID": defaultNodePoolUUID})
+		createClusterReq.NodePoolUUID = defaultNodePoolUUID
 	}
 
 	tflog.Info(ctx, "Creating a cluster")
 	qbertClient := r.client.Qbert()
-	clusterID, err := qbertClient.CreateCluster(*createClusterReq, projectID, qbert.CreateClusterOptions{})
+	clusterID, err := qbertClient.CreateCluster(createClusterReq, projectID, qbert.CreateClusterOptions{})
 	if err != nil {
-		tflog.Error(ctx, "Failed to create cluster", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to create cluster", err.Error())
 		return
 	}
@@ -188,29 +249,23 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	tflog.Info(ctx, "Attaching nodes", map[string]interface{}{"nodeList": nodeList})
 	err = qbertClient.AttachNodes(clusterID, nodeList)
 	if err != nil {
-		tflog.Error(ctx, "Failed to attach nodes", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to attach nodes", err.Error())
 		return
 	}
 	// TODO: Should we save an intermediate state between multiple requests?
-	// This will prevent inconsistency between the local state and the remote state
+	// This will prevent inconsistency between the local state and the remote state if
+	// the provider exits unexpectedly in between.
 	tflog.Debug(ctx, "Getting list of enabled addons")
-	sunpikeAddons, err := r.readAddonsFromRemote(ctx, clusterID)
+	defaultEnabledAddons, err := r.listClusterAddons(ctx, clusterID)
 	if err != nil {
-		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
 		return
 	}
 
 	// Create a map key=addonName value=sunpikeAddon for lookup during plan-state comparison
 	sunpikeAddonsMap := map[string]sunpikev1alpha2.ClusterAddon{}
-	for _, sunpikeAddon := range sunpikeAddons {
+	for _, sunpikeAddon := range defaultEnabledAddons {
 		sunpikeAddonsMap[sunpikeAddon.Spec.Type] = sunpikeAddon
-	}
-	defaultAddonVersions, err := r.client.Qbert().ListSupportedAddonVersions(ctx, clusterID)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to get default addon versions", err.Error())
-		return
 	}
 	tfAddonsMap := map[string]resource_cluster.AddonsValue{}
 	resp.Diagnostics.Append(data.Addons.ElementsAs(ctx, &tfAddonsMap, false)...)
@@ -229,21 +284,23 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 				addonVersion = tfAddon.Version.ValueString()
 			} else {
 				// version is optional in the plan, because user cannot determine the version.
-				// API call provides the default version
-				addonVersion = defaultAddonVersions[addonName]
+				// If user does not provide the version, we will use the version that is already
+				// present in the remote state.
+				addonVersion = sunpikeAddon.Spec.Version
 			}
 			paramsInPlan := map[string]string{}
 			resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
 			if resp.Diagnostics.HasError() {
 				return
 			}
-			resp.Diagnostics.Append(r.patchAddon(ctx, &sunpikeAddon, AddonSpec{
+			err := r.addonsClient.Patch(ctx, AddonSpec{
 				ClusterID: clusterID,
 				Type:      addonName,
 				Version:   addonVersion,
 				ParamsMap: paramsInPlan,
-			})...)
-			if resp.Diagnostics.HasError() {
+			}, &sunpikeAddon)
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to patch addon", err.Error())
 				return
 			}
 		} else {
@@ -251,6 +308,11 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 			// The addon in the plan, tfAddon is not present in the remote state, sunpikeAddonsMap.
 			// Make the remote state same as the plan state by enabling the addon.
 			tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": addonName})
+			defaultAddonVersions, err := r.client.Qbert().ListSupportedAddonVersions(ctx, clusterID)
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to get default addon versions", err.Error())
+				return
+			}
 			paramsInPlan := map[string]string{}
 			resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
 			if resp.Diagnostics.HasError() {
@@ -260,16 +322,15 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 			if !tfAddon.Version.IsNull() && !tfAddon.Version.IsUnknown() {
 				addonVersion = tfAddon.Version.ValueString()
 			} else {
-				addonVersion = defaultAddonVersions[addonName]
+				addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
 			}
-			err = r.enableAddon(ctx, AddonSpec{
+			err = r.addonsClient.Enable(ctx, AddonSpec{
 				ClusterID: clusterID,
 				Type:      addonName,
 				Version:   addonVersion,
 				ParamsMap: paramsInPlan,
 			})
 			if err != nil {
-				tflog.Error(ctx, "Failed to enable addon", map[string]interface{}{"addon": addonName, "error": err})
 				resp.Diagnostics.AddError("Failed to enable addon", err.Error())
 				return
 			}
@@ -282,9 +343,11 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 			// but not present in the plan, tfAddonsMap. Disabling the addon
 			// will make the remote state same as the plan state.
 			tflog.Debug(ctx, "Disabling addon", map[string]interface{}{"addon": addonName})
-			err = r.disableAddon(ctx, clusterID, addonName)
+			err = r.addonsClient.Disable(ctx, AddonSpec{
+				ClusterID: clusterID,
+				Type:      addonName,
+			})
 			if err != nil {
-				tflog.Error(ctx, "Failed to disable addon", map[string]interface{}{"addon": addonName, "error": err})
 				resp.Diagnostics.AddError("Failed to disable addon", err.Error())
 				return
 			}
@@ -297,7 +360,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Save data into Terraform state
-	addonsOnRemote, err := r.readAddonsFromRemote(ctx, clusterID)
+	addonsOnRemote, err := r.listClusterAddons(ctx, clusterID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
 		return
@@ -317,38 +380,6 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func sunpikeAddonsToTerraformAddons(ctx context.Context, sunpikeAddons []sunpikev1alpha2.ClusterAddon) (map[string]resource_cluster.AddonsValue, diag.Diagnostics) {
-	tfAddonsMap := map[string]resource_cluster.AddonsValue{}
-	var diags diag.Diagnostics
-	for _, sunpikeAddon := range sunpikeAddons {
-		version := types.StringValue(sunpikeAddon.Spec.Version)
-		phase := types.StringValue(string(sunpikeAddon.Status.Phase))
-		paramMap := map[string]string{}
-		for _, param := range sunpikeAddon.Spec.Override.Params {
-			paramMap[param.Name] = param.Value
-		}
-		var params basetypes.MapValue
-		params, diags = types.MapValueFrom(ctx, types.StringType, paramMap)
-		if diags.HasError() {
-			return tfAddonsMap, diags
-		}
-		addonObjVal, diags := resource_cluster.AddonsValue{
-			Version: version,
-			Phase:   phase,
-			Params:  params,
-		}.ToObjectValue(ctx)
-		if diags.HasError() {
-			return tfAddonsMap, diags
-		}
-		addonObjValuable, diags := resource_cluster.AddonsType{}.ValueFromObject(ctx, addonObjVal)
-		if diags.HasError() {
-			return tfAddonsMap, diags
-		}
-		tfAddonsMap[sunpikeAddon.Spec.Type] = addonObjValuable.(resource_cluster.AddonsValue)
-	}
-	return tfAddonsMap, diags
-}
-
 func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data, state resource_cluster.ClusterModel
 
@@ -362,7 +393,6 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 	// Read API call logic
 	authInfo, err := r.client.Authenticator().Auth(ctx)
 	if err != nil {
-		tflog.Error(ctx, "Failed to authenticate", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}
@@ -374,7 +404,7 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// Save updated state into Terraform state
-	addonsOnRemote, err := r.readAddonsFromRemote(ctx, clusterID)
+	addonsOnRemote, err := r.listClusterAddons(ctx, clusterID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get sunpike addons", err.Error())
 		return
@@ -410,7 +440,6 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	// Update API call logic
 	authInfo, err := r.client.Authenticator().Auth(ctx)
 	if err != nil {
-		tflog.Error(ctx, "Failed to authenticate", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}
@@ -470,62 +499,13 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		tflog.Debug(ctx, "No change detected, skipping update")
 	}
 
-	var upgradeRequired bool
-	var upgradeClusterReq qbert.UpgradeClusterRequest
-	if !plan.KubeRoleVersion.Equal(state.KubeRoleVersion) {
-		tflog.Info(ctx, "Requested upgrade of the cluster", map[string]interface{}{"from": state.KubeRoleVersion, "to": plan.KubeRoleVersion})
-		tflog.Info(ctx, "Reading cluster from qbert", map[string]interface{}{"clusterID": clusterID})
-		cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to get cluster", err.Error())
-			return
-		}
-		if !cluster.CanUpgrade {
-			resp.Diagnostics.AddError("Cluster cannot be upgraded", "Cluster is not in a state to be upgraded")
-			return
-		}
-		var allowedTargetVersion string
-		if cluster.CanMinorUpgrade == 1 {
-			allowedTargetVersion = cluster.MinorUpgradeRoleVersion
-			upgradeClusterReq.KubeRoleVersionUpgradeType = "minor"
-		}
-		if cluster.CanPatchUpgrade == 1 {
-			allowedTargetVersion = cluster.PatchUpgradeRoleVersion
-			upgradeClusterReq.KubeRoleVersionUpgradeType = "patch"
-		}
-		if allowedTargetVersion == "" {
-			resp.Diagnostics.AddError("Cluster cannot be upgraded", "Cluster is not in a state to be upgraded")
-			return
-		}
-		planVersion := plan.KubeRoleVersion.ValueString()
-		if planVersion != allowedTargetVersion {
-			resp.Diagnostics.AddError("Kube role version cannot be upgraded to this version", fmt.Sprintf("Allowed version is: %v", allowedTargetVersion))
-			return
-		}
-		if !plan.BatchUpgradePercent.IsNull() && !plan.BatchUpgradePercent.IsUnknown() {
-			upgradeClusterReq.BatchUpgradePercent = int(plan.BatchUpgradePercent.ValueInt64())
-		}
-		upgradeRequired = true
-	}
-
-	// We did not add addonVersions inside upgradeClusterReq; because it will be upgraded using sunpike apis later
-	if upgradeRequired {
-		err = r.client.Qbert().UpgradeCluster(ctx, upgradeClusterReq, clusterID)
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to upgrade cluster", err.Error())
-			return
-		}
-	}
-
-	tflog.Debug(ctx, "Getting list of enabled addons")
-	sunpikeAddonsList, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
+	sunpikeAddons, err := r.listClusterAddons(ctx, clusterID)
 	if err != nil {
-		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
 		return
 	}
 	sunpikeAddonsMap := map[string]sunpikev1alpha2.ClusterAddon{}
-	for _, sunpikeAddon := range sunpikeAddonsList.Items {
+	for _, sunpikeAddon := range sunpikeAddons {
 		sunpikeAddonsMap[sunpikeAddon.Spec.Type] = sunpikeAddon
 	}
 	// Load plan addons into a map
@@ -546,7 +526,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 			var addonVersion string
 			if tfAddon.Version.IsNull() || tfAddon.Version.IsUnknown() {
 				tflog.Debug(ctx, "Version is not provided in the plan, getting default version")
-				addonVersion = defaultAddonVersions[addonName]
+				addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
 			} else {
 				addonVersion = tfAddon.Version.ValueString()
 			}
@@ -555,13 +535,14 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 			if resp.Diagnostics.HasError() {
 				return
 			}
-			resp.Diagnostics.Append(r.patchAddon(ctx, &sunpikeAddon, AddonSpec{
+			err := r.addonsClient.Patch(ctx, AddonSpec{
 				ClusterID: clusterID,
 				Type:      addonName,
 				Version:   addonVersion,
 				ParamsMap: paramsInPlan,
-			})...)
-			if resp.Diagnostics.HasError() {
+			}, &sunpikeAddon)
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to patch addon", err.Error())
 				return
 			}
 		} else {
@@ -575,18 +556,17 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 			var addonVersion string
 			if tfAddon.Version.IsNull() || tfAddon.Version.IsUnknown() {
 				tflog.Debug(ctx, "Version is not provided in the plan, getting default version")
-				addonVersion = defaultAddonVersions[addonName]
+				addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
 			} else {
 				addonVersion = tfAddon.Version.ValueString()
 			}
-			err = r.enableAddon(ctx, AddonSpec{
+			err = r.addonsClient.Enable(ctx, AddonSpec{
 				ClusterID: clusterID,
 				Type:      addonName,
 				Version:   addonVersion,
 				ParamsMap: paramsInPlan,
 			})
 			if err != nil {
-				tflog.Error(ctx, "Failed to enable addon", map[string]interface{}{"addon": addonName, "error": err})
 				resp.Diagnostics.AddError("Failed to enable addon", err.Error())
 				return
 			}
@@ -595,12 +575,54 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	for addonName := range sunpikeAddonsMap {
 		if _, found := tfAddonsMap[addonName]; !found {
 			tflog.Debug(ctx, "Disabling addon", map[string]interface{}{"addon": addonName})
-			err = r.disableAddon(ctx, clusterID, addonName)
+			err = r.addonsClient.Disable(ctx, AddonSpec{ClusterID: clusterID, Type: addonName})
 			if err != nil {
-				tflog.Error(ctx, "Failed to disable addon", map[string]interface{}{"addon": addonName, "error": err})
 				resp.Diagnostics.AddError("Failed to disable addon", err.Error())
 				return
 			}
+		}
+	}
+
+	if !plan.KubeRoleVersion.Equal(state.KubeRoleVersion) {
+		tflog.Info(ctx, "Requested upgrade of the cluster", map[string]interface{}{"from": state.KubeRoleVersion, "to": plan.KubeRoleVersion})
+		tflog.Info(ctx, "Reading cluster from qbert", map[string]interface{}{"clusterID": clusterID})
+		cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to get cluster", err.Error())
+			return
+		}
+		if !cluster.CanUpgrade {
+			resp.Diagnostics.AddError("Cluster cannot be upgraded", "Cluster is not in a state to be upgraded")
+			return
+		}
+		var allowedTargetVersion string
+		var upgradeClusterReq qbert.UpgradeClusterRequest
+		if cluster.CanMinorUpgrade == 1 {
+			allowedTargetVersion = cluster.MinorUpgradeRoleVersion
+			upgradeClusterReq.KubeRoleVersionUpgradeType = "minor"
+		}
+		if cluster.CanPatchUpgrade == 1 {
+			allowedTargetVersion = cluster.PatchUpgradeRoleVersion
+			upgradeClusterReq.KubeRoleVersionUpgradeType = "patch"
+		}
+		if allowedTargetVersion == "" {
+			resp.Diagnostics.AddError("Cluster cannot be upgraded", "Cluster is not in a state to be upgraded")
+			return
+		}
+		planVersion := plan.KubeRoleVersion.ValueString()
+		if planVersion != allowedTargetVersion {
+			resp.Diagnostics.AddError("Kube role version cannot be upgraded to this version", fmt.Sprintf("Allowed version is: %v", allowedTargetVersion))
+			return
+		}
+		if !plan.BatchUpgradePercent.IsNull() && !plan.BatchUpgradePercent.IsUnknown() {
+			upgradeClusterReq.BatchUpgradePercent = int(plan.BatchUpgradePercent.ValueInt64())
+		}
+		// We did not add addonVersions inside upgradeClusterReq;
+		// because it will be upgraded using sunpike apis
+		err = r.client.Qbert().UpgradeCluster(ctx, upgradeClusterReq, clusterID)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to upgrade cluster", err.Error())
+			return
 		}
 	}
 
@@ -610,9 +632,8 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Save data into Terraform state
-	sunpikeAddons, err := r.readAddonsFromRemote(ctx, clusterID)
+	sunpikeAddons, err = r.listClusterAddons(ctx, clusterID)
 	if err != nil {
-		tflog.Error(ctx, "Failed to get cluster addons", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
 		return
 	}
@@ -635,7 +656,45 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-// readStateFromRemote sets the values of the attibutes in the state variable retrieved from the backend
+func (r *clusterResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data resource_cluster.ClusterModel
+
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Delete API call logic
+	authInfo, err := r.client.Authenticator().Auth(ctx)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
+		return
+	}
+
+	projectID := authInfo.ProjectID
+	clusterID := data.Id.ValueString()
+
+	tflog.Debug(ctx, "Deleting cluster addons", map[string]interface{}{"clusterID": clusterID})
+	err = r.client.Qbert().DeleteAllClusterAddons(ctx, clusterID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to delete cluster addons", err.Error())
+		return
+	}
+	tflog.Debug(ctx, "Deleting cluster", map[string]interface{}{"clusterID": clusterID})
+	err = r.client.Qbert().DeleteCluster(clusterID, projectID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to delete cluster", err.Error())
+		return
+	}
+}
+
+func (r *clusterResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+// readStateFromRemote sets the values of the attributes in the state variable retrieved from the backend
 func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, projectID string, state *resource_cluster.ClusterModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -674,333 +733,6 @@ func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, pr
 		return diags
 	}
 	return diags
-}
-
-func (r *clusterResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data resource_cluster.ClusterModel
-
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Delete API call logic
-	authInfo, err := r.client.Authenticator().Auth(ctx)
-	if err != nil {
-		tflog.Error(ctx, "Failed to authenticate", map[string]interface{}{"error": err})
-		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
-		return
-	}
-
-	projectID := authInfo.ProjectID
-	clusterID := data.Id.ValueString()
-	err = r.client.Qbert().DeleteCluster(clusterID, projectID)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to delete cluster", err.Error())
-		return
-	}
-}
-
-func (r *clusterResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
-
-func qbertClusterToTerraformCluster(ctx context.Context, in *qbert.Cluster, out *resource_cluster.ClusterModel) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-	out.Id = types.StringValue(in.UUID)
-	out.Name = types.StringValue(in.Name)
-	out.AllowWorkloadsOnMaster = types.BoolValue(in.AllowWorkloadsOnMaster != 0)
-	out.MasterIp = types.StringValue(in.MasterIp)
-	out.MasterVipIface = types.StringValue(in.MasterVipIface)
-	out.MasterVipIpv4 = types.StringValue(in.MasterVipIpv4)
-	out.ContainersCidr = types.StringValue(in.ContainersCidr)
-	out.ServicesCidr = types.StringValue(in.ServicesCidr)
-	mtuSizeInt, err := strconv.Atoi(in.MtuSize)
-	if err != nil {
-		tflog.Error(ctx, "Failed to parse mtu size", map[string]interface{}{"error": err})
-		diags.AddError("Failed to parse mtu size", err.Error())
-		return diags
-	}
-	out.MtuSize = types.Int64Value(int64(mtuSizeInt))
-	out.Privileged = types.BoolValue(in.Privileged != 0)
-	out.UseHostname = types.BoolValue(in.UseHostname)
-	out.InterfaceDetectionMethod = types.StringValue(in.InterfaceDetectionMethod)
-	out.InterfaceName = types.StringValue(in.InterfaceName)
-	out.NodePoolUuid = types.StringValue(in.NodePoolUuid)
-	out.KubeRoleVersion = types.StringValue(in.KubeRoleVersion)
-	out.CpuManagerPolicy = types.StringValue(in.CPUManagerPolicy)
-	out.TopologyManagerPolicy = types.StringValue(in.TopologyManagerPolicy)
-	out.CalicoIpIpMode = types.StringValue(in.CalicoIpIpMode)
-	out.CalicoNatOutgoing = types.BoolValue(in.CalicoNatOutgoing != 0)
-	out.CalicoV4BlockSize = types.StringValue(in.CalicoV4BlockSize)
-	out.CalicoIpv4DetectionMethod = types.StringValue(in.CalicoIPv4DetectionMethod)
-	out.NetworkPlugin = types.StringValue(in.NetworkPlugin)
-	out.ContainerRuntime = types.StringValue(in.ContainerRuntime)
-	out.RuntimeConfig = emptyStringToNull(in.RuntimeConfig)
-
-	out.ExternalDnsName = emptyStringToNull(in.ExternalDnsName)
-	out.CertExpiryHrs = types.Int64Value(int64(in.CertExpiryHrs))
-	out.CalicoNodeCpuLimit = types.StringValue(in.CalicoNodeCpuLimit)
-	out.CalicoNodeMemoryLimit = types.StringValue(in.CalicoNodeMemoryLimit)
-	out.CalicoTyphaCpuLimit = types.StringValue(in.CalicoTyphaCpuLimit)
-	out.CalicoTyphaMemoryLimit = types.StringValue(in.CalicoTyphaMemoryLimit)
-	out.CalicoControllerCpuLimit = types.StringValue(in.CalicoControllerCpuLimit)
-	out.CalicoControllerMemoryLimit = types.StringValue(in.CalicoControllerMemoryLimit)
-
-	// Computed attributes
-	out.CreatedAt = types.StringValue(in.CreatedAt)
-	out.Status = types.StringValue(in.Status)
-	out.FlannelIfaceLabel = emptyStringToNull(in.FlannelIfaceLabel)
-	out.FlannelPublicIfaceLabel = emptyStringToNull(in.FlannelPublicIfaceLabel)
-	out.DockerRoot = types.StringValue(in.DockerRoot)
-	out.EtcdDataDir = types.StringValue(in.EtcdDataDir)
-	out.LastOp = types.StringValue(in.LastOp)
-	out.LastOk = types.StringValue(in.LastOk)
-	out.TaskStatus = types.StringValue(in.TaskStatus)
-	out.TaskError = types.StringValue(in.TaskError)
-	out.ProjectId = types.StringValue(in.ProjectId)
-	out.MasterVipVrouterId = types.StringValue(in.MasterVipVrouterId)
-	out.K8sApiPort = types.StringValue(in.K8sApiPort)
-	out.CalicoIpv4 = types.StringValue(in.CalicoIPv4)
-	out.CalicoIpv6 = types.StringValue(in.CalicoIPv6)
-	out.CalicoIpv6DetectionMethod = types.StringValue(in.CalicoIPv6DetectionMethod)
-	out.CalicoRouterId = types.StringValue(in.CalicoRouterID)
-	out.CalicoIpv6PoolCidr = emptyStringToNull(in.CalicoIPv6PoolCidr)
-	out.CalicoIpv6PoolBlockSize = types.StringValue(in.CalicoIPv6PoolBlockSize)
-	out.CalicoIpv6PoolNatOutgoing = types.BoolValue(in.CalicoIPv6PoolNatOutgoing != 0)
-	out.FelixIpv6Support = types.BoolValue(in.FelixIPv6Support != 0)
-	out.Masterless = types.BoolValue(in.Masterless != 0)
-	out.EtcdVersion = types.StringValue(in.EtcdVersion)
-	if in.EtcdHeartbeatIntervalMs == "" {
-		out.EtcdHeartbeatIntervalMs = types.Int64Null()
-	} else {
-		etcdHeartbeatIntervalMs, err := strconv.Atoi(in.EtcdHeartbeatIntervalMs)
-		if err != nil {
-			tflog.Error(ctx, "Failed to parse etcd heartbeat interval", map[string]interface{}{"error": err})
-			diags.AddError("Failed to parse etcd heartbeat interval", err.Error())
-			return diags
-		}
-		out.EtcdHeartbeatIntervalMs = types.Int64Value(int64(etcdHeartbeatIntervalMs))
-	}
-	if in.EtcdElectionTimeoutMs == "" {
-		out.EtcdElectionTimeoutMs = types.Int64Null()
-	} else {
-		etcdElectionTimeoutMs, err := strconv.Atoi(in.EtcdElectionTimeoutMs)
-		if err != nil {
-			tflog.Error(ctx, "Failed to parse etcd election timeout", map[string]interface{}{"error": err})
-			diags.AddError("Failed to parse etcd election timeout", err.Error())
-			return diags
-		}
-		out.EtcdElectionTimeoutMs = types.Int64Value(int64(etcdElectionTimeoutMs))
-	}
-	out.MasterStatus = types.StringValue(in.MasterStatus)
-	out.WorkerStatus = types.StringValue(in.WorkerStatus)
-	out.Ipv6 = types.BoolValue(in.IPv6 != 0)
-	out.NodePoolName = types.StringValue(in.NodePoolName)
-	out.CloudProviderUuid = types.StringValue(in.CloudProviderUuid)
-	out.CloudProviderName = types.StringValue(in.CloudProviderName)
-	out.CloudProviderType = types.StringValue(in.CloudProviderType)
-	out.DockerPrivateRegistry = types.StringValue(in.DockerPrivateRegistry)
-	out.QuayPrivateRegistry = types.StringValue(in.QuayPrivateRegistry)
-	out.GcrPrivateRegistry = types.StringValue(in.GcrPrivateRegistry)
-	out.K8sPrivateRegistry = types.StringValue(in.K8sPrivateRegistry)
-	out.DockerCentosPackageRepoUrl = types.StringValue(in.DockerCentosPackageRepoUrl)
-	out.DockerUbuntuPackageRepoUrl = types.StringValue(in.DockerUbuntuPackageRepoUrl)
-	out.InterfaceReachableIp = types.StringValue(in.InterfaceReachableIP)
-	out.CustomRegistryUrl = types.StringValue(in.CustomRegistryUrl)
-	out.CustomRegistryRepoPath = types.StringValue(in.CustomRegistryRepoPath)
-	out.CustomRegistryUsername = types.StringValue(in.CustomRegistryUsername)
-	out.CustomRegistryPassword = types.StringValue(in.CustomRegistryPassword)
-	out.CustomRegistrySkipTls = types.BoolValue(in.CustomRegistrySkipTls != 0)
-	out.CustomRegistrySelfSignedCerts = types.BoolValue(in.CustomRegistrySelfSignedCerts != 0)
-	out.CustomRegistryCertPath = types.StringValue(in.CustomRegistryCertPath)
-	if in.CanUpgrade {
-		if in.CanMinorUpgrade == 1 {
-			out.UpgradeKubeRoleVersion = types.StringValue(in.MinorUpgradeRoleVersion)
-		} else if in.CanPatchUpgrade == 1 {
-			out.UpgradeKubeRoleVersion = types.StringValue(in.PatchUpgradeRoleVersion)
-		} else {
-			out.UpgradeKubeRoleVersion = types.StringNull()
-		}
-	} else {
-		out.UpgradeKubeRoleVersion = types.StringNull()
-	}
-
-	if in.EnableEtcdEncryption == "true" {
-		out.EnableEtcdEncryption = types.BoolValue(true)
-	} else {
-		out.EnableEtcdEncryption = types.BoolValue(false)
-	}
-	if in.EtcdBackup != nil {
-		var localPathVal types.String
-		storageProps := in.EtcdBackup.StorageProperties
-		if storageProps.LocalPath != nil {
-			localPathVal = types.StringValue(*in.EtcdBackup.StorageProperties.LocalPath)
-		} else {
-			localPathVal = types.StringNull()
-		}
-		// TODO: Use value.ToObjectValue() and then type.ValueFromObject() instead of creating the object manually
-		etcdBackup, d := resource_cluster.NewEtcdBackupValue(
-			resource_cluster.EtcdBackupValue{}.AttributeTypes(ctx),
-			map[string]attr.Value{
-				"is_etcd_backup_enabled":     types.BoolValue(in.EtcdBackup.IsEtcdBackupEnabled != 0),
-				"storage_type":               types.StringValue(in.EtcdBackup.StorageType),
-				"max_timestamp_backup_count": getIntOrNullIfZero(in.EtcdBackup.MaxTimestampBackupCount),
-				"storage_local_path":         localPathVal,
-				"daily_backup_time":          getStrOrNullIfEmpty(in.EtcdBackup.DailyBackupTime),
-				"interval_in_hours":          getIntOrNullIfZero(in.EtcdBackup.IntervalInHours),
-				"interval_in_mins":           getIntOrNullIfZero(in.EtcdBackup.IntervalInMins),
-				"max_interval_backup_count":  getIntOrNullIfZero(in.EtcdBackup.MaxIntervalBackupCount),
-			},
-		)
-		if d.HasError() {
-			return d
-		}
-		out.EtcdBackup = etcdBackup
-	}
-	if len(in.Tags) == 0 {
-		out.Tags = types.MapNull(basetypes.StringType{})
-	} else {
-		tagsGoMap := map[string]attr.Value{}
-		for key, val := range in.Tags {
-			tagsGoMap[key] = types.StringValue(val)
-		}
-		tfMap, d := types.MapValueFrom(ctx, types.StringType, tagsGoMap)
-		diags.Append(d...)
-		if diags.HasError() {
-			return diags
-		}
-		out.Tags = tfMap
-	}
-
-	return diags
-}
-
-func (r *clusterResource) CreateCreateClusterRequest(ctx context.Context, projectID string, in *resource_cluster.ClusterModel) (*qbert.CreateClusterRequest, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	req := getDefaultCreateClusterReq()
-	req.Name = in.Name.ValueString()
-	req.Privileged = in.Privileged.ValueBoolPointer()
-	req.MasterIP = in.MasterIp.ValueString()
-	masterNodes := []string{}
-	diags.Append(in.MasterNodes.ElementsAs(ctx, &masterNodes, false)...)
-	if diags.HasError() {
-		return nil, diags
-	}
-	req.MasterNodes = masterNodes
-
-	if !in.WorkerNodes.IsNull() && !in.WorkerNodes.IsUnknown() {
-		// if allow_workloads_on_master is true, then we dont need to add worker nodes
-		workerNodes := []string{}
-		diags.Append(in.WorkerNodes.ElementsAs(ctx, &workerNodes, false)...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		req.WorkerNodes = workerNodes
-		if areNotMutuallyExclusive(masterNodes, workerNodes) {
-			diags.AddAttributeError(path.Root("worker_nodes"), "worker_nodes and master_nodes should be mutually exclusive", "Same node can not be part of both worker and master nodes")
-			return nil, diags
-		}
-	}
-	req.AllowWorkloadOnMaster = in.AllowWorkloadsOnMaster.ValueBoolPointer()
-	req.MasterVirtualIPIface = in.MasterVipIface.ValueString()
-	req.MasterVirtualIP = in.MasterVipIpv4.ValueString()
-	req.ContainerCIDR = in.ContainersCidr.ValueString()
-	req.ServiceCIDR = in.ServicesCidr.ValueString()
-	req.MTUSize = ptr.To(int(in.MtuSize.ValueInt64()))
-	req.Privileged = in.Privileged.ValueBoolPointer()
-	req.UseHostname = in.UseHostname.ValueBoolPointer()
-	if !in.InterfaceDetectionMethod.IsUnknown() {
-		req.InterfaceDetectionMethod = in.InterfaceDetectionMethod.ValueString()
-	} else {
-		if len(req.WorkerNodes) > 0 {
-			// For non SingleNode clusters the default InterfaceDetectionMethod should be FirstFound as per UI
-			// Non single node clusters are the Multi Master and Single Master clusters
-			req.InterfaceDetectionMethod = "FirstFound"
-		}
-	}
-	req.InterfaceName = in.InterfaceName.ValueString()
-	if in.NodePoolUuid.IsNull() || in.NodePoolUuid.IsUnknown() || in.NodePoolUuid.ValueString() == "" {
-		tflog.Debug(ctx, "Node pool UUID not provided, getting default node pool")
-		localNodePoolUUID, err := r.client.Qbert().GetNodePoolID(projectID)
-		if err != nil {
-			tflog.Error(ctx, "Failed to get node pool", map[string]interface{}{"error": err})
-			diags.AddError("Failed to get node pool", err.Error())
-			return nil, diags
-		}
-		tflog.Debug(ctx, "Got default node pool", map[string]interface{}{"nodePoolUUID": localNodePoolUUID})
-		req.NodePoolUUID = localNodePoolUUID
-	} else {
-		tflog.Debug(ctx, "Node pool UUID provided", map[string]interface{}{"nodePoolUUID": in.NodePoolUuid.ValueString()})
-		req.NodePoolUUID = in.NodePoolUuid.ValueString()
-	}
-	req.KubeRoleVersion = in.KubeRoleVersion.ValueString()
-	req.CPUManagerPolicy = in.CpuManagerPolicy.ValueString()
-	req.ExternalDNSName = in.ExternalDnsName.ValueString()
-	req.TopologyManagerPolicy = in.TopologyManagerPolicy.ValueString()
-	req.CalicoIPIPMode = in.CalicoIpIpMode.ValueString()
-	req.CalicoNatOutgoing = in.CalicoNatOutgoing.ValueBoolPointer()
-	req.CalicoV4BlockSize = in.CalicoV4BlockSize.ValueString()
-	req.CalicoIpv4DetectionMethod = in.CalicoIpv4DetectionMethod.ValueString()
-	req.NetworkPlugin = qbert.CNIBackend(in.NetworkPlugin.ValueString())
-	req.RuntimeConfig = in.RuntimeConfig.ValueString()
-	req.ContainerRuntime = qbert.ContainerRuntime(in.ContainerRuntime.ValueString())
-
-	if !in.EnableEtcdEncryption.IsUnknown() {
-		req.EnableEtcdEncryption = fmt.Sprintf("%v", in.EnableEtcdEncryption.ValueBool())
-	}
-	req.EtcdBackup.DailyBackupTime = in.EtcdBackup.DailyBackupTime.ValueString()
-	if in.EtcdBackup.IsEtcdBackupEnabled.ValueBool() {
-		req.EtcdBackup.IsEtcdBackupEnabled = 1
-	} else {
-		req.EtcdBackup.IsEtcdBackupEnabled = 0
-	}
-	req.EtcdBackup.MaxTimestampBackupCount = int(in.EtcdBackup.MaxTimestampBackupCount.ValueInt64())
-	req.EtcdBackup.StorageProperties.LocalPath = in.EtcdBackup.StorageLocalPath.ValueStringPointer()
-	req.EtcdBackup.StorageType = in.EtcdBackup.StorageType.ValueString()
-	req.EtcdBackup.IntervalInHours = int(in.EtcdBackup.IntervalInHours.ValueInt64())
-	req.EtcdBackup.IntervalInMins = int(in.EtcdBackup.IntervalInMins.ValueInt64())
-	if !in.EtcdBackup.MaxIntervalBackupCount.IsUnknown() {
-		req.EtcdBackup.MaxIntervalBackupCount = int(in.EtcdBackup.MaxIntervalBackupCount.ValueInt64())
-	}
-	req.ExternalDNSName = in.ExternalDnsName.ValueString()
-	if !in.CertExpiryHrs.IsNull() && !in.CertExpiryHrs.IsUnknown() {
-		req.CertExpiryHrs = ptr.To(int(in.CertExpiryHrs.ValueInt64()))
-	}
-	req.CalicoNodeCpuLimit = in.CalicoNodeCpuLimit.ValueString()
-	req.CalicoNodeMemoryLimit = in.CalicoNodeMemoryLimit.ValueString()
-	req.CalicoTyphaCpuLimit = in.CalicoTyphaCpuLimit.ValueString()
-	req.CalicoTyphaMemoryLimit = in.CalicoTyphaMemoryLimit.ValueString()
-	req.CalicoControllerCpuLimit = in.CalicoControllerCpuLimit.ValueString()
-	req.CalicoControllerMemoryLimit = in.CalicoControllerMemoryLimit.ValueString()
-
-	req.DockerPrivateRegistry = in.DockerPrivateRegistry.ValueString()
-	req.QuayPrivateRegistry = in.QuayPrivateRegistry.ValueString()
-	req.GcrPrivateRegistry = in.GcrPrivateRegistry.ValueString()
-	req.K8sPrivateRegistry = in.K8sPrivateRegistry.ValueString()
-
-	// TODO: Fix naming violation, whatever in API should be in struct
-	req.KubeAPIPort = in.K8sApiPort.ValueString()
-	req.DockerRoot = in.DockerRoot.ValueString()
-
-	tagsGoMap := map[string]string{}
-	diags = in.Tags.ElementsAs(ctx, &tagsGoMap, false)
-	if diags.HasError() {
-		return nil, diags
-	}
-	req.Tags = tagsGoMap
-	return &req, diags
-}
-
-func getDefaultCreateClusterReq() qbert.CreateClusterRequest {
-	return qbert.CreateClusterRequest{
-		EtcdBackup: &qbert.EtcdBackupConfig{},
-		Monitoring: &qbert.MonitoringConfig{},
-	}
 }
 
 func (r *clusterResource) attachDetachNodes(ctx context.Context, plan resource_cluster.ClusterModel, state resource_cluster.ClusterModel) diag.Diagnostics {
@@ -1044,7 +776,6 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, plan resource_c
 		tflog.Debug(ctx, "Detaching nodes", map[string]interface{}{"nodeList": nodeList})
 		err := r.client.Qbert().DetachNodes(state.Id.ValueString(), nodeList)
 		if err != nil {
-			tflog.Error(ctx, "Failed to detach nodes", map[string]interface{}{"error": err})
 			diags.AddError("Failed to detach nodes", err.Error())
 			return diags
 		}
@@ -1074,93 +805,315 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, plan resource_c
 	return diags
 }
 
-type Diff struct {
-	Added   []string
-	Removed []string
+func sunpikeAddonsToTerraformAddons(ctx context.Context, sunpikeAddons []sunpikev1alpha2.ClusterAddon) (map[string]resource_cluster.AddonsValue, diag.Diagnostics) {
+	tfAddonsMap := map[string]resource_cluster.AddonsValue{}
+	var diags diag.Diagnostics
+	for _, sunpikeAddon := range sunpikeAddons {
+		version := types.StringValue(sunpikeAddon.Spec.Version)
+		phase := types.StringValue(string(sunpikeAddon.Status.Phase))
+		paramMap := map[string]string{}
+		for _, param := range sunpikeAddon.Spec.Override.Params {
+			paramMap[param.Name] = param.Value
+		}
+		var params basetypes.MapValue
+		params, diags = types.MapValueFrom(ctx, types.StringType, paramMap)
+		if diags.HasError() {
+			return tfAddonsMap, diags
+		}
+		addonObjVal, diags := resource_cluster.AddonsValue{
+			Version: version,
+			Phase:   phase,
+			Params:  params,
+		}.ToObjectValue(ctx)
+		if diags.HasError() {
+			return tfAddonsMap, diags
+		}
+		addonObjValuable, diags := resource_cluster.AddonsType{}.ValueFromObject(ctx, addonObjVal)
+		if diags.HasError() {
+			return tfAddonsMap, diags
+		}
+		tfAddonsMap[sunpikeAddon.Spec.Type] = addonObjValuable.(resource_cluster.AddonsValue)
+	}
+	return tfAddonsMap, diags
 }
 
-func findDiff(slice1, slice2 []string) Diff {
-	diff := Diff{}
+func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Cluster, clusterModel *resource_cluster.ClusterModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+	clusterModel.Id = types.StringValue(qbertCluster.UUID)
+	clusterModel.Name = types.StringValue(qbertCluster.Name)
+	clusterModel.AllowWorkloadsOnMaster = types.BoolValue(qbertCluster.AllowWorkloadsOnMaster != 0)
+	clusterModel.MasterIp = types.StringValue(qbertCluster.MasterIp)
+	clusterModel.MasterVipIface = types.StringValue(qbertCluster.MasterVipIface)
+	clusterModel.MasterVipIpv4 = types.StringValue(qbertCluster.MasterVipIpv4)
+	clusterModel.ContainersCidr = types.StringValue(qbertCluster.ContainersCidr)
+	clusterModel.ServicesCidr = types.StringValue(qbertCluster.ServicesCidr)
+	mtuSizeInt, err := strconv.Atoi(qbertCluster.MtuSize)
+	if err != nil {
+		diags.AddError("Failed to parse mtu size", err.Error())
+		return diags
+	}
+	clusterModel.MtuSize = types.Int64Value(int64(mtuSizeInt))
+	clusterModel.Privileged = types.BoolValue(qbertCluster.Privileged != 0)
+	clusterModel.UseHostname = types.BoolValue(qbertCluster.UseHostname)
+	clusterModel.InterfaceDetectionMethod = types.StringValue(qbertCluster.InterfaceDetectionMethod)
+	clusterModel.InterfaceName = types.StringValue(qbertCluster.InterfaceName)
+	clusterModel.NodePoolUuid = types.StringValue(qbertCluster.NodePoolUuid)
+	// KubeRoleVersion does not change immediately after cluster upgrade
+	// hence this is a workaround to get the correct value
+	if qbertCluster.UpgradingTo != "" {
+		clusterModel.KubeRoleVersion = types.StringValue(qbertCluster.UpgradingTo)
+	} else {
+		clusterModel.KubeRoleVersion = types.StringValue(qbertCluster.KubeRoleVersion)
+	}
+	clusterModel.CpuManagerPolicy = types.StringValue(qbertCluster.CPUManagerPolicy)
+	clusterModel.TopologyManagerPolicy = types.StringValue(qbertCluster.TopologyManagerPolicy)
+	clusterModel.CalicoIpIpMode = types.StringValue(qbertCluster.CalicoIpIpMode)
+	clusterModel.CalicoNatOutgoing = types.BoolValue(qbertCluster.CalicoNatOutgoing != 0)
+	clusterModel.CalicoV4BlockSize = types.StringValue(qbertCluster.CalicoV4BlockSize)
+	clusterModel.CalicoIpv4DetectionMethod = types.StringValue(qbertCluster.CalicoIPv4DetectionMethod)
+	clusterModel.NetworkPlugin = types.StringValue(qbertCluster.NetworkPlugin)
+	clusterModel.ContainerRuntime = types.StringValue(qbertCluster.ContainerRuntime)
+	clusterModel.RuntimeConfig = emptyStringToNull(qbertCluster.RuntimeConfig)
 
-	// Find added elements
-	for _, s := range slice2 {
-		found := false
-		for _, t := range slice1 {
-			if s == t {
-				found = true
-				break
-			}
+	clusterModel.ExternalDnsName = emptyStringToNull(qbertCluster.ExternalDnsName)
+	clusterModel.CertExpiryHrs = types.Int64Value(int64(qbertCluster.CertExpiryHrs))
+	clusterModel.CalicoNodeCpuLimit = types.StringValue(qbertCluster.CalicoNodeCpuLimit)
+	clusterModel.CalicoNodeMemoryLimit = types.StringValue(qbertCluster.CalicoNodeMemoryLimit)
+	clusterModel.CalicoTyphaCpuLimit = types.StringValue(qbertCluster.CalicoTyphaCpuLimit)
+	clusterModel.CalicoTyphaMemoryLimit = types.StringValue(qbertCluster.CalicoTyphaMemoryLimit)
+	clusterModel.CalicoControllerCpuLimit = types.StringValue(qbertCluster.CalicoControllerCpuLimit)
+	clusterModel.CalicoControllerMemoryLimit = types.StringValue(qbertCluster.CalicoControllerMemoryLimit)
+
+	// Computed attributes
+	clusterModel.CreatedAt = types.StringValue(qbertCluster.CreatedAt)
+	clusterModel.Status = types.StringValue(qbertCluster.Status)
+	clusterModel.FlannelIfaceLabel = emptyStringToNull(qbertCluster.FlannelIfaceLabel)
+	clusterModel.FlannelPublicIfaceLabel = emptyStringToNull(qbertCluster.FlannelPublicIfaceLabel)
+	clusterModel.DockerRoot = types.StringValue(qbertCluster.DockerRoot)
+	clusterModel.EtcdDataDir = types.StringValue(qbertCluster.EtcdDataDir)
+	clusterModel.LastOp = types.StringValue(qbertCluster.LastOp)
+	clusterModel.LastOk = types.StringValue(qbertCluster.LastOk)
+	clusterModel.TaskStatus = types.StringValue(qbertCluster.TaskStatus)
+	clusterModel.TaskError = types.StringValue(qbertCluster.TaskError)
+	clusterModel.ProjectId = types.StringValue(qbertCluster.ProjectId)
+	clusterModel.MasterVipVrouterId = types.StringValue(qbertCluster.MasterVipVrouterId)
+	clusterModel.K8sApiPort = types.StringValue(qbertCluster.K8sApiPort)
+	clusterModel.CalicoIpv4 = types.StringValue(qbertCluster.CalicoIPv4)
+	clusterModel.CalicoIpv6 = types.StringValue(qbertCluster.CalicoIPv6)
+	clusterModel.CalicoIpv6DetectionMethod = types.StringValue(qbertCluster.CalicoIPv6DetectionMethod)
+	clusterModel.CalicoRouterId = types.StringValue(qbertCluster.CalicoRouterID)
+	clusterModel.CalicoIpv6PoolCidr = emptyStringToNull(qbertCluster.CalicoIPv6PoolCidr)
+	clusterModel.CalicoIpv6PoolBlockSize = types.StringValue(qbertCluster.CalicoIPv6PoolBlockSize)
+	clusterModel.CalicoIpv6PoolNatOutgoing = types.BoolValue(qbertCluster.CalicoIPv6PoolNatOutgoing != 0)
+	clusterModel.FelixIpv6Support = types.BoolValue(qbertCluster.FelixIPv6Support != 0)
+	clusterModel.Masterless = types.BoolValue(qbertCluster.Masterless != 0)
+	clusterModel.EtcdVersion = types.StringValue(qbertCluster.EtcdVersion)
+	if qbertCluster.EtcdHeartbeatIntervalMs == "" {
+		clusterModel.EtcdHeartbeatIntervalMs = types.Int64Null()
+	} else {
+		etcdHeartbeatIntervalMs, err := strconv.Atoi(qbertCluster.EtcdHeartbeatIntervalMs)
+		if err != nil {
+			diags.AddError("Failed to parse etcd heartbeat interval", err.Error())
+			return diags
 		}
-		if !found {
-			diff.Added = append(diff.Added, s)
+		clusterModel.EtcdHeartbeatIntervalMs = types.Int64Value(int64(etcdHeartbeatIntervalMs))
+	}
+	if qbertCluster.EtcdElectionTimeoutMs == "" {
+		clusterModel.EtcdElectionTimeoutMs = types.Int64Null()
+	} else {
+		etcdElectionTimeoutMs, err := strconv.Atoi(qbertCluster.EtcdElectionTimeoutMs)
+		if err != nil {
+			diags.AddError("Failed to parse etcd election timeout", err.Error())
+			return diags
 		}
+		clusterModel.EtcdElectionTimeoutMs = types.Int64Value(int64(etcdElectionTimeoutMs))
+	}
+	clusterModel.MasterStatus = types.StringValue(qbertCluster.MasterStatus)
+	clusterModel.WorkerStatus = types.StringValue(qbertCluster.WorkerStatus)
+	clusterModel.Ipv6 = types.BoolValue(qbertCluster.IPv6 != 0)
+	clusterModel.NodePoolName = types.StringValue(qbertCluster.NodePoolName)
+	clusterModel.CloudProviderUuid = types.StringValue(qbertCluster.CloudProviderUuid)
+	clusterModel.CloudProviderName = types.StringValue(qbertCluster.CloudProviderName)
+	clusterModel.CloudProviderType = types.StringValue(qbertCluster.CloudProviderType)
+	clusterModel.DockerPrivateRegistry = types.StringValue(qbertCluster.DockerPrivateRegistry)
+	clusterModel.QuayPrivateRegistry = types.StringValue(qbertCluster.QuayPrivateRegistry)
+	clusterModel.GcrPrivateRegistry = types.StringValue(qbertCluster.GcrPrivateRegistry)
+	clusterModel.K8sPrivateRegistry = types.StringValue(qbertCluster.K8sPrivateRegistry)
+	clusterModel.DockerCentosPackageRepoUrl = types.StringValue(qbertCluster.DockerCentosPackageRepoUrl)
+	clusterModel.DockerUbuntuPackageRepoUrl = types.StringValue(qbertCluster.DockerUbuntuPackageRepoUrl)
+	clusterModel.InterfaceReachableIp = types.StringValue(qbertCluster.InterfaceReachableIP)
+	clusterModel.CustomRegistryUrl = types.StringValue(qbertCluster.CustomRegistryUrl)
+	clusterModel.CustomRegistryRepoPath = types.StringValue(qbertCluster.CustomRegistryRepoPath)
+	clusterModel.CustomRegistryUsername = types.StringValue(qbertCluster.CustomRegistryUsername)
+	clusterModel.CustomRegistryPassword = types.StringValue(qbertCluster.CustomRegistryPassword)
+	clusterModel.CustomRegistrySkipTls = types.BoolValue(qbertCluster.CustomRegistrySkipTls != 0)
+	clusterModel.CustomRegistrySelfSignedCerts = types.BoolValue(qbertCluster.CustomRegistrySelfSignedCerts != 0)
+	clusterModel.CustomRegistryCertPath = types.StringValue(qbertCluster.CustomRegistryCertPath)
+	if qbertCluster.CanUpgrade {
+		if qbertCluster.CanMinorUpgrade == 1 {
+			clusterModel.UpgradeKubeRoleVersion = types.StringValue(qbertCluster.MinorUpgradeRoleVersion)
+		} else if qbertCluster.CanPatchUpgrade == 1 {
+			clusterModel.UpgradeKubeRoleVersion = types.StringValue(qbertCluster.PatchUpgradeRoleVersion)
+		} else {
+			clusterModel.UpgradeKubeRoleVersion = types.StringNull()
+		}
+	} else {
+		clusterModel.UpgradeKubeRoleVersion = types.StringNull()
 	}
 
-	// Find removed elements
-	for _, s := range slice1 {
-		found := false
-		for _, t := range slice2 {
-			if s == t {
-				found = true
-				break
-			}
+	if qbertCluster.EnableEtcdEncryption == "true" {
+		clusterModel.EnableEtcdEncryption = types.BoolValue(true)
+	} else {
+		clusterModel.EnableEtcdEncryption = types.BoolValue(false)
+	}
+	if qbertCluster.EtcdBackup != nil {
+		var localPathVal types.String
+		storageProps := qbertCluster.EtcdBackup.StorageProperties
+		if storageProps.LocalPath != nil {
+			localPathVal = types.StringValue(*qbertCluster.EtcdBackup.StorageProperties.LocalPath)
+		} else {
+			localPathVal = types.StringNull()
 		}
-		if !found {
-			diff.Removed = append(diff.Removed, s)
+		etcdBackupObjVal, convertDiags := resource_cluster.EtcdBackupValue{
+			IsEtcdBackupEnabled:     types.BoolValue(qbertCluster.EtcdBackup.IsEtcdBackupEnabled != 0),
+			StorageType:             types.StringValue(qbertCluster.EtcdBackup.StorageType),
+			MaxTimestampBackupCount: getIntOrNullIfZero(qbertCluster.EtcdBackup.MaxTimestampBackupCount),
+			StorageLocalPath:        localPathVal,
+			DailyBackupTime:         getStrOrNullIfEmpty(qbertCluster.EtcdBackup.DailyBackupTime),
+			IntervalInHours:         getIntOrNullIfZero(qbertCluster.EtcdBackup.IntervalInHours),
+			IntervalInMins:          getIntOrNullIfZero(qbertCluster.EtcdBackup.IntervalInMins),
+			MaxIntervalBackupCount:  getIntOrNullIfZero(qbertCluster.EtcdBackup.MaxIntervalBackupCount),
+		}.ToObjectValue(ctx)
+		diags.Append(convertDiags...)
+		if diags.HasError() {
+			return diags
 		}
+		etcdBackup, convertDiags := resource_cluster.NewEtcdBackupValue(
+			etcdBackupObjVal.AttributeTypes(ctx), etcdBackupObjVal.Attributes())
+		diags.Append(convertDiags...)
+		if diags.HasError() {
+			return diags
+		}
+		clusterModel.EtcdBackup = etcdBackup
+	}
+	if len(qbertCluster.Tags) == 0 {
+		clusterModel.Tags = types.MapNull(basetypes.StringType{})
+	} else {
+		tagsGoMap := map[string]attr.Value{}
+		for key, val := range qbertCluster.Tags {
+			tagsGoMap[key] = types.StringValue(val)
+		}
+		tfMap, convertDiags := types.MapValueFrom(ctx, types.StringType, tagsGoMap)
+		diags.Append(convertDiags...)
+		if diags.HasError() {
+			return diags
+		}
+		clusterModel.Tags = tfMap
 	}
 
-	return diff
+	return diags
 }
 
-// getIntOrNullIfZero returns int64 value if i is not zero, else returns null
-// omitempty tag in struct does not work for int64, it returns 0 for null (empty) value
-// This is a helper function to convert 0 to null
-func getIntOrNullIfZero(i int) basetypes.Int64Value {
-	if i == 0 {
-		return types.Int64Null()
+func createCreateClusterRequest(ctx context.Context, clusterModel *resource_cluster.ClusterModel) (qbert.CreateClusterRequest, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	createClusterReq := qbert.CreateClusterRequest{
+		EtcdBackup: &qbert.EtcdBackupConfig{},
+		Monitoring: &qbert.MonitoringConfig{},
 	}
-	return types.Int64Value(int64(i))
-}
-
-func getStrOrNullIfEmpty(s string) basetypes.StringValue {
-	if s == "" {
-		return types.StringNull()
+	createClusterReq.Name = clusterModel.Name.ValueString()
+	createClusterReq.Privileged = clusterModel.Privileged.ValueBoolPointer()
+	createClusterReq.MasterIP = clusterModel.MasterIp.ValueString()
+	masterNodes := []string{}
+	diags.Append(clusterModel.MasterNodes.ElementsAs(ctx, &masterNodes, false)...)
+	if diags.HasError() {
+		return createClusterReq, diags
 	}
-	return types.StringValue(s)
-}
+	createClusterReq.MasterNodes = masterNodes
 
-func findLatestKubeRoleVersion(roles []qbert.Role) qbert.Role {
-	var latestRole qbert.Role
-	// usually the roles are sorted, so the last one is the latest
-	latestRole = roles[len(roles)-1]
-	for _, role := range roles {
-		if role.K8sMajorVersion > latestRole.K8sMajorVersion ||
-			(role.K8sMajorVersion == latestRole.K8sMajorVersion && role.K8sMinorVersion > latestRole.K8sMinorVersion) ||
-			(role.K8sMajorVersion == latestRole.K8sMajorVersion && role.K8sMinorVersion == latestRole.K8sMinorVersion && role.K8sPatchVersion > latestRole.K8sPatchVersion) ||
-			(role.K8sMajorVersion == latestRole.K8sMajorVersion && role.K8sMinorVersion == latestRole.K8sMinorVersion && role.K8sPatchVersion == latestRole.K8sPatchVersion && role.Pf9PatchVersion > latestRole.Pf9PatchVersion) {
-			latestRole = role
+	if !clusterModel.WorkerNodes.IsNull() && !clusterModel.WorkerNodes.IsUnknown() {
+		workerNodes := []string{}
+		diags.Append(clusterModel.WorkerNodes.ElementsAs(ctx, &workerNodes, false)...)
+		if diags.HasError() {
+			return createClusterReq, diags
+		}
+		createClusterReq.WorkerNodes = workerNodes
+		if areNotMutuallyExclusive(masterNodes, workerNodes) {
+			diags.AddAttributeError(path.Root("worker_nodes"), "worker_nodes and master_nodes should be mutually exclusive", "Same node can not be part of both worker and master nodes")
+			return createClusterReq, diags
 		}
 	}
-	return latestRole
+	createClusterReq.AllowWorkloadOnMaster = clusterModel.AllowWorkloadsOnMaster.ValueBoolPointer()
+	createClusterReq.MasterVirtualIPIface = clusterModel.MasterVipIface.ValueString()
+	createClusterReq.MasterVirtualIP = clusterModel.MasterVipIpv4.ValueString()
+	createClusterReq.ContainerCIDR = clusterModel.ContainersCidr.ValueString()
+	createClusterReq.ServiceCIDR = clusterModel.ServicesCidr.ValueString()
+	createClusterReq.MTUSize = ptr.To(int(clusterModel.MtuSize.ValueInt64()))
+	createClusterReq.Privileged = clusterModel.Privileged.ValueBoolPointer()
+	createClusterReq.UseHostname = clusterModel.UseHostname.ValueBoolPointer()
+	createClusterReq.InterfaceDetectionMethod = clusterModel.InterfaceDetectionMethod.ValueString()
+	createClusterReq.InterfaceName = clusterModel.InterfaceName.ValueString()
+	createClusterReq.KubeRoleVersion = clusterModel.KubeRoleVersion.ValueString()
+	createClusterReq.CPUManagerPolicy = clusterModel.CpuManagerPolicy.ValueString()
+	createClusterReq.ExternalDNSName = clusterModel.ExternalDnsName.ValueString()
+	createClusterReq.TopologyManagerPolicy = clusterModel.TopologyManagerPolicy.ValueString()
+	createClusterReq.CalicoIPIPMode = clusterModel.CalicoIpIpMode.ValueString()
+	createClusterReq.CalicoNatOutgoing = clusterModel.CalicoNatOutgoing.ValueBoolPointer()
+	createClusterReq.CalicoV4BlockSize = clusterModel.CalicoV4BlockSize.ValueString()
+	createClusterReq.CalicoIpv4DetectionMethod = clusterModel.CalicoIpv4DetectionMethod.ValueString()
+	createClusterReq.NetworkPlugin = qbert.CNIBackend(clusterModel.NetworkPlugin.ValueString())
+	createClusterReq.RuntimeConfig = clusterModel.RuntimeConfig.ValueString()
+	createClusterReq.ContainerRuntime = qbert.ContainerRuntime(clusterModel.ContainerRuntime.ValueString())
+
+	if !clusterModel.EnableEtcdEncryption.IsUnknown() && !clusterModel.EnableEtcdEncryption.IsNull() {
+		createClusterReq.EnableEtcdEncryption = fmt.Sprintf("%v", clusterModel.EnableEtcdEncryption.ValueBool())
+	}
+	createClusterReq.EtcdBackup.DailyBackupTime = clusterModel.EtcdBackup.DailyBackupTime.ValueString()
+	if clusterModel.EtcdBackup.IsEtcdBackupEnabled.ValueBool() {
+		createClusterReq.EtcdBackup.IsEtcdBackupEnabled = 1
+	} else {
+		createClusterReq.EtcdBackup.IsEtcdBackupEnabled = 0
+	}
+	createClusterReq.EtcdBackup.MaxTimestampBackupCount = int(clusterModel.EtcdBackup.MaxTimestampBackupCount.ValueInt64())
+	createClusterReq.EtcdBackup.StorageProperties.LocalPath = clusterModel.EtcdBackup.StorageLocalPath.ValueStringPointer()
+	createClusterReq.EtcdBackup.StorageType = clusterModel.EtcdBackup.StorageType.ValueString()
+	createClusterReq.EtcdBackup.IntervalInHours = int(clusterModel.EtcdBackup.IntervalInHours.ValueInt64())
+	createClusterReq.EtcdBackup.IntervalInMins = int(clusterModel.EtcdBackup.IntervalInMins.ValueInt64())
+	if !clusterModel.EtcdBackup.MaxIntervalBackupCount.IsUnknown() && !clusterModel.EtcdBackup.MaxIntervalBackupCount.IsNull() {
+		createClusterReq.EtcdBackup.MaxIntervalBackupCount = int(clusterModel.EtcdBackup.MaxIntervalBackupCount.ValueInt64())
+	}
+	createClusterReq.ExternalDNSName = clusterModel.ExternalDnsName.ValueString()
+	if !clusterModel.CertExpiryHrs.IsNull() && !clusterModel.CertExpiryHrs.IsUnknown() {
+		createClusterReq.CertExpiryHrs = ptr.To(int(clusterModel.CertExpiryHrs.ValueInt64()))
+	}
+	createClusterReq.CalicoNodeCpuLimit = clusterModel.CalicoNodeCpuLimit.ValueString()
+	createClusterReq.CalicoNodeMemoryLimit = clusterModel.CalicoNodeMemoryLimit.ValueString()
+	createClusterReq.CalicoTyphaCpuLimit = clusterModel.CalicoTyphaCpuLimit.ValueString()
+	createClusterReq.CalicoTyphaMemoryLimit = clusterModel.CalicoTyphaMemoryLimit.ValueString()
+	createClusterReq.CalicoControllerCpuLimit = clusterModel.CalicoControllerCpuLimit.ValueString()
+	createClusterReq.CalicoControllerMemoryLimit = clusterModel.CalicoControllerMemoryLimit.ValueString()
+
+	createClusterReq.DockerPrivateRegistry = clusterModel.DockerPrivateRegistry.ValueString()
+	createClusterReq.QuayPrivateRegistry = clusterModel.QuayPrivateRegistry.ValueString()
+	createClusterReq.GcrPrivateRegistry = clusterModel.GcrPrivateRegistry.ValueString()
+	createClusterReq.K8sPrivateRegistry = clusterModel.K8sPrivateRegistry.ValueString()
+
+	createClusterReq.KubeAPIPort = clusterModel.K8sApiPort.ValueString()
+	createClusterReq.DockerRoot = clusterModel.DockerRoot.ValueString()
+
+	tagsGoMap := map[string]string{}
+	diags = clusterModel.Tags.ElementsAs(ctx, &tagsGoMap, false)
+	if diags.HasError() {
+		return createClusterReq, diags
+	}
+	createClusterReq.Tags = tagsGoMap
+	return createClusterReq, diags
 }
 
-func areNotMutuallyExclusive(slice1, slice2 []string) bool {
-	for _, s := range slice1 {
-		for _, t := range slice2 {
-			if s == t {
-				return true
-			}
-		}
+func (r *clusterResource) listClusterAddons(ctx context.Context, clusterID string) ([]sunpikev1alpha2.ClusterAddon, error) {
+	tflog.Info(ctx, "Listing addons enabled on the cluster", map[string]interface{}{"clusterID": clusterID})
+	sunpikeAddonsList, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
+	if err != nil {
+		return nil, err
 	}
-	return false
-}
-
-// qbert API returns empty string for null values, this function converts empty string to null to prevent
-// Provider produced inconsistent result after apply, .external_dns_name: was null, but now cty.StringVal("")
-func emptyStringToNull(s string) basetypes.StringValue {
-	if s == "" {
-		return types.StringNull()
-	}
-	return types.StringValue(s)
+	return sunpikeAddonsList.Items, nil
 }

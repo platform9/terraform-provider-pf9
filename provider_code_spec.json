@@ -1,1101 +1,4 @@
 {
-	"datasources": [
-		{
-			"name": "cluster",
-			"schema": {
-				"attributes": [
-					{
-						"name": "id",
-						"string": {
-							"computed_optional_required": "required",
-							"description": "UUID of the cluster"
-						}
-					},
-					{
-						"name": "name",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Name of the cluster"
-						}
-					},
-					{
-						"name": "master_nodes",
-						"set": {
-							"computed_optional_required": "computed",
-							"element_type": {
-								"string": {}
-							}
-						}
-					},
-					{
-						"name": "worker_nodes",
-						"set": {
-							"computed_optional_required": "computed",
-							"element_type": {
-								"string": {}
-							}
-						}
-					},
-					{
-						"name": "allow_workloads_on_master",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "master_vip_iface",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "master_ip",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "master_vip_ipv4",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "external_dns_name",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "containers_cidr",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "services_cidr",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_node_cpu_limit",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_node_memory_limit",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_typha_cpu_limit",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_typha_memory_limit",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_controller_cpu_limit",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_controller_memory_limit",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "mtu_size",
-						"int64": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "privileged",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "use_hostname",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "interface_detection_method",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "interface_name",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "node_pool_uuid",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "kube_role_version",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "cpu_manager_policy",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "topology_manager_policy",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_ip_ip_mode",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_nat_outgoing",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_v4_block_size",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_ipv4_detection_method",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "network_plugin",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "runtime_config",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "container_runtime",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "cert_expiry_hrs",
-						"int64": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "enable_etcd_encryption",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "etcd_backup",
-						"single_nested": {
-							"computed_optional_required": "computed",
-							"attributes": [
-								{
-									"name": "storage_type",
-									"string": {
-										"computed_optional_required": "computed"
-									}
-								},
-								{
-									"name": "is_etcd_backup_enabled",
-									"bool": {
-										"computed_optional_required": "computed"
-									}
-								},
-								{
-									"name": "daily_backup_time",
-									"string": {
-										"computed_optional_required": "computed"
-									}
-								},
-								{
-									"name": "max_timestamp_backup_count",
-									"int64": {
-										"computed_optional_required": "computed"
-									}
-								},
-								{
-									"name": "storage_local_path",
-									"string": {
-										"computed_optional_required": "computed"
-									}
-								},
-								{
-									"name": "interval_in_hours",
-									"int64": {
-										"computed_optional_required": "computed"
-									}
-								},
-								{
-									"name": "interval_in_mins",
-									"int64": {
-										"computed_optional_required": "computed"
-									}
-								},
-								{
-									"name": "max_interval_backup_count",
-									"int64": {
-										"computed_optional_required": "computed"
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "tags",
-						"map": {
-							"computed_optional_required": "computed",
-							"element_type": {
-								"string": {}
-							}
-						}
-					},
-					{
-						"name": "created_at",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Time at which the cluster was created"
-						}
-					},
-					{
-						"name": "status",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "flannel_iface_label",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "flannel_public_iface_label",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "docker_root",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "etcd_data_dir",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "last_op",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "last_ok",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "task_status",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "task_error",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "project_id",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "master_vip_vrouter_id",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "k8s_api_port",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_ipv4",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_ipv6",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_ipv6_detection_method",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_router_id",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_ipv6_pool_cidr",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_ipv6_pool_block_size",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "calico_ipv6_pool_nat_outgoing",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "felix_ipv6_support",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "masterless",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "etcd_version",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "etcd_heartbeat_interval_ms",
-						"int64": {
-							"computed_optional_required": "optional"
-						}
-					},
-					{
-						"name": "etcd_election_timeout_ms",
-						"int64": {
-							"computed_optional_required": "optional"
-						}
-					},
-					{
-						"name": "master_status",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "worker_status",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "ipv6",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "node_pool_name",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "cloud_provider_uuid",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "cloud_provider_name",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "cloud_provider_type",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "docker_private_registry",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "quay_private_registry",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "gcr_private_registry",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "k8s_private_registry",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "docker_centos_package_repo_url",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "docker_ubuntu_package_repo_url",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "addon_operator_image_tag",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "interface_reachable_ip",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "custom_registry_url",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "custom_registry_repo_path",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "custom_registry_username",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "custom_registry_password",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "custom_registry_skip_tls",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "custom_registry_self_signed_certs",
-						"bool": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "custom_registry_cert_path",
-						"string": {
-							"computed_optional_required": "computed"
-						}
-					},
-					{
-						"name": "addons",
-						"set_nested": {
-							"computed_optional_required": "computed",
-							"nested_object": {
-								"attributes": [
-									{
-										"name": "name",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "version",
-										"string": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "enabled",
-										"bool": {
-											"computed_optional_required": "computed"
-										}
-									},
-									{
-										"name": "config",
-										"map": {
-											"computed_optional_required": "computed",
-											"element_type": {
-												"string": {}
-											}
-										}
-									}
-								]
-							}
-						}
-					}
-				]
-			}
-		},
-		{
-			"name": "kubeconfig",
-			"schema": {
-				"attributes": [
-					{
-						"name": "id",
-						"string": {
-							"computed_optional_required": "required",
-							"description": "UUID of the cluster"
-						}
-					},
-					{
-						"name": "authentication_method",
-						"string": {
-							"computed_optional_required": "optional",
-							"description": "The authentication method can be one of three types: token, certificate, or password.",
-							"validators": [
-								{
-									"custom": {
-										"imports": [
-											{
-												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-											}
-										],
-										"schema_definition": "stringvalidator.OneOf(\"token\",\"password\",\"certificate\")"
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "raw",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Kubeconfig blob"
-						}
-					},
-					{
-						"name": "kubeconfigs",
-						"list_nested": {
-							"computed_optional_required": "computed",
-							"nested_object": {
-								"attributes": [
-									{
-										"name": "name",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Name of the kubeconfig context"
-										}
-									},
-									{
-										"name": "cluster",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Name of the cluster"
-										}
-									},
-									{
-										"name": "username",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Name of the user"
-										}
-									},
-									{
-										"name": "host",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Kube api server api endpoint"
-										}
-									},
-									{
-										"name": "token",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Token of your service account",
-											"sensitive": true
-										}
-									},
-									{
-										"name": "cluster_ca_certificate",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Path to the certificate authority file"
-										}
-									},
-									{
-										"name": "client_certificate",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Path to the client certificate file"
-										}
-									},
-									{
-										"name": "client_key",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Path to the client key file"
-										}
-									},
-									{
-										"name": "insecure",
-										"bool": {
-											"computed_optional_required": "computed",
-											"description": "If the server should be accessed without verifying the TLS certificate"
-										}
-									}
-								]
-							}
-						}
-					}
-				]
-			}
-		},
-		{
-			"name": "node",
-			"schema": {
-				"attributes": [
-					{
-						"name": "id",
-						"string": {
-							"computed_optional_required": "required",
-							"description": "UUID of the cluster"
-						}
-					},
-					{
-						"name": "name",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Host name of the node"
-						}
-					},
-					{
-						"name": "api_responding",
-						"bool": {
-							"computed_optional_required": "computed",
-							"description": "true indicates the API server on this node is running."
-						}
-					},
-					{
-						"name": "cluster_name",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Name of the cluster the node belongs to"
-						}
-					},
-					{
-						"name": "cluster_uuid",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "UUID of the cluster the node belongs to"
-						}
-					},
-					{
-						"name": "is_master",
-						"bool": {
-							"computed_optional_required": "computed",
-							"description": "true if this node is a master of a cluster."
-						}
-					},
-					{
-						"name": "node_pool_name",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Name of the node pool, the node belongs to"
-						}
-					},
-					{
-						"name": "node_pool_uuid",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "UUID of the node pool, the node belongs to"
-						}
-					},
-					{
-						"name": "primary_ip",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "IP address of the node"
-						}
-					},
-					{
-						"name": "status",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Status of the node. States include “ok”, ”converging”, “failed”. These states indicate the current state of kubernetes setup on the host."
-						}
-					}
-				]
-			}
-		},
-		{
-			"name": "nodes",
-			"schema": {
-				"attributes": [
-					{
-						"name": "id",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Placeholder for ID"
-						}
-					},
-					{
-						"name": "nodes",
-						"list_nested": {
-							"computed_optional_required": "computed",
-							"description": "List of nodes",
-							"nested_object": {
-								"attributes": [
-									{
-										"name": "id",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "UUID of the cluster"
-										}
-									},
-									{
-										"name": "name",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Host name of the node"
-										}
-									},
-									{
-										"name": "api_responding",
-										"bool": {
-											"computed_optional_required": "computed",
-											"description": "Indicates the API server on this node is running"
-										}
-									},
-									{
-										"name": "cluster_name",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Name of the cluster the node belongs to"
-										}
-									},
-									{
-										"name": "cluster_uuid",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "UUID of the cluster the node belongs to"
-										}
-									},
-									{
-										"name": "is_master",
-										"bool": {
-											"computed_optional_required": "computed",
-											"description": "true if this node is a master of a cluster."
-										}
-									},
-									{
-										"name": "node_pool_name",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Name of the node pool, the node belongs to"
-										}
-									},
-									{
-										"name": "node_pool_uuid",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "UUID of the node pool, the node belongs to"
-										}
-									},
-									{
-										"name": "primary_ip",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "IP address of the node"
-										}
-									},
-									{
-										"name": "status",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Status of the node. States include ok, converging, failed. These states indicate the current state of kubernetes setup on the host."
-										}
-									}
-								]
-							}
-						}
-					},
-					{
-						"name": "filter",
-						"single_nested": {
-							"computed_optional_required": "required",
-							"attributes": [
-								{
-									"name": "name",
-									"string": {
-										"computed_optional_required": "required",
-										"description": "Name of the attribute on which this filter is applied",
-										"validators": [
-											{
-												"custom": {
-													"imports": [
-														{
-															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-														}
-													],
-													"schema_definition": "stringvalidator.OneOf(\"id\",\"name\",\"api_responding\",\"cluster_name\",\"cluster_uuid\",\"is_master\",\"node_pool_name\",\"node_pool_uuid\",\"primary_ip\",\"status\")"
-												}
-											}
-										]
-									}
-								},
-								{
-									"name": "values",
-									"list": {
-										"computed_optional_required": "required",
-										"element_type": {
-											"string": {}
-										}
-									}
-								}
-							]
-						}
-					}
-				]
-			}
-		},
-		{
-			"name": "nodepools",
-			"schema": {
-				"attributes": [
-					{
-						"name": "id",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Placeholder for ID"
-						}
-					},
-					{
-						"name": "nodepools",
-						"list_nested": {
-							"computed_optional_required": "computed",
-							"description": "List of nodepools matched to the filter",
-							"nested_object": {
-								"attributes": [
-									{
-										"name": "id",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "UUID of the nodepool"
-										}
-									},
-									{
-										"name": "name",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Name of the nodepool"
-										}
-									},
-									{
-										"name": "cloud_provider_uuid",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "UUID of the cloud provider"
-										}
-									},
-									{
-										"name": "cloud_provider_name",
-										"string": {
-											"computed_optional_required": "computed",
-											"description": "Name of the cloud provider"
-										}
-									}
-								]
-							}
-						}
-					},
-					{
-						"name": "filter",
-						"single_nested": {
-							"computed_optional_required": "required",
-							"attributes": [
-								{
-									"name": "name",
-									"string": {
-										"computed_optional_required": "required",
-										"description": "Name of the attribute on which this filter is applied",
-										"validators": [
-											{
-												"custom": {
-													"imports": [
-														{
-															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-														}
-													],
-													"schema_definition": "stringvalidator.OneOf(\"name\",\"cloud_provider_name\",\"cloud_provider_uuid\")"
-												}
-											}
-										]
-									}
-								},
-								{
-									"name": "values",
-									"list": {
-										"computed_optional_required": "required",
-										"element_type": {
-											"string": {}
-										}
-									}
-								}
-							]
-						}
-					}
-				]
-			}
-		},
-		{
-			"name": "clusters",
-			"schema": {
-				"attributes": [
-					{
-						"name": "id",
-						"string": {
-							"computed_optional_required": "computed",
-							"description": "Placeholder for an ID"
-						}
-					},
-					{
-						"name": "cluster_ids",
-						"list": {
-							"computed_optional_required": "computed",
-							"element_type": {
-								"string": {}
-							},
-							"description": "A list of cluster IDs for clusters that match all the specified filters."
-						}
-					},
-					{
-						"name": "filters",
-						"list_nested": {
-							"computed_optional_required": "required",
-							"description": "List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed.",
-							"nested_object": {
-								"attributes": [
-									{
-										"name": "name",
-										"string": {
-											"computed_optional_required": "required",
-											"description": "Name of the attribute on which this filter should be applied. The tags attribute is a special case where the name has to be specified as 'tags:<tag_key>'"
-										}
-									},
-									{
-										"name": "values",
-										"set": {
-											"computed_optional_required": "optional",
-											"description": "Set of values for the attribute, if any of the 'value' matches then the filter is considered to be matched",
-											"element_type": {
-												"string": {}
-											}
-										}
-									},
-									{
-										"name": "regexes",
-										"set": {
-											"computed_optional_required": "optional",
-											"description": "Set of regexes to match to the attribute value, if any of the 'regex' matches then the filter is considered to be matched",
-											"element_type": {
-												"string": {}
-											}
-										}
-									}
-								]
-							},
-							"validators": [
-								{
-									"custom": {
-										"imports": [
-											{
-												"path": "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-											}
-										],
-										"schema_definition": "listvalidator.SizeAtLeast(1)"
-									}
-								}
-							]
-						}
-					}
-				]
-			}
-		}
-	],
 	"provider": {
 		"name": "pf9",
 		"schema": {
@@ -1131,6 +34,7 @@
 			]
 		}
 	},
+	"version": "0.1",
 	"resources": [
 		{
 			"name": "cluster",
@@ -1534,6 +438,18 @@
 						"string": {
 							"computed_optional_required": "computed_optional",
 							"description": "Method to detect the interface",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"FirstFound\",\"InterfaceName\",\"InterfaceReachableIP\")"
+									}
+								}
+							],
 							"plan_modifiers": [
 								{
 									"custom": {
@@ -2791,5 +1707,1241 @@
 			}
 		}
 	],
-	"version": "0.1"
+	"datasources": [
+		{
+			"name": "cluster",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the cluster"
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the cluster, applicable also for manual deploy"
+						}
+					},
+					{
+						"name": "master_nodes",
+						"set": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							},
+							"description": "List of uuid of master nodes"
+						}
+					},
+					{
+						"name": "worker_nodes",
+						"set": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							},
+							"description": "List of uuid of worker nodes"
+						}
+					},
+					{
+						"name": "allow_workloads_on_master",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "If the master nodes can run non-critical workloads"
+						}
+					},
+					{
+						"name": "master_vip_iface",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "If master_vip_ipv4 is specified, this field is required. Specify the interface that the VIP attaches to"
+						}
+					},
+					{
+						"name": "master_ip",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "IP of master node"
+						}
+					},
+					{
+						"name": "master_vip_ipv4",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together"
+						}
+					},
+					{
+						"name": "external_dns_name",
+						"string": {
+							"computed_optional_required": "optional",
+							"description": "Optional DNS name for API endpoint. This field is autogenerated when usePf9Domain is set, also applicable for manual deploy"
+						}
+					},
+					{
+						"name": "containers_cidr",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "CIDR used for pod IP addresses, applicable also for manual deploy"
+						}
+					},
+					{
+						"name": "services_cidr",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "CIDR used for service IP addresses, applicable also for manual deploy"
+						}
+					},
+					{
+						"name": "calico_node_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_node_memory_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_typha_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_typha_memory_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_controller_cpu_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "calico_controller_memory_limit",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico."
+						}
+					},
+					{
+						"name": "mtu_size",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "MTU for container network interfaces. Optional and used for the Calico network backend"
+						}
+					},
+					{
+						"name": "privileged",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "True if cluster runs privileged containers"
+						}
+					},
+					{
+						"name": "use_hostname",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts."
+						}
+					},
+					{
+						"name": "interface_detection_method",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Method to detect the interface"
+						}
+					},
+					{
+						"name": "interface_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the interface"
+						}
+					},
+					{
+						"name": "node_pool_uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Optional. UUID of the node pool used for the cluster. Defaults to the first node pool of the local cloud provider type"
+						}
+					},
+					{
+						"name": "kube_role_version",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "kube role version to be used when bringing up the cluster."
+						}
+					},
+					{
+						"name": "upgrade_kube_role_version",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "kube role version to which the cluster can be upgraded."
+						}
+					},
+					{
+						"name": "cpu_manager_policy",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "options: none, static; default: none"
+						}
+					},
+					{
+						"name": "topology_manager_policy",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "options: none, best-effort, restricted, single-numa-node; default: none"
+						}
+					},
+					{
+						"name": "calico_ip_ip_mode",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet"
+						}
+					},
+					{
+						"name": "calico_nat_outgoing",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "Field is set to true if Calico nodes need to NAT north-south egress traffic."
+						}
+					},
+					{
+						"name": "calico_v4_block_size",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Subnet size per node for the Calico network, in CIDR notation (e.g. 26)"
+						}
+					},
+					{
+						"name": "calico_ipv4_detection_method",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Method to detect the IPv4 address"
+						}
+					},
+					{
+						"name": "network_plugin",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Network backend to use for container networking. Defaults to flannel. Supported choices are flannel, calico"
+						}
+					},
+					{
+						"name": "runtime_config",
+						"string": {
+							"computed_optional_required": "optional",
+							"description": "Applicable also for manual deploy"
+						}
+					},
+					{
+						"name": "container_runtime",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Container runtime used by this cluster"
+						}
+					},
+					{
+						"name": "cert_expiry_hrs",
+						"int64": {
+							"computed_optional_required": "computed",
+							"description": "Number of hours before user certificates in kubeconfig expires, should be greater than 0 if set"
+						}
+					},
+					{
+						"name": "enable_etcd_encryption",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "Enables etcd encryption"
+						}
+					},
+					{
+						"name": "etcd_backup",
+						"single_nested": {
+							"computed_optional_required": "computed",
+							"attributes": [
+								{
+									"name": "storage_type",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Storage type for the etcd backup. Only 'local' is current supported type. 'local' saves backup to the node's local disk"
+									}
+								},
+								{
+									"name": "is_etcd_backup_enabled",
+									"bool": {
+										"computed_optional_required": "computed",
+										"description": "Set to true if etcd backup should be enabled, false otherwise"
+									}
+								},
+								{
+									"name": "daily_backup_time",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "etcd backup Timestamp for daily backup, specified in format 'HH:MM'"
+									}
+								},
+								{
+									"name": "max_timestamp_backup_count",
+									"int64": {
+										"computed_optional_required": "computed",
+										"description": "max number of Backups retention for Timestamp type backups, required if dailyBackupTime is provided"
+									}
+								},
+								{
+									"name": "storage_local_path",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "Path on the local filesystem where the etcd backup should be stored. For 'local' storage type only."
+									}
+								},
+								{
+									"name": "interval_in_hours",
+									"int64": {
+										"computed_optional_required": "optional",
+										"description": "etcd backup interval, specified in Hours. intervalInMins and intervalInHours are mutually exclusive"
+									}
+								},
+								{
+									"name": "interval_in_mins",
+									"int64": {
+										"computed_optional_required": "optional",
+										"description": "etcd backup interval, specified in minutes. intervalInMins and intervalInHours are mutually exclusive"
+									}
+								},
+								{
+									"name": "max_interval_backup_count",
+									"int64": {
+										"computed_optional_required": "computed",
+										"description": "max number of Backups retention for interval type backups, required if intervalInMins or intervalInHours is provided"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "tags",
+						"map": {
+							"computed_optional_required": "optional",
+							"element_type": {
+								"string": {}
+							},
+							"description": "User defined key-value pairs represented as a JSON object"
+						}
+					},
+					{
+						"name": "created_at",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Time at which the cluster was created"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "flannel_iface_label",
+						"string": {
+							"computed_optional_required": "optional"
+						}
+					},
+					{
+						"name": "flannel_public_iface_label",
+						"string": {
+							"computed_optional_required": "optional"
+						}
+					},
+					{
+						"name": "docker_root",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_data_dir",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "last_op",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "last_ok",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "task_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "task_error",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_vip_vrouter_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "k8s_api_port",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv4",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_detection_method",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_router_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_cidr",
+						"string": {
+							"computed_optional_required": "optional"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_block_size",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "calico_ipv6_pool_nat_outgoing",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "felix_ipv6_support",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "masterless",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_version",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_heartbeat_interval_ms",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "etcd_election_timeout_ms",
+						"int64": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "master_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "worker_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "ipv6",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "node_pool_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_uuid",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_name",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "cloud_provider_type",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "quay_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "gcr_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "k8s_private_registry",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_centos_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "docker_ubuntu_package_repo_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "interface_reachable_ip",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_url",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_repo_path",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_username",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_password",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_skip_tls",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_self_signed_certs",
+						"bool": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "custom_registry_cert_path",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "addons",
+						"map_nested": {
+							"computed_optional_required": "computed",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "version",
+										"string": {
+											"computed_optional_required": "computed"
+										}
+									},
+									{
+										"name": "params",
+										"map": {
+											"computed_optional_required": "computed",
+											"element_type": {
+												"string": {}
+											}
+										}
+									},
+									{
+										"name": "phase",
+										"string": {
+											"computed_optional_required": "computed"
+										}
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "kubeconfig",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the cluster"
+						}
+					},
+					{
+						"name": "authentication_method",
+						"string": {
+							"computed_optional_required": "optional",
+							"description": "The authentication method can be one of three types: token, certificate, or password.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.OneOf(\"token\",\"password\",\"certificate\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "raw",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Kubeconfig blob"
+						}
+					},
+					{
+						"name": "kubeconfigs",
+						"list_nested": {
+							"computed_optional_required": "computed",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the kubeconfig context"
+										}
+									},
+									{
+										"name": "cluster",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the cluster"
+										}
+									},
+									{
+										"name": "username",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the user"
+										}
+									},
+									{
+										"name": "host",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Kube api server api endpoint"
+										}
+									},
+									{
+										"name": "token",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Token of your service account",
+											"sensitive": true
+										}
+									},
+									{
+										"name": "cluster_ca_certificate",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Path to the certificate authority file"
+										}
+									},
+									{
+										"name": "client_certificate",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Path to the client certificate file"
+										}
+									},
+									{
+										"name": "client_key",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Path to the client key file"
+										}
+									},
+									{
+										"name": "insecure",
+										"bool": {
+											"computed_optional_required": "computed",
+											"description": "If the server should be accessed without verifying the TLS certificate"
+										}
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "node",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the cluster"
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Host name of the node"
+						}
+					},
+					{
+						"name": "api_responding",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "true indicates the API server on this node is running."
+						}
+					},
+					{
+						"name": "cluster_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the cluster the node belongs to"
+						}
+					},
+					{
+						"name": "cluster_uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the cluster the node belongs to"
+						}
+					},
+					{
+						"name": "is_master",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "true if this node is a master of a cluster."
+						}
+					},
+					{
+						"name": "node_pool_name",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the node pool, the node belongs to"
+						}
+					},
+					{
+						"name": "node_pool_uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "UUID of the node pool, the node belongs to"
+						}
+					},
+					{
+						"name": "primary_ip",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "IP address of the node"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the node. States include “ok”, ”converging”, “failed”. These states indicate the current state of kubernetes setup on the host."
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "nodes",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Placeholder for ID"
+						}
+					},
+					{
+						"name": "nodes",
+						"list_nested": {
+							"computed_optional_required": "computed",
+							"description": "List of nodes",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "id",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the cluster"
+										}
+									},
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Host name of the node"
+										}
+									},
+									{
+										"name": "api_responding",
+										"bool": {
+											"computed_optional_required": "computed",
+											"description": "Indicates the API server on this node is running"
+										}
+									},
+									{
+										"name": "cluster_name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the cluster the node belongs to"
+										}
+									},
+									{
+										"name": "cluster_uuid",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the cluster the node belongs to"
+										}
+									},
+									{
+										"name": "is_master",
+										"bool": {
+											"computed_optional_required": "computed",
+											"description": "true if this node is a master of a cluster."
+										}
+									},
+									{
+										"name": "node_pool_name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the node pool, the node belongs to"
+										}
+									},
+									{
+										"name": "node_pool_uuid",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the node pool, the node belongs to"
+										}
+									},
+									{
+										"name": "primary_ip",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "IP address of the node"
+										}
+									},
+									{
+										"name": "status",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Status of the node. States include ok, converging, failed. These states indicate the current state of kubernetes setup on the host."
+										}
+									}
+								]
+							}
+						}
+					},
+					{
+						"name": "filter",
+						"single_nested": {
+							"computed_optional_required": "required",
+							"attributes": [
+								{
+									"name": "name",
+									"string": {
+										"computed_optional_required": "required",
+										"description": "Name of the attribute on which this filter is applied",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.OneOf(\"id\",\"name\",\"api_responding\",\"cluster_name\",\"cluster_uuid\",\"is_master\",\"node_pool_name\",\"node_pool_uuid\",\"primary_ip\",\"status\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "values",
+									"list": {
+										"computed_optional_required": "required",
+										"element_type": {
+											"string": {}
+										}
+									}
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "nodepools",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Placeholder for ID"
+						}
+					},
+					{
+						"name": "nodepools",
+						"list_nested": {
+							"computed_optional_required": "computed",
+							"description": "List of nodepools matched to the filter",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "id",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the nodepool"
+										}
+									},
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the nodepool"
+										}
+									},
+									{
+										"name": "cloud_provider_uuid",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "UUID of the cloud provider"
+										}
+									},
+									{
+										"name": "cloud_provider_name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the cloud provider"
+										}
+									}
+								]
+							}
+						}
+					},
+					{
+						"name": "filter",
+						"single_nested": {
+							"computed_optional_required": "required",
+							"attributes": [
+								{
+									"name": "name",
+									"string": {
+										"computed_optional_required": "required",
+										"description": "Name of the attribute on which this filter is applied",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.OneOf(\"name\",\"cloud_provider_name\",\"cloud_provider_uuid\")"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "values",
+									"list": {
+										"computed_optional_required": "required",
+										"element_type": {
+											"string": {}
+										}
+									}
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "clusters",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Placeholder for an ID"
+						}
+					},
+					{
+						"name": "cluster_ids",
+						"list": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							},
+							"description": "A list of cluster IDs for clusters that match all the specified filters."
+						}
+					},
+					{
+						"name": "filters",
+						"list_nested": {
+							"computed_optional_required": "required",
+							"description": "List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed.",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "Name of the attribute on which this filter should be applied. The tags attribute is a special case where the name has to be specified as 'tags:<tag_key>'"
+										}
+									},
+									{
+										"name": "values",
+										"set": {
+											"computed_optional_required": "optional",
+											"description": "Set of values for the attribute, if any of the 'value' matches then the filter is considered to be matched",
+											"element_type": {
+												"string": {}
+											}
+										}
+									},
+									{
+										"name": "regexes",
+										"set": {
+											"computed_optional_required": "optional",
+											"description": "Set of regexes to match to the attribute value, if any of the 'regex' matches then the filter is considered to be matched",
+											"element_type": {
+												"string": {}
+											}
+										}
+									}
+								]
+							},
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+											}
+										],
+										"schema_definition": "listvalidator.SizeAtLeast(1)"
+									}
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "host",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "UUID of the host"
+						}
+					},
+					{
+						"name": "hostname",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Name of the host"
+						}
+					},
+					{
+						"name": "os_family",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Operating system family of the host"
+						}
+					},
+					{
+						"name": "arch",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Architecture of the host"
+						}
+					},
+					{
+						"name": "os_info",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Operating system information"
+						}
+					},
+					{
+						"name": "responding",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "Indicates if the host is responding"
+						}
+					},
+					{
+						"name": "last_response_time",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Time of the last response from the host"
+						}
+					},
+					{
+						"name": "roles",
+						"list": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							},
+							"description": "Roles of the host"
+						}
+					},
+					{
+						"name": "role_status",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Status of the role"
+						}
+					},
+					{
+						"name": "message",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "interfaces",
+						"list_nested": {
+							"computed_optional_required": "computed",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "Name of the interface"
+										}
+									},
+									{
+										"name": "ip",
+										"string": {
+											"computed_optional_required": "computed",
+											"description": "IP address of the interface"
+										}
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		}
+	]
 }

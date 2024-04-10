@@ -18,20 +18,14 @@ import (
 func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"addon_operator_image_tag": schema.StringAttribute{
-				Computed: true,
-			},
-			"addons": schema.SetNestedAttribute{
+			"addons": schema.MapNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"config": schema.MapAttribute{
+						"params": schema.MapAttribute{
 							ElementType: types.StringType,
 							Computed:    true,
 						},
-						"enabled": schema.BoolAttribute{
-							Computed: true,
-						},
-						"name": schema.StringAttribute{
+						"phase": schema.StringAttribute{
 							Computed: true,
 						},
 						"version": schema.StringAttribute{
@@ -47,22 +41,32 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"allow_workloads_on_master": schema.BoolAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "If the master nodes can run non-critical workloads",
+				MarkdownDescription: "If the master nodes can run non-critical workloads",
 			},
 			"calico_controller_cpu_limit": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.",
 			},
 			"calico_controller_memory_limit": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.",
 			},
 			"calico_ip_ip_mode": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet",
+				MarkdownDescription: "IP-IP encapsulation mode for Calico network. Choose: Always, Never, CrossSubnet",
 			},
 			"calico_ipv4": schema.StringAttribute{
 				Computed: true,
 			},
 			"calico_ipv4_detection_method": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Method to detect the IPv4 address",
+				MarkdownDescription: "Method to detect the IPv4 address",
 			},
 			"calico_ipv6": schema.StringAttribute{
 				Computed: true,
@@ -74,34 +78,48 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"calico_ipv6_pool_cidr": schema.StringAttribute{
-				Computed: true,
+				Optional: true,
 			},
 			"calico_ipv6_pool_nat_outgoing": schema.BoolAttribute{
 				Computed: true,
 			},
 			"calico_nat_outgoing": schema.BoolAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Field is set to true if Calico nodes need to NAT north-south egress traffic.",
+				MarkdownDescription: "Field is set to true if Calico nodes need to NAT north-south egress traffic.",
 			},
 			"calico_node_cpu_limit": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico.",
 			},
 			"calico_node_memory_limit": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico.",
 			},
 			"calico_router_id": schema.StringAttribute{
 				Computed: true,
 			},
 			"calico_typha_cpu_limit": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico.",
 			},
 			"calico_typha_memory_limit": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico.",
+				MarkdownDescription: "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico.",
 			},
 			"calico_v4_block_size": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Subnet size per node for the Calico network, in CIDR notation (e.g. 26)",
+				MarkdownDescription: "Subnet size per node for the Calico network, in CIDR notation (e.g. 26)",
 			},
 			"cert_expiry_hrs": schema.Int64Attribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Number of hours before user certificates in kubeconfig expires, should be greater than 0 if set",
+				MarkdownDescription: "Number of hours before user certificates in kubeconfig expires, should be greater than 0 if set",
 			},
 			"cloud_provider_name": schema.StringAttribute{
 				Computed: true,
@@ -113,13 +131,19 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"container_runtime": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Container runtime used by this cluster",
+				MarkdownDescription: "Container runtime used by this cluster",
 			},
 			"containers_cidr": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "CIDR used for pod IP addresses, applicable also for manual deploy",
+				MarkdownDescription: "CIDR used for pod IP addresses, applicable also for manual deploy",
 			},
 			"cpu_manager_policy": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "options: none, static; default: none",
+				MarkdownDescription: "options: none, static; default: none",
 			},
 			"created_at": schema.StringAttribute{
 				Computed:            true,
@@ -160,33 +184,51 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"enable_etcd_encryption": schema.BoolAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Enables etcd encryption",
+				MarkdownDescription: "Enables etcd encryption",
 			},
 			"etcd_backup": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"daily_backup_time": schema.StringAttribute{
-						Computed: true,
+						Computed:            true,
+						Description:         "etcd backup Timestamp for daily backup, specified in format 'HH:MM'",
+						MarkdownDescription: "etcd backup Timestamp for daily backup, specified in format 'HH:MM'",
 					},
 					"interval_in_hours": schema.Int64Attribute{
-						Computed: true,
+						Optional:            true,
+						Description:         "etcd backup interval, specified in Hours. intervalInMins and intervalInHours are mutually exclusive",
+						MarkdownDescription: "etcd backup interval, specified in Hours. intervalInMins and intervalInHours are mutually exclusive",
 					},
 					"interval_in_mins": schema.Int64Attribute{
-						Computed: true,
+						Optional:            true,
+						Description:         "etcd backup interval, specified in minutes. intervalInMins and intervalInHours are mutually exclusive",
+						MarkdownDescription: "etcd backup interval, specified in minutes. intervalInMins and intervalInHours are mutually exclusive",
 					},
 					"is_etcd_backup_enabled": schema.BoolAttribute{
-						Computed: true,
+						Computed:            true,
+						Description:         "Set to true if etcd backup should be enabled, false otherwise",
+						MarkdownDescription: "Set to true if etcd backup should be enabled, false otherwise",
 					},
 					"max_interval_backup_count": schema.Int64Attribute{
-						Computed: true,
+						Computed:            true,
+						Description:         "max number of Backups retention for interval type backups, required if intervalInMins or intervalInHours is provided",
+						MarkdownDescription: "max number of Backups retention for interval type backups, required if intervalInMins or intervalInHours is provided",
 					},
 					"max_timestamp_backup_count": schema.Int64Attribute{
-						Computed: true,
+						Computed:            true,
+						Description:         "max number of Backups retention for Timestamp type backups, required if dailyBackupTime is provided",
+						MarkdownDescription: "max number of Backups retention for Timestamp type backups, required if dailyBackupTime is provided",
 					},
 					"storage_local_path": schema.StringAttribute{
-						Computed: true,
+						Computed:            true,
+						Description:         "Path on the local filesystem where the etcd backup should be stored. For 'local' storage type only.",
+						MarkdownDescription: "Path on the local filesystem where the etcd backup should be stored. For 'local' storage type only.",
 					},
 					"storage_type": schema.StringAttribute{
-						Computed: true,
+						Computed:            true,
+						Description:         "Storage type for the etcd backup. Only 'local' is current supported type. 'local' saves backup to the node's local disk",
+						MarkdownDescription: "Storage type for the etcd backup. Only 'local' is current supported type. 'local' saves backup to the node's local disk",
 					},
 				},
 				CustomType: EtcdBackupType{
@@ -200,25 +242,27 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"etcd_election_timeout_ms": schema.Int64Attribute{
-				Optional: true,
+				Computed: true,
 			},
 			"etcd_heartbeat_interval_ms": schema.Int64Attribute{
-				Optional: true,
+				Computed: true,
 			},
 			"etcd_version": schema.StringAttribute{
 				Computed: true,
 			},
 			"external_dns_name": schema.StringAttribute{
-				Computed: true,
+				Optional:            true,
+				Description:         "Optional DNS name for API endpoint. This field is autogenerated when usePf9Domain is set, also applicable for manual deploy",
+				MarkdownDescription: "Optional DNS name for API endpoint. This field is autogenerated when usePf9Domain is set, also applicable for manual deploy",
 			},
 			"felix_ipv6_support": schema.BoolAttribute{
 				Computed: true,
 			},
 			"flannel_iface_label": schema.StringAttribute{
-				Computed: true,
+				Optional: true,
 			},
 			"flannel_public_iface_label": schema.StringAttribute{
-				Computed: true,
+				Optional: true,
 			},
 			"gcr_private_registry": schema.StringAttribute{
 				Computed: true,
@@ -229,10 +273,14 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "UUID of the cluster",
 			},
 			"interface_detection_method": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Method to detect the interface",
+				MarkdownDescription: "Method to detect the interface",
 			},
 			"interface_name": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Name of the interface",
+				MarkdownDescription: "Name of the interface",
 			},
 			"interface_reachable_ip": schema.StringAttribute{
 				Computed: true,
@@ -247,7 +295,9 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"kube_role_version": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "kube role version to be used when bringing up the cluster.",
+				MarkdownDescription: "kube role version to be used when bringing up the cluster.",
 			},
 			"last_ok": schema.StringAttribute{
 				Computed: true,
@@ -256,20 +306,28 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"master_ip": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "IP of master node",
+				MarkdownDescription: "IP of master node",
 			},
 			"master_nodes": schema.SetAttribute{
-				ElementType: types.StringType,
-				Computed:    true,
+				ElementType:         types.StringType,
+				Computed:            true,
+				Description:         "List of uuid of master nodes",
+				MarkdownDescription: "List of uuid of master nodes",
 			},
 			"master_status": schema.StringAttribute{
 				Computed: true,
 			},
 			"master_vip_iface": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "If master_vip_ipv4 is specified, this field is required. Specify the interface that the VIP attaches to",
+				MarkdownDescription: "If master_vip_ipv4 is specified, this field is required. Specify the interface that the VIP attaches to",
 			},
 			"master_vip_ipv4": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
+				MarkdownDescription: "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
 			},
 			"master_vip_vrouter_id": schema.StringAttribute{
 				Computed: true,
@@ -278,24 +336,32 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"mtu_size": schema.Int64Attribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "MTU for container network interfaces. Optional and used for the Calico network backend",
+				MarkdownDescription: "MTU for container network interfaces. Optional and used for the Calico network backend",
 			},
 			"name": schema.StringAttribute{
 				Computed:            true,
-				Description:         "Name of the cluster",
-				MarkdownDescription: "Name of the cluster",
+				Description:         "Name of the cluster, applicable also for manual deploy",
+				MarkdownDescription: "Name of the cluster, applicable also for manual deploy",
 			},
 			"network_plugin": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Network backend to use for container networking. Defaults to flannel. Supported choices are flannel, calico",
+				MarkdownDescription: "Network backend to use for container networking. Defaults to flannel. Supported choices are flannel, calico",
 			},
 			"node_pool_name": schema.StringAttribute{
 				Computed: true,
 			},
 			"node_pool_uuid": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Optional. UUID of the node pool used for the cluster. Defaults to the first node pool of the local cloud provider type",
+				MarkdownDescription: "Optional. UUID of the node pool used for the cluster. Defaults to the first node pool of the local cloud provider type",
 			},
 			"privileged": schema.BoolAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "True if cluster runs privileged containers",
+				MarkdownDescription: "True if cluster runs privileged containers",
 			},
 			"project_id": schema.StringAttribute{
 				Computed: true,
@@ -304,17 +370,23 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"runtime_config": schema.StringAttribute{
-				Computed: true,
+				Optional:            true,
+				Description:         "Applicable also for manual deploy",
+				MarkdownDescription: "Applicable also for manual deploy",
 			},
 			"services_cidr": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "CIDR used for service IP addresses, applicable also for manual deploy",
+				MarkdownDescription: "CIDR used for service IP addresses, applicable also for manual deploy",
 			},
 			"status": schema.StringAttribute{
 				Computed: true,
 			},
 			"tags": schema.MapAttribute{
-				ElementType: types.StringType,
-				Computed:    true,
+				ElementType:         types.StringType,
+				Optional:            true,
+				Description:         "User defined key-value pairs represented as a JSON object",
+				MarkdownDescription: "User defined key-value pairs represented as a JSON object",
 			},
 			"task_error": schema.StringAttribute{
 				Computed: true,
@@ -323,14 +395,25 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 			},
 			"topology_manager_policy": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "options: none, best-effort, restricted, single-numa-node; default: none",
+				MarkdownDescription: "options: none, best-effort, restricted, single-numa-node; default: none",
+			},
+			"upgrade_kube_role_version": schema.StringAttribute{
+				Computed:            true,
+				Description:         "kube role version to which the cluster can be upgraded.",
+				MarkdownDescription: "kube role version to which the cluster can be upgraded.",
 			},
 			"use_hostname": schema.BoolAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts.",
+				MarkdownDescription: "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts.",
 			},
 			"worker_nodes": schema.SetAttribute{
-				ElementType: types.StringType,
-				Computed:    true,
+				ElementType:         types.StringType,
+				Computed:            true,
+				Description:         "List of uuid of worker nodes",
+				MarkdownDescription: "List of uuid of worker nodes",
 			},
 			"worker_status": schema.StringAttribute{
 				Computed: true,
@@ -340,8 +423,7 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 }
 
 type ClusterModel struct {
-	AddonOperatorImageTag         types.String    `tfsdk:"addon_operator_image_tag"`
-	Addons                        types.Set       `tfsdk:"addons"`
+	Addons                        types.Map       `tfsdk:"addons"`
 	AllowWorkloadsOnMaster        types.Bool      `tfsdk:"allow_workloads_on_master"`
 	CalicoControllerCpuLimit      types.String    `tfsdk:"calico_controller_cpu_limit"`
 	CalicoControllerMemoryLimit   types.String    `tfsdk:"calico_controller_memory_limit"`
@@ -422,6 +504,7 @@ type ClusterModel struct {
 	TaskError                     types.String    `tfsdk:"task_error"`
 	TaskStatus                    types.String    `tfsdk:"task_status"`
 	TopologyManagerPolicy         types.String    `tfsdk:"topology_manager_policy"`
+	UpgradeKubeRoleVersion        types.String    `tfsdk:"upgrade_kube_role_version"`
 	UseHostname                   types.Bool      `tfsdk:"use_hostname"`
 	WorkerNodes                   types.Set       `tfsdk:"worker_nodes"`
 	WorkerStatus                  types.String    `tfsdk:"worker_status"`
@@ -452,58 +535,40 @@ func (t AddonsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 
 	attributes := in.Attributes()
 
-	configAttribute, ok := attributes["config"]
+	paramsAttribute, ok := attributes["params"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`config is missing from object`)
+			`params is missing from object`)
 
 		return nil, diags
 	}
 
-	configVal, ok := configAttribute.(basetypes.MapValue)
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`config expected to be basetypes.MapValue, was: %T`, configAttribute))
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
 	}
 
-	enabledAttribute, ok := attributes["enabled"]
+	phaseAttribute, ok := attributes["phase"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`enabled is missing from object`)
+			`phase is missing from object`)
 
 		return nil, diags
 	}
 
-	enabledVal, ok := enabledAttribute.(basetypes.BoolValue)
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`enabled expected to be basetypes.BoolValue, was: %T`, enabledAttribute))
-	}
-
-	nameAttribute, ok := attributes["name"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`name is missing from object`)
-
-		return nil, diags
-	}
-
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
 	}
 
 	versionAttribute, ok := attributes["version"]
@@ -529,9 +594,8 @@ func (t AddonsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 	}
 
 	return AddonsValue{
-		Config:  configVal,
-		Enabled: enabledVal,
-		Name:    nameVal,
+		Params:  paramsVal,
+		Phase:   phaseVal,
 		Version: versionVal,
 		state:   attr.ValueStateKnown,
 	}, diags
@@ -600,58 +664,40 @@ func NewAddonsValue(attributeTypes map[string]attr.Type, attributes map[string]a
 		return NewAddonsValueUnknown(), diags
 	}
 
-	configAttribute, ok := attributes["config"]
+	paramsAttribute, ok := attributes["params"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`config is missing from object`)
+			`params is missing from object`)
 
 		return NewAddonsValueUnknown(), diags
 	}
 
-	configVal, ok := configAttribute.(basetypes.MapValue)
+	paramsVal, ok := paramsAttribute.(basetypes.MapValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`config expected to be basetypes.MapValue, was: %T`, configAttribute))
+			fmt.Sprintf(`params expected to be basetypes.MapValue, was: %T`, paramsAttribute))
 	}
 
-	enabledAttribute, ok := attributes["enabled"]
+	phaseAttribute, ok := attributes["phase"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`enabled is missing from object`)
+			`phase is missing from object`)
 
 		return NewAddonsValueUnknown(), diags
 	}
 
-	enabledVal, ok := enabledAttribute.(basetypes.BoolValue)
+	phaseVal, ok := phaseAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`enabled expected to be basetypes.BoolValue, was: %T`, enabledAttribute))
-	}
-
-	nameAttribute, ok := attributes["name"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`name is missing from object`)
-
-		return NewAddonsValueUnknown(), diags
-	}
-
-	nameVal, ok := nameAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+			fmt.Sprintf(`phase expected to be basetypes.StringValue, was: %T`, phaseAttribute))
 	}
 
 	versionAttribute, ok := attributes["version"]
@@ -677,9 +723,8 @@ func NewAddonsValue(attributeTypes map[string]attr.Type, attributes map[string]a
 	}
 
 	return AddonsValue{
-		Config:  configVal,
-		Enabled: enabledVal,
-		Name:    nameVal,
+		Params:  paramsVal,
+		Phase:   phaseVal,
 		Version: versionVal,
 		state:   attr.ValueStateKnown,
 	}, diags
@@ -753,55 +798,45 @@ func (t AddonsType) ValueType(ctx context.Context) attr.Value {
 var _ basetypes.ObjectValuable = AddonsValue{}
 
 type AddonsValue struct {
-	Config  basetypes.MapValue    `tfsdk:"config"`
-	Enabled basetypes.BoolValue   `tfsdk:"enabled"`
-	Name    basetypes.StringValue `tfsdk:"name"`
+	Params  basetypes.MapValue    `tfsdk:"params"`
+	Phase   basetypes.StringValue `tfsdk:"phase"`
 	Version basetypes.StringValue `tfsdk:"version"`
 	state   attr.ValueState
 }
 
 func (v AddonsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 4)
+	attrTypes := make(map[string]tftypes.Type, 3)
 
 	var val tftypes.Value
 	var err error
 
-	attrTypes["config"] = basetypes.MapType{
+	attrTypes["params"] = basetypes.MapType{
 		ElemType: types.StringType,
 	}.TerraformType(ctx)
-	attrTypes["enabled"] = basetypes.BoolType{}.TerraformType(ctx)
-	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["phase"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 4)
+		vals := make(map[string]tftypes.Value, 3)
 
-		val, err = v.Config.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["config"] = val
-
-		val, err = v.Enabled.ToTerraformValue(ctx)
+		val, err = v.Params.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["enabled"] = val
+		vals["params"] = val
 
-		val, err = v.Name.ToTerraformValue(ctx)
+		val, err = v.Phase.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["name"] = val
+		vals["phase"] = val
 
 		val, err = v.Version.ToTerraformValue(ctx)
 
@@ -840,34 +875,31 @@ func (v AddonsValue) String() string {
 func (v AddonsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	configVal, d := types.MapValue(types.StringType, v.Config.Elements())
+	paramsVal, d := types.MapValue(types.StringType, v.Params.Elements())
 
 	diags.Append(d...)
 
 	if d.HasError() {
 		return types.ObjectUnknown(map[string]attr.Type{
-			"config": basetypes.MapType{
+			"params": basetypes.MapType{
 				ElemType: types.StringType,
 			},
-			"enabled": basetypes.BoolType{},
-			"name":    basetypes.StringType{},
+			"phase":   basetypes.StringType{},
 			"version": basetypes.StringType{},
 		}), diags
 	}
 
 	objVal, diags := types.ObjectValue(
 		map[string]attr.Type{
-			"config": basetypes.MapType{
+			"params": basetypes.MapType{
 				ElemType: types.StringType,
 			},
-			"enabled": basetypes.BoolType{},
-			"name":    basetypes.StringType{},
+			"phase":   basetypes.StringType{},
 			"version": basetypes.StringType{},
 		},
 		map[string]attr.Value{
-			"config":  configVal,
-			"enabled": v.Enabled,
-			"name":    v.Name,
+			"params":  paramsVal,
+			"phase":   v.Phase,
 			"version": v.Version,
 		})
 
@@ -889,15 +921,11 @@ func (v AddonsValue) Equal(o attr.Value) bool {
 		return true
 	}
 
-	if !v.Config.Equal(other.Config) {
+	if !v.Params.Equal(other.Params) {
 		return false
 	}
 
-	if !v.Enabled.Equal(other.Enabled) {
-		return false
-	}
-
-	if !v.Name.Equal(other.Name) {
+	if !v.Phase.Equal(other.Phase) {
 		return false
 	}
 
@@ -918,11 +946,10 @@ func (v AddonsValue) Type(ctx context.Context) attr.Type {
 
 func (v AddonsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
-		"config": basetypes.MapType{
+		"params": basetypes.MapType{
 			ElemType: types.StringType,
 		},
-		"enabled": basetypes.BoolType{},
-		"name":    basetypes.StringType{},
+		"phase":   basetypes.StringType{},
 		"version": basetypes.StringType{},
 	}
 }
