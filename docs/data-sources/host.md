@@ -8,7 +8,7 @@ description: |-
 
 # pf9_host Data Source
 
-This resource is useful to find host details using its ID. Node ID is same as host ID.
+This data source is useful to find host details using its ID. The following example shows how to use this data source to find the IP address of the `ens3` interface of a host.
 
 ## Example Usage
 

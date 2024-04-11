@@ -8,7 +8,7 @@ description: |-
 
 # pf9_clusters Data Source
 
-  
+This data source provides filter functionality on clusters.
 
 ## Example Usage
 
@@ -24,6 +24,73 @@ data "pf9_clusters" "example" {
 
 output "example" {
   value = data.pf9_clusters.example.cluster_ids[0]
+}
+```
+
+### Filter by Tags
+
+The following example shows how to filter clusters by tags. It is possible to combine multiple filters.
+
+```terraform
+data "pf9_clusters" "example" {
+    filters = [
+        {
+            name = "tags:env"
+            values = [ "production", "staging" ]
+        },
+        {
+            name = "tags:app"
+            values = [ "nginx" ]
+        }
+    ]
+}
+
+data "pf9_cluster" "example" {
+    id = data.pf9_clusters.example.cluster_ids[0]
+}
+
+# finds name of the cluster that has the
+# tag "env=production" and "app=nginx" OR
+# "env=staging" and "app=nginx"
+output "example" {
+  value = data.pf9_cluster.example.name
+}
+```
+
+### Filter by Tenant Name
+
+```terraform
+data "pf9_clusters" "example" {
+    filters = [
+        {
+            name = "tenant"
+            values = [ "service" ]
+        }
+    ]
+}
+
+# finds IDs of the clusters from the tenant service
+output "example" {
+  value = data.pf9_clusters.example.cluster_ids
+}
+```
+
+### Filter by Cluster Name using Regex
+
+```terraform
+data "pf9_clusters" "example" {
+    filters = [
+        {
+            name = "name"
+            regexes = [ "mycluster[0-9]+" ]
+        }
+    ]
+}
+
+# finds IDs of the clusters that have the
+# name matching to the regexes "mycluster[0-9]+"
+output "example" {
+  value = data.pf9_clusters.example.cluster_ids
 }
 ```
 

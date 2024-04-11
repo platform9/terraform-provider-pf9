@@ -10,6 +10,20 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
+// DefaultAddons returns the default addons for a cluster.
+// Add the following to the provider_code_spec.json:
+//
+//	"addons": {
+//	  "map_nested": {
+//	    "default": {
+//		     "custom": {
+//			   "schema_definition": "DefaultAddons()"
+//		     }
+//	    }
+//	  }
+//	}
+//
+// FIXME: This does not work as intended hence currenty unused.
 func DefaultAddons() defaults.Map {
 	ctx := context.Background()
 	addonsMapValue, diags := GetDefaultAddons(ctx)
@@ -20,7 +34,10 @@ func DefaultAddons() defaults.Map {
 }
 
 func GetDefaultAddons(ctx context.Context) (basetypes.MapValue, diag.Diagnostics) {
-	// TODO: Why params from addons are not set in the default plan?
+	// TODO: Investigate why the default addon parameters are not being preserved in the plan.
+	// During observation, the parameter values are set correctly until the `ModifyPlan()` function is called,
+	// but they are lost after that. The `Create()` function then receives all the other fields except the params.
+	// This needs to be investigated to understand why the parameter values are not being carried through to the final plan.
 	addonMap := map[string]AddonsValue{}
 	addonMap["coredns"] = getAddonWithParams(ctx, map[string]string{
 		"dnsMemoryLimit": "170Mi",

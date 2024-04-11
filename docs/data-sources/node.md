@@ -8,7 +8,7 @@ description: |-
 
 # pf9_node Data Source
 
-This resource is useful to find node id from its name.
+The node data source represents node attached to the cluster. The node data source allows you to get information about a node using it ID.
 
 ## Example Usage
 

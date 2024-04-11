@@ -8,13 +8,14 @@ description: |-
 
 # pf9_nodes Data Source
 
-  
+The `pf9_nodes` data source offers filtering capabilities for nodes. Node IDs are essential when creating clusters, and this data source facilitates their identification.
 
 ## Example Usage
 
 ```terraform
 data "pf9_nodes" "example" {
-  # Filter is allowed on the following attributes: name, primary_ip, id, is_master
+  # Filter is allowed on the following attributes:
+  # id, name, api_responding, cluster_name, cluster_uuid, is_master, node_pool_name, node_pool_uuid, primary_ip, status
   filter = {
     name   = "name"
     values = ["foobar"]
@@ -24,6 +25,14 @@ data "pf9_nodes" "example" {
 # Outputs id of the node whose name is "foobar"
 output "foobar" {
   value = data.pf9_nodes.example.nodes[0].id
+}
+
+# Filter nodes attached to the cluster named "mycluster"
+data "pf9_nodes" "example" {
+  filter = {
+    name = "cluster_name"
+    values = [ "mycluster" ]
+  }
 }
 ```
 

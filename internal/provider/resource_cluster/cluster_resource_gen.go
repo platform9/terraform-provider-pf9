@@ -65,7 +65,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				PlanModifiers: []planmodifier.Map{
 					mapplanmodifier.UseStateForUnknown(),
 				},
-				Default: DefaultAddons(),
 			},
 			"allow_workloads_on_master": schema.BoolAttribute{
 				Optional:            true,

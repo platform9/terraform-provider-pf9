@@ -1,3 +1,10 @@
+---
+page_title: "Create Cluster with Custom Settings"
+subcategory: ""
+description: |-
+  The terraform provider facilitates the creation of clusters with different configurations, such as multi-master and single-node setups..
+---
+
 # Create Cluster with Custom Settings
 
 This guide provides examples of provisioning clusters with custom configurations using PF9 Terraform provider. The Terraform provider supports most of the attributes that are available through the PF9 [PMK APIs](https://platform9.com/docs/qbert/ref#postcreates-a-cluster-using-auto-deploy-or-manual-mode). However, for the sake of simplicity, only the essential attributes are included in the examples. All supported attributes are documented in the cluster resource [documentation](../docs/resources/cluster.md).

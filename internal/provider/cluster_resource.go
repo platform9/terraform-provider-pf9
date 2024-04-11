@@ -105,7 +105,7 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 					return
 				}
 			} else {
-				resp.Diagnostics.AddError("No supported kube role versions found", "No supported kube role versions found")
+				resp.Diagnostics.AddError("Failed to get supported versions", "List of supported versions returned by API is empty")
 				return
 			}
 		}
@@ -165,7 +165,12 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 					return
 				}
 			} else {
-				resp.Diagnostics.AddError("Refresh state required", "Refresh the local state to upgrade the cluster")
+				// This happens when API does not return the next available upgrade version.
+				// API returns upgrade versions only when the cluster is in a state to be upgraded.
+				// Because of this state does not contain next available upgrade version.
+				// TODO: Find workaround, for example call getCluster here and check if it can
+				// be upgraded.
+				resp.Diagnostics.AddError("Refresh local state", "Cluster is currently being upgraded or local state is out of date")
 				return
 			}
 		}
@@ -252,114 +257,143 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Failed to attach nodes", err.Error())
 		return
 	}
-	// TODO: Should we save an intermediate state between multiple requests?
-	// This will prevent inconsistency between the local state and the remote state if
-	// the provider exits unexpectedly in between.
-	tflog.Debug(ctx, "Getting list of enabled addons")
-	defaultEnabledAddons, err := r.listClusterAddons(ctx, clusterID)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
-		return
-	}
+	// resp.State.SetAttribute(ctx, path.Root("worker_nodes"), data.WorkerNodes)
+	// resp.State.SetAttribute(ctx, path.Root("master_nodes"), data.MasterNodes)
+	// TODO: Evaluate the feasibility of saving an intermediate state between requests
+	// to prevent inconsistency between local and remote state if the provider exits
+	// unexpectedly. Consider the overhead, impact on user experience, and alternative
+	// approaches to improve reliability.
 
-	// Create a map key=addonName value=sunpikeAddon for lookup during plan-state comparison
-	sunpikeAddonsMap := map[string]sunpikev1alpha2.ClusterAddon{}
-	for _, sunpikeAddon := range defaultEnabledAddons {
-		sunpikeAddonsMap[sunpikeAddon.Spec.Type] = sunpikeAddon
-	}
-	tfAddonsMap := map[string]resource_cluster.AddonsValue{}
-	resp.Diagnostics.Append(data.Addons.ElementsAs(ctx, &tfAddonsMap, false)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	for addonName, tfAddon := range tfAddonsMap {
-		// sunpikeAddon represents remote state and tfAddon represents plan state
-		if sunpikeAddon, found := sunpikeAddonsMap[addonName]; found {
-			// Case 1:
-			// if addon with the same name is available at both places, difference bw
-			// the two should be patched, prefering the plan instance.
-			tflog.Debug(ctx, "Checking if addon version and params needs to be patched")
-			var addonVersion string
-			if !tfAddon.Version.IsNull() && !tfAddon.Version.IsUnknown() {
-				addonVersion = tfAddon.Version.ValueString()
+	if !data.Addons.IsNull() && !data.Addons.IsUnknown() {
+		// This is a workaround because default addons are not being set in the plan.
+		//
+		// Previously, we observed that the default addon parameters were being set correctly
+		// until the `ModifyPlan()` function was called. However, after that, the parameter
+		// values were no longer being passed to the `Create()` function.
+		//
+		// Since we cannot set the default addon parameters in the plan due to this issue,
+		// we are instead not enabling any addons in the plan. This ensures that the user's
+		// intent is respected, even though the backend may still enable the default addons.
+		//
+		// The "computed_optional" attribute on the "addons" field allows Terraform to
+		// successfully apply the plan without raising an error due to the mismatch between
+		// the plan and the remote state.
+		//
+		// This workaround is necessary until the underlying issue with the addon parameters
+		// being lost in the `Create()` function is resolved.
+
+		// TODO: Refactor this code to a separate function
+		tflog.Debug(ctx, "Getting list of enabled addons")
+		defaultEnabledAddons, err := r.listClusterAddons(ctx, clusterID)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
+			return
+		}
+
+		// Create a map key=addonName value=sunpikeAddon for lookup during plan-state comparison
+		sunpikeAddonsMap := map[string]sunpikev1alpha2.ClusterAddon{}
+		for _, sunpikeAddon := range defaultEnabledAddons {
+			sunpikeAddonsMap[sunpikeAddon.Spec.Type] = sunpikeAddon
+		}
+		tfAddonsMap := map[string]resource_cluster.AddonsValue{}
+		resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("addons"), &tfAddonsMap)...)
+		// resp.Diagnostics.Append(data.Addons.ElementsAs(ctx, &tfAddonsMap, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		for addonName, tfAddon := range tfAddonsMap {
+			// sunpikeAddon represents remote state and tfAddon represents plan state
+			if sunpikeAddon, found := sunpikeAddonsMap[addonName]; found {
+				// Case 1:
+				// if addon with the same name is available at both places, difference bw
+				// the two should be patched, prefering the plan instance.
+				tflog.Debug(ctx, "Checking if addon version and params needs to be patched")
+				var addonVersion string
+				if !tfAddon.Version.IsNull() && !tfAddon.Version.IsUnknown() {
+					addonVersion = tfAddon.Version.ValueString()
+				} else {
+					// version is optional in the plan, because user cannot determine the version.
+					// If user does not provide the version, we will use the version that is already
+					// present in the remote state.
+					addonVersion = sunpikeAddon.Spec.Version
+				}
+				paramsInPlan := map[string]string{}
+				resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+				err := r.addonsClient.Patch(ctx, AddonSpec{
+					ClusterID: clusterID,
+					Type:      addonName,
+					Version:   addonVersion,
+					ParamsMap: paramsInPlan,
+				}, &sunpikeAddon)
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to patch addon", err.Error())
+					return
+				}
 			} else {
-				// version is optional in the plan, because user cannot determine the version.
-				// If user does not provide the version, we will use the version that is already
-				// present in the remote state.
-				addonVersion = sunpikeAddon.Spec.Version
-			}
-			paramsInPlan := map[string]string{}
-			resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			err := r.addonsClient.Patch(ctx, AddonSpec{
-				ClusterID: clusterID,
-				Type:      addonName,
-				Version:   addonVersion,
-				ParamsMap: paramsInPlan,
-			}, &sunpikeAddon)
-			if err != nil {
-				resp.Diagnostics.AddError("Failed to patch addon", err.Error())
-				return
-			}
-		} else {
-			// Case 2:
-			// The addon in the plan, tfAddon is not present in the remote state, sunpikeAddonsMap.
-			// Make the remote state same as the plan state by enabling the addon.
-			tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": addonName})
-			defaultAddonVersions, err := r.client.Qbert().ListSupportedAddonVersions(ctx, clusterID)
-			if err != nil {
-				resp.Diagnostics.AddError("Failed to get default addon versions", err.Error())
-				return
-			}
-			paramsInPlan := map[string]string{}
-			resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			var addonVersion string
-			if !tfAddon.Version.IsNull() && !tfAddon.Version.IsUnknown() {
-				addonVersion = tfAddon.Version.ValueString()
-			} else {
-				addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
-			}
-			err = r.addonsClient.Enable(ctx, AddonSpec{
-				ClusterID: clusterID,
-				Type:      addonName,
-				Version:   addonVersion,
-				ParamsMap: paramsInPlan,
-			})
-			if err != nil {
-				resp.Diagnostics.AddError("Failed to enable addon", err.Error())
-				return
+				// Case 2:
+				// The addon in the plan, tfAddon is not present in the remote state, sunpikeAddonsMap.
+				// Make the remote state same as the plan state by enabling the addon.
+				tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": addonName})
+				defaultAddonVersions, err := r.client.Qbert().ListSupportedAddonVersions(ctx, clusterID)
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to get default addon versions", err.Error())
+					return
+				}
+				paramsInPlan := map[string]string{}
+				resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+				var addonVersion string
+				if !tfAddon.Version.IsNull() && !tfAddon.Version.IsUnknown() {
+					addonVersion = tfAddon.Version.ValueString()
+				} else {
+					addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
+				}
+				if addonVersion == "" {
+					resp.Diagnostics.AddError("Failed to get addon version", "Either addon is unknown or version is not provided by the API")
+					return
+				}
+				err = r.addonsClient.Enable(ctx, AddonSpec{
+					ClusterID: clusterID,
+					Type:      addonName,
+					Version:   addonVersion,
+					ParamsMap: paramsInPlan,
+				})
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to enable addon", err.Error())
+					return
+				}
 			}
 		}
-	}
-	for addonName := range sunpikeAddonsMap {
-		if _, found := tfAddonsMap[addonName]; !found {
-			// Case 3:
-			// The addon is present in the remote state, sunpikeAddonsMap
-			// but not present in the plan, tfAddonsMap. Disabling the addon
-			// will make the remote state same as the plan state.
-			tflog.Debug(ctx, "Disabling addon", map[string]interface{}{"addon": addonName})
-			err = r.addonsClient.Disable(ctx, AddonSpec{
-				ClusterID: clusterID,
-				Type:      addonName,
-			})
-			if err != nil {
-				resp.Diagnostics.AddError("Failed to disable addon", err.Error())
-				return
+		for addonName := range sunpikeAddonsMap {
+			if _, found := tfAddonsMap[addonName]; !found {
+				// Case 3:
+				// The addon is present in the remote state, sunpikeAddonsMap
+				// but not present in the plan, tfAddonsMap. Disabling the addon
+				// will make the remote state same as the plan state.
+				tflog.Debug(ctx, "Disabling addon", map[string]interface{}{"addon": addonName})
+				err = r.addonsClient.Disable(ctx, AddonSpec{
+					ClusterID: clusterID,
+					Type:      addonName,
+				})
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to disable addon", err.Error())
+					return
+				}
 			}
 		}
-	}
+	} // end of addons reconcilation
 
+	// Save data into Terraform state
 	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Save data into Terraform state
 	addonsOnRemote, err := r.listClusterAddons(ctx, clusterID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get cluster addons", err.Error())
@@ -474,7 +508,6 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		editClusterReq.EtcdBackup = &etcdConfig
 	}
 
-	// Check if update works for this fields
 	if !plan.CertExpiryHrs.Equal(state.CertExpiryHrs) {
 		editRequired = true
 		editClusterReq.CertExpiryHrs = int(plan.CertExpiryHrs.ValueInt64())
@@ -559,6 +592,10 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 				addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
 			} else {
 				addonVersion = tfAddon.Version.ValueString()
+			}
+			if addonVersion == "" {
+				resp.Diagnostics.AddError("Failed to get addon version", "Either addon is unknown or version is not provided by the API")
+				return
 			}
 			err = r.addonsClient.Enable(ctx, AddonSpec{
 				ClusterID: clusterID,

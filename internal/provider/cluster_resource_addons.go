@@ -62,7 +62,6 @@ func (r *addonsClient) Enable(ctx context.Context, spec AddonSpec) error {
 	})
 }
 
-// Patch patches Addon using sunpike API, patch includes changing overrides and version
 func (r *addonsClient) Patch(ctx context.Context,
 	planAddonSpec AddonSpec, stateAddon *sunpikev1alpha2.ClusterAddon) error {
 	var isParamPatchNeeded bool
@@ -153,12 +152,12 @@ func (r *addonsClient) Disable(ctx context.Context, addonSpec AddonSpec) error {
 
 var addonAliases = map[string]string{
 	"kubevirt":             "kubevirtaddon",
-	"profile-agent":        "pf9-profile-agent",
 	"kubernetes-dashboard": "dashboard",
 }
 
+// APIs have different names for the same addon, hence this function
+// is workaround to get the default version for the addon
 func getDefaultAddonVersion(defaults map[string]string, addonType string) string {
-	// APIs have different names for the same addon
 	if alias, ok := addonAliases[addonType]; ok {
 		addonType = alias
 	}
