@@ -25,9 +25,6 @@ resource "pf9_cluster" "example" {
   # Uncomment the folloiwng line for upgrade
   # kube_role_version         = "1.28.6-pmk.26"
   allow_workloads_on_master = false
-  etcd_backup = {
-    is_etcd_backup_enabled = true
-  }
 }
 
 data "pf9_cluster" "example" {

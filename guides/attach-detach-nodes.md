@@ -53,9 +53,6 @@ resource "pf9_cluster" "example" {
   ]
   allow_workloads_on_master = false
   worker_nodes = data.pf9_nodes.workers.nodes[*].id
-  etcd_backup = {
-    is_etcd_backup_enabled = true
-  }
   tags = {
     "key1" = "value1"
   }

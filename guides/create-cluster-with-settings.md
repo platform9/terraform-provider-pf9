@@ -35,11 +35,7 @@ resource "pf9_cluster" "example" {
   master_nodes = [
     "2c5f75a1-5fb3-4d18-b9df-b6313d483961"
   ]
-  worker_nodes              = []
   allow_workloads_on_master = true
-  etcd_backup = {
-    is_etcd_backup_enabled = false
-  }
 }
 ```
 
@@ -68,9 +64,6 @@ resource "pf9_cluster" "example" {
     "a51a04b1-1602-4dfa-9490-88bef5d3aa2c"
   ]
   allow_workloads_on_master = true
-  etcd_backup = {
-    is_etcd_backup_enabled = false
-  }
 }
 ```
 
@@ -105,9 +98,6 @@ resource "pf9_cluster" "example" {
   master_vip_iface  = "ens3"
   # If not set kube role version defaults to the latest
   kube_role_version = "1.26.10-pmk.164"
-  etcd_backup = {
-    is_etcd_backup_enabled = true
-  }
 }
 ```
 
@@ -149,9 +139,6 @@ resource "pf9_cluster" "example" {
   allow_workloads_on_master = false
   master_vip_ipv4           = data.pf9_nodes.masters.nodes[0].primary_ip
   master_vip_iface          = "ens3"
-  etcd_backup = {
-    is_etcd_backup_enabled = true
-  }
 }
 
 data "pf9_cluster" "example" {

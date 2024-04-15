@@ -82,7 +82,9 @@ resource "pf9_cluster" "example" {
   ]
   master_vip_ipv4           = "10.149.107.237"
   etcd_backup = {
-    is_etcd_backup_enabled = true
+    daily = {
+      backup_time = "02:00"
+    }
   }
   tags = {
     "key1" = "value1"

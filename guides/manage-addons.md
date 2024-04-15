@@ -19,11 +19,8 @@ By default, a PF9 cluster is initiated with default addons turned on. The follow
 resource "pf9_cluster" "example" {
   name                      = "tf-cluster-01"
   master_nodes              = [var.master_node]
-  worker_nodes              = []
+  worker_nodes              = var.worker_nodes
   allow_workloads_on_master = true
-  etcd_backup = {
-    is_etcd_backup_enabled = true
-  }
 }
 ```
 
@@ -37,11 +34,8 @@ The version of the addon to be installed can also be selected. If the version is
 resource "pf9_cluster" "example" {
   name                      = "tf-cluster-01"
   master_nodes              = [var.master_node]
-  worker_nodes              = []
+  worker_nodes              = var.worker_nodes
   allow_workloads_on_master = true
-  etcd_backup = {
-    is_etcd_backup_enabled = true
-  }
   addons = {
     "coredns" = {
       params = {
@@ -76,11 +70,8 @@ The code snippet below illustrates how to activate the `metallb` addon in an alr
 resource "pf9_cluster" "example" {
   name                      = "tf-cluster-01"
   master_nodes              = [var.master_node]
-  worker_nodes              = []
+  worker_nodes              = var.worker_nodes
   allow_workloads_on_master = true
-  etcd_backup = {
-    is_etcd_backup_enabled = true
-  }
   addons = {
     "coredns" = {
       params = {
@@ -119,11 +110,8 @@ The code example below shows how to disable the `monitoring` addon in a cluster 
 resource "pf9_cluster" "example" {
   name                      = "tf-cluster-01"
   master_nodes              = [var.master_node]
-  worker_nodes              = []
+  worker_nodes              = var.worker_nodes
   allow_workloads_on_master = true
-  etcd_backup = {
-    is_etcd_backup_enabled = true
-  }
   addons = {
     "coredns" = {
       params = {
@@ -162,11 +150,8 @@ The configuration below demonstrates how to upgrade the monitoring addon to vers
 resource "pf9_cluster" "example" {
   name                      = "tf-cluster-01"
   master_nodes              = [var.master_node]
-  worker_nodes              = []
+  worker_nodes              = var.worker_nodes
   allow_workloads_on_master = true
-  etcd_backup = {
-    is_etcd_backup_enabled = true
-  }
   addons = {
     "coredns" = {
       params = {
@@ -192,18 +177,71 @@ resource "pf9_cluster" "example" {
 }
 ```
 
-## Default Addon Configurations
+## Manage `etcd_backup` Addon
 
-The following terraform configuration shows the default configurations for all the supported addons.
+Unlike other addons, the `etcd_backup` addon is configured separately from the `addons` attribute in the cluster configuration. To set up the `etcd_backup` addon, use the following configuration:
 
 ```terraform
 resource "pf9_cluster" "example" {
   name                      = "tf-cluster-01"
   master_nodes              = [var.master_node]
-  worker_nodes              = []
+  worker_nodes              = var.worker_nodes
   allow_workloads_on_master = true
   etcd_backup = {
-    is_etcd_backup_enabled = true
+    daily = {
+      # backup every day at 2:00 AM
+      backup_time = "02:00"
+      # delete backups older than 4 days
+      max_backups_to_retain = 4
+    }
+    interval = {
+      # backup every 50 minutes
+      backup_interval = "50m"
+      max_backups_to_retain = 5
+    }
+    storage_local_path = "/var/lib/etcd-backup"
+    storage_type = "local"
+  }
+}
+```
+
+Set the `etcd_backup` attribute to `null` to disable it explicitly:
+
+```terraform
+resource "pf9_cluster" "example" {
+  name                      = "tf-cluster-01"
+  master_nodes              = [var.master_node]
+  worker_nodes              = var.worker_nodes
+  allow_workloads_on_master = true
+  # explicitly disabling the etcd_backup addons
+  etcd_backup = null
+}
+```
+
+## Default Addon Configurations
+
+The following Terraform configuration displays the default settings for all supported addons. If you've disabled any default addons and wish to re-enable them, refer to this default configuration:
+
+```terraform
+resource "pf9_cluster" "example" {
+  name                      = "tf-cluster-01"
+  master_nodes              = [var.master_node]
+  worker_nodes              = var.worker_nodes
+  allow_workloads_on_master = true
+  etcd_backup = {
+    daily = {
+      # backup every day at 2:00 AM
+      backup_time = "02:00"
+      # delete backups older than 4 days
+      max_backups_to_retain = 4
+    }
+    interval = {
+      # backup every 50 minutes
+      backup_interval = "50m"
+      max_backups_to_retain = 5
+    }
+    storage_local_path = "/var/lib/etcd-backup"
+    storage_type = "local"
   }
   addons = {
     "coredns" = {

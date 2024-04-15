@@ -66,7 +66,9 @@ resource "pf9_cluster" "example" {
   network_plugin               = "calico"
   calico_ipv4_detection_method = "interface=ens3"
   etcd_backup = {
-    is_etcd_backup_enabled = true
+    daily = {
+      backup_time = "02:00"
+    }
   }
   tags = {
     "key1" = "value1"
