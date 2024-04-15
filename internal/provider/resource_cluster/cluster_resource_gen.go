@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -81,27 +81,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Optional:            true,
 				Description:         "Percentage of nodes to upgrade at a time during a batch upgrade. If this attribute is omitted then nodes will be sequentially upgraded, one after the other.",
 				MarkdownDescription: "Percentage of nodes to upgrade at a time during a batch upgrade. If this attribute is omitted then nodes will be sequentially upgraded, one after the other.",
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
-				},
-			},
-			"calico_controller_cpu_limit": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.",
-				MarkdownDescription: "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"calico_controller_memory_limit": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.",
-				MarkdownDescription: "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"calico_ip_ip_mode": schema.StringAttribute{
 				Optional:            true,
@@ -134,6 +113,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"calico_ipv6_detection_method": schema.StringAttribute{
@@ -141,6 +121,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"calico_ipv6_pool_block_size": schema.StringAttribute{
@@ -148,6 +129,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"calico_ipv6_pool_cidr": schema.StringAttribute{
@@ -158,7 +140,73 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
+					boolplanmodifier.RequiresReplace(),
 				},
+			},
+			"calico_limits": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"controller_cpu_limit": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.",
+						MarkdownDescription: "Corresponds to the CALICO_CONTROLLER_CPU_LIMIT environment variable in Calico.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"controller_memory_limit": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.",
+						MarkdownDescription: "Corresponds to the CALICO_CONTROLLER_MEMORY_LIMIT environment variable in Calico.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"node_cpu_limit": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico.",
+						MarkdownDescription: "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"node_memory_limit": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico.",
+						MarkdownDescription: "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"typha_cpu_limit": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico.",
+						MarkdownDescription: "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"typha_memory_limit": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						Description:         "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico.",
+						MarkdownDescription: "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+				},
+				CustomType: CalicoLimitsType{
+					ObjectType: types.ObjectType{
+						AttrTypes: CalicoLimitsValue{}.AttributeTypes(ctx),
+					},
+				},
+				Optional: true,
+				Computed: true,
 			},
 			"calico_nat_outgoing": schema.BoolAttribute{
 				Optional:            true,
@@ -170,44 +218,8 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 				Default: booldefault.StaticBool(true),
 			},
-			"calico_node_cpu_limit": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico.",
-				MarkdownDescription: "Corresponds to the CALICO_NODE_CPU_LIMIT environment variable in Calico.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"calico_node_memory_limit": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico.",
-				MarkdownDescription: "Corresponds to the CALICO_NODE_MEMORY_LIMIT environment variable in Calico.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 			"calico_router_id": schema.StringAttribute{
 				Computed: true,
-			},
-			"calico_typha_cpu_limit": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico.",
-				MarkdownDescription: "Corresponds to the CALICO_TYPHA_CPU_LIMIT environment variable in Calico.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"calico_typha_memory_limit": schema.StringAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico.",
-				MarkdownDescription: "Corresponds to the CALICO_TYPHA_MEMORY_LIMIT environment variable in Calico.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"calico_v4_block_size": schema.StringAttribute{
 				Optional:            true,
@@ -231,13 +243,23 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					int64validator.AtLeast(1),
 				},
 			},
-			"cloud_provider_name": schema.StringAttribute{
-				Computed: true,
-			},
-			"cloud_provider_type": schema.StringAttribute{
-				Computed: true,
-			},
-			"cloud_provider_uuid": schema.StringAttribute{
+			"cloud_provider": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"name": schema.StringAttribute{
+						Computed: true,
+					},
+					"type": schema.StringAttribute{
+						Computed: true,
+					},
+					"uuid": schema.StringAttribute{
+						Computed: true,
+					},
+				},
+				CustomType: CloudProviderType{
+					ObjectType: types.ObjectType{
+						AttrTypes: CloudProviderValue{}.AttributeTypes(ctx),
+					},
+				},
 				Computed: true,
 			},
 			"container_runtime": schema.StringAttribute{
@@ -260,6 +282,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "CIDR used for pod IP addresses, applicable also for manual deploy",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 				Default: stringdefault.StaticString("10.20.0.0/16"),
 			},
@@ -270,6 +293,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "options: none, static; default: none",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("none", "static"),
@@ -284,152 +308,178 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"custom_registry_cert_path": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"custom_registry_password": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"custom_registry_repo_path": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"custom_registry_self_signed_certs": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"custom_registry_skip_tls": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"custom_registry_url": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"custom_registry_username": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"docker_centos_package_repo_url": schema.StringAttribute{
-				Computed: true,
-			},
-			"docker_private_registry": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"docker_root": schema.StringAttribute{
-				Computed: true,
-			},
-			"docker_ubuntu_package_repo_url": schema.StringAttribute{
-				Computed: true,
-			},
-			"enable_etcd_encryption": schema.BoolAttribute{
-				Optional:            true,
-				Computed:            true,
-				Description:         "Enables etcd encryption",
-				MarkdownDescription: "Enables etcd encryption",
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-					boolplanmodifier.RequiresReplace(),
-				},
-				Default: booldefault.StaticBool(true),
-			},
-			"etcd_backup": schema.SingleNestedAttribute{
+			"custom_registry": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
-					"daily_backup_time": schema.StringAttribute{
-						Optional:            true,
-						Computed:            true,
-						Description:         "etcd backup Timestamp for daily backup, specified in format 'HH:MM'",
-						MarkdownDescription: "etcd backup Timestamp for daily backup, specified in format 'HH:MM'",
+					"cert_path": schema.StringAttribute{
+						Optional: true,
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.UseStateForUnknown(),
 						},
-						Validators: []validator.String{
-							stringvalidator.RegexMatches(regexp.MustCompile(`^(?:[0-1][0-9]|2[0-3]):[0-5][0-9]$`), "Must be a valid time in HH:MM format"),
-						},
-						Default: stringdefault.StaticString("02:00"),
 					},
-					"interval_in_hours": schema.Int64Attribute{
-						Optional:            true,
-						Description:         "etcd backup interval, specified in Hours. intervalInMins and intervalInHours are mutually exclusive",
-						MarkdownDescription: "etcd backup interval, specified in Hours. intervalInMins and intervalInHours are mutually exclusive",
-						PlanModifiers: []planmodifier.Int64{
-							int64planmodifier.UseStateForUnknown(),
-						},
-						Validators: []validator.Int64{
-							int64validator.ConflictsWith(path.MatchRelative().AtName("interval_in_mins")),
-							int64validator.AtLeast(1),
+					"password": schema.StringAttribute{
+						Optional: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
 						},
 					},
-					"interval_in_mins": schema.Int64Attribute{
-						Optional:            true,
-						Description:         "etcd backup interval, specified in minutes. intervalInMins and intervalInHours are mutually exclusive",
-						MarkdownDescription: "etcd backup interval, specified in minutes. intervalInMins and intervalInHours are mutually exclusive",
-						PlanModifiers: []planmodifier.Int64{
-							int64planmodifier.UseStateForUnknown(),
-						},
-						Validators: []validator.Int64{
-							int64validator.AtLeast(1),
+					"repo_path": schema.StringAttribute{
+						Optional: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
 						},
 					},
-					"is_etcd_backup_enabled": schema.BoolAttribute{
-						Required:            true,
-						Description:         "Set to true if etcd backup should be enabled, false otherwise",
-						MarkdownDescription: "Set to true if etcd backup should be enabled, false otherwise",
+					"self_signed_certs": schema.BoolAttribute{
+						Optional: true,
 						PlanModifiers: []planmodifier.Bool{
 							boolplanmodifier.UseStateForUnknown(),
 						},
 					},
-					"max_interval_backup_count": schema.Int64Attribute{
-						Optional:            true,
-						Computed:            true,
-						Description:         "max number of Backups retention for interval type backups, required if intervalInMins or intervalInHours is provided",
-						MarkdownDescription: "max number of Backups retention for interval type backups, required if intervalInMins or intervalInHours is provided",
-						PlanModifiers: []planmodifier.Int64{
-							int64planmodifier.UseStateForUnknown(),
-						},
-						Validators: []validator.Int64{
-							int64validator.AtLeast(1),
+					"skip_tls": schema.BoolAttribute{
+						Optional: true,
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
 						},
 					},
-					"max_timestamp_backup_count": schema.Int64Attribute{
-						Optional:            true,
-						Computed:            true,
-						Description:         "max number of Backups retention for Timestamp type backups, required if dailyBackupTime is provided",
-						MarkdownDescription: "max number of Backups retention for Timestamp type backups, required if dailyBackupTime is provided",
-						PlanModifiers: []planmodifier.Int64{
-							int64planmodifier.UseStateForUnknown(),
+					"url": schema.StringAttribute{
+						Optional: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
 						},
-						Validators: []validator.Int64{
-							int64validator.AtLeast(1),
+					},
+					"username": schema.StringAttribute{
+						Optional: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
 						},
-						Default: int64default.StaticInt64(3),
+					},
+				},
+				CustomType: CustomRegistryType{
+					ObjectType: types.ObjectType{
+						AttrTypes: CustomRegistryValue{}.AttributeTypes(ctx),
+					},
+				},
+				Optional: true,
+			},
+			"docker_centos_package_repo_url": schema.StringAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"docker_private_registry": schema.StringAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"docker_root": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"docker_ubuntu_package_repo_url": schema.StringAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"etcd": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"data_dir": schema.StringAttribute{
+						Computed: true,
+					},
+					"election_timeout_ms": schema.Int64Attribute{
+						Computed: true,
+					},
+					"enable_encryption": schema.BoolAttribute{
+						Computed: true,
+					},
+					"heartbeat_interval_ms": schema.Int64Attribute{
+						Computed: true,
+					},
+					"version": schema.StringAttribute{
+						Computed: true,
+					},
+				},
+				CustomType: EtcdType{
+					ObjectType: types.ObjectType{
+						AttrTypes: EtcdValue{}.AttributeTypes(ctx),
+					},
+				},
+				Computed: true,
+			},
+			"etcd_backup": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"daily": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"backup_time": schema.StringAttribute{
+								Optional:            true,
+								Computed:            true,
+								Description:         "Timestamp for daily backup, specified in format 'HH:MM'",
+								MarkdownDescription: "Timestamp for daily backup, specified in format 'HH:MM'",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+								Validators: []validator.String{
+									stringvalidator.RegexMatches(regexp.MustCompile(`^(?:[0-1][0-9]|2[0-3]):[0-5][0-9]$`), "Must be a valid time in HH:MM format"),
+								},
+								Default: stringdefault.StaticString("02:00"),
+							},
+							"max_backups_to_retain": schema.Int64Attribute{
+								Optional:            true,
+								Computed:            true,
+								Description:         "Maximum number of backups to retain for timestamped backups.",
+								MarkdownDescription: "Maximum number of backups to retain for timestamped backups.",
+								PlanModifiers: []planmodifier.Int64{
+									int64planmodifier.UseStateForUnknown(),
+								},
+								Validators: []validator.Int64{
+									int64validator.AtLeast(1),
+								},
+								Default: int64default.StaticInt64(3),
+							},
+						},
+						CustomType: DailyType{
+							ObjectType: types.ObjectType{
+								AttrTypes: DailyValue{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
+					},
+					"interval": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"backup_interval": schema.StringAttribute{
+								Optional:            true,
+								Description:         "The interval at which etcd backups should be taken, specified in duration strings such as '2h' or '3m'. Note that composite duration strings like '2h3m' are not allowed.",
+								MarkdownDescription: "The interval at which etcd backups should be taken, specified in duration strings such as '2h' or '3m'. Note that composite duration strings like '2h3m' are not allowed.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+								Validators: []validator.String{
+									stringvalidator.RegexMatches(regexp.MustCompile(`^[1-9]\d*[hm]$`), "Must be a valid duration string"),
+								},
+							},
+							"max_backups_to_retain": schema.Int64Attribute{
+								Optional:            true,
+								Computed:            true,
+								Description:         "max number of Backups retention",
+								MarkdownDescription: "max number of Backups retention",
+								PlanModifiers: []planmodifier.Int64{
+									int64planmodifier.UseStateForUnknown(),
+								},
+								Validators: []validator.Int64{
+									int64validator.AtLeast(1),
+								},
+								Default: int64default.StaticInt64(3),
+							},
+						},
+						CustomType: IntervalType{
+							ObjectType: types.ObjectType{
+								AttrTypes: IntervalValue{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
 					},
 					"storage_local_path": schema.StringAttribute{
 						Optional:            true,
@@ -460,22 +510,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 						AttrTypes: EtcdBackupValue{}.AttributeTypes(ctx),
 					},
 				},
-				Required: true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"etcd_data_dir": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
-			},
-			"etcd_election_timeout_ms": schema.Int64Attribute{
-				Computed: true,
-			},
-			"etcd_heartbeat_interval_ms": schema.Int64Attribute{
-				Computed: true,
-			},
-			"etcd_version": schema.StringAttribute{
-				Computed: true,
+				Default:  DefaultEtcdBackup(ctx),
 			},
 			"external_dns_name": schema.StringAttribute{
 				Optional:            true,
@@ -483,6 +520,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "Optional DNS name for API endpoint. This field is autogenerated when usePf9Domain is set, also applicable for manual deploy",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"felix_ipv6_support": schema.BoolAttribute{
@@ -490,28 +528,31 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
+					boolplanmodifier.RequiresReplace(),
 				},
 			},
 			"flannel_iface_label": schema.StringAttribute{
 				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"flannel_public_iface_label": schema.StringAttribute{
 				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"gcr_private_registry": schema.StringAttribute{
 				Optional: true,
-				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
 				Description:         "UUID of the cluster",
 				MarkdownDescription: "UUID of the cluster",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"interface_detection_method": schema.StringAttribute{
 				Optional:            true,
@@ -520,10 +561,12 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "Method to detect the interface",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("FirstFound", "InterfaceName", "InterfaceReachableIP"),
 				},
+				Default: stringdefault.StaticString("FirstFound"),
 			},
 			"interface_name": schema.StringAttribute{
 				Optional:            true,
@@ -532,23 +575,93 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "Name of the interface",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
-				Default: stringdefault.StaticString(""),
 			},
 			"interface_reachable_ip": schema.StringAttribute{
-				Computed: true,
-			},
-			"ipv6": schema.BoolAttribute{
-				Computed: true,
-			},
-			"k8s_api_port": schema.StringAttribute{
-				Computed: true,
-			},
-			"k8s_private_registry": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"ipv6": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Enable IPv6 for the cluster",
+				MarkdownDescription: "Enable IPv6 for the cluster",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+					boolplanmodifier.RequiresReplace(),
+				},
+			},
+			"k8s_api_port": schema.Int64Attribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "Port on which the Kubernetes API server is running",
+				MarkdownDescription: "Port on which the Kubernetes API server is running",
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+					int64planmodifier.RequiresReplace(),
+				},
+				Validators: []validator.Int64{
+					int64validator.Between(1, 65535),
+				},
+			},
+			"k8s_config": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"api_server_flags": schema.ListAttribute{
+						ElementType:         types.StringType,
+						Optional:            true,
+						Description:         "List of supported kube-apiserver flags, example: --request-timeout=2m0s,--kubelet-timeout=20s",
+						MarkdownDescription: "List of supported kube-apiserver flags, example: --request-timeout=2m0s,--kubelet-timeout=20s",
+						PlanModifiers: []planmodifier.List{
+							listplanmodifier.UseStateForUnknown(),
+							listplanmodifier.RequiresReplace(),
+						},
+					},
+					"api_server_runtime_config": schema.StringAttribute{
+						Optional:            true,
+						Description:         "A set of key=value pairs that enable or disable built-in APIs.",
+						MarkdownDescription: "A set of key=value pairs that enable or disable built-in APIs.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+							stringplanmodifier.RequiresReplace(),
+						},
+					},
+					"controller_manager_flags": schema.ListAttribute{
+						ElementType:         types.StringType,
+						Optional:            true,
+						Description:         "List of supported controller manager flags, example: --large-cluster-size-threshold=60,--concurrent-statefulset-syncs=10",
+						MarkdownDescription: "List of supported controller manager flags, example: --large-cluster-size-threshold=60,--concurrent-statefulset-syncs=10",
+						PlanModifiers: []planmodifier.List{
+							listplanmodifier.UseStateForUnknown(),
+							listplanmodifier.RequiresReplace(),
+						},
+					},
+					"scheduler_flags": schema.ListAttribute{
+						ElementType:         types.StringType,
+						Optional:            true,
+						Description:         "List of supported scheduler flags, example: --kube-api-burst=120,--log_file_max_size=3000",
+						MarkdownDescription: "List of supported scheduler flags, example: --kube-api-burst=120,--log_file_max_size=3000",
+						PlanModifiers: []planmodifier.List{
+							listplanmodifier.UseStateForUnknown(),
+							listplanmodifier.RequiresReplace(),
+						},
+					},
+				},
+				CustomType: K8sConfigType{
+					ObjectType: types.ObjectType{
+						AttrTypes: K8sConfigValue{}.AttributeTypes(ctx),
+					},
+				},
+				Optional: true,
+			},
+			"k8s_private_registry": schema.StringAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"kube_role_version": schema.StringAttribute{
@@ -560,20 +673,10 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"last_ok": schema.StringAttribute{
-				Computed: true,
-			},
-			"last_op": schema.StringAttribute{
-				Computed: true,
-			},
 			"master_ip": schema.StringAttribute{
-				Optional:            true,
 				Computed:            true,
 				Description:         "IP of master node",
 				MarkdownDescription: "IP of master node",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"master_nodes": schema.SetAttribute{
 				ElementType:         types.StringType,
@@ -581,14 +684,15 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "List of uuid of master nodes",
 				MarkdownDescription: "List of uuid of master nodes",
 			},
-			"master_status": schema.StringAttribute{
-				Computed: true,
-			},
 			"master_vip_iface": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
 				Description:         "If master_vip_ipv4 is specified, this field is required. Specify the interface that the VIP attaches to",
 				MarkdownDescription: "If master_vip_ipv4 is specified, this field is required. Specify the interface that the VIP attaches to",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.String{
 					stringvalidator.AlsoRequires(path.MatchRelative().AtName("master_vip_ipv4")),
 				},
@@ -600,6 +704,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"master_vip_vrouter_id": schema.StringAttribute{
@@ -615,13 +720,14 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "MTU for container network interfaces. Optional and used for the Calico network backend",
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
+					int64planmodifier.RequiresReplace(),
 				},
 				Default: int64default.StaticInt64(1440),
 			},
 			"name": schema.StringAttribute{
 				Required:            true,
-				Description:         "Name of the cluster, applicable also for manual deploy",
-				MarkdownDescription: "Name of the cluster, applicable also for manual deploy",
+				Description:         "Name of the cluster",
+				MarkdownDescription: "Name of the cluster",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -633,6 +739,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "Network backend to use for container networking. Defaults to flannel. Supported choices are flannel, calico",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("calico", "flannel"),
@@ -649,6 +756,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "Optional. UUID of the node pool used for the cluster. Defaults to the first node pool of the local cloud provider type",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"privileged": schema.BoolAttribute{
@@ -658,6 +766,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "True if cluster runs privileged containers",
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
+					boolplanmodifier.RequiresReplace(),
 				},
 				Default: booldefault.StaticBool(true),
 			},
@@ -666,15 +775,17 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"quay_private_registry": schema.StringAttribute{
 				Optional: true,
-				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"runtime_config": schema.StringAttribute{
+			"reserved_cpus": schema.StringAttribute{
 				Optional:            true,
-				Description:         "Applicable also for manual deploy",
-				MarkdownDescription: "Applicable also for manual deploy",
+				Description:         "Enter a comma separated list of CPUs to be reserved for the system,example:4-8,9-12",
+				MarkdownDescription: "Enter a comma separated list of CPUs to be reserved for the system,example:4-8,9-12",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"services_cidr": schema.StringAttribute{
 				Optional:            true,
@@ -683,10 +794,39 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "CIDR used for service IP addresses, applicable also for manual deploy",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 				Default: stringdefault.StaticString("10.21.0.0/16"),
 			},
-			"status": schema.StringAttribute{
+			"status": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"last_ok": schema.StringAttribute{
+						Computed: true,
+					},
+					"last_op": schema.StringAttribute{
+						Computed: true,
+					},
+					"master_status": schema.StringAttribute{
+						Computed: true,
+					},
+					"status": schema.StringAttribute{
+						Computed: true,
+					},
+					"task_error": schema.StringAttribute{
+						Computed: true,
+					},
+					"task_status": schema.StringAttribute{
+						Computed: true,
+					},
+					"worker_status": schema.StringAttribute{
+						Computed: true,
+					},
+				},
+				CustomType: StatusType{
+					ObjectType: types.ObjectType{
+						AttrTypes: StatusValue{}.AttributeTypes(ctx),
+					},
+				},
 				Computed: true,
 			},
 			"tags": schema.MapAttribute{
@@ -695,12 +835,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Description:         "User defined key-value pairs represented as a JSON object",
 				MarkdownDescription: "User defined key-value pairs represented as a JSON object",
 			},
-			"task_error": schema.StringAttribute{
-				Computed: true,
-			},
-			"task_status": schema.StringAttribute{
-				Computed: true,
-			},
 			"topology_manager_policy": schema.StringAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -708,6 +842,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "options: none, best-effort, restricted, single-numa-node; default: none",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
 					stringvalidator.OneOf("none", "best-effort", "restricted", "single-numa-node"),
@@ -729,109 +864,85 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts.",
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
+					boolplanmodifier.RequiresReplace(),
 				},
 				Default: booldefault.StaticBool(false),
 			},
 			"worker_nodes": schema.SetAttribute{
 				ElementType:         types.StringType,
-				Required:            true,
-				Description:         "List of uuid of worker nodes",
-				MarkdownDescription: "List of uuid of worker nodes",
-			},
-			"worker_status": schema.StringAttribute{
-				Computed: true,
+				Optional:            true,
+				Description:         "List of uuid of worker nodes. Required if allow_workloads_on_master is false",
+				MarkdownDescription: "List of uuid of worker nodes. Required if allow_workloads_on_master is false",
 			},
 		},
 	}
 }
 
 type ClusterModel struct {
-	Addons                        types.Map       `tfsdk:"addons"`
-	AllowWorkloadsOnMaster        types.Bool      `tfsdk:"allow_workloads_on_master"`
-	BatchUpgradePercent           types.Int64     `tfsdk:"batch_upgrade_percent"`
-	CalicoControllerCpuLimit      types.String    `tfsdk:"calico_controller_cpu_limit"`
-	CalicoControllerMemoryLimit   types.String    `tfsdk:"calico_controller_memory_limit"`
-	CalicoIpIpMode                types.String    `tfsdk:"calico_ip_ip_mode"`
-	CalicoIpv4                    types.String    `tfsdk:"calico_ipv4"`
-	CalicoIpv4DetectionMethod     types.String    `tfsdk:"calico_ipv4_detection_method"`
-	CalicoIpv6                    types.String    `tfsdk:"calico_ipv6"`
-	CalicoIpv6DetectionMethod     types.String    `tfsdk:"calico_ipv6_detection_method"`
-	CalicoIpv6PoolBlockSize       types.String    `tfsdk:"calico_ipv6_pool_block_size"`
-	CalicoIpv6PoolCidr            types.String    `tfsdk:"calico_ipv6_pool_cidr"`
-	CalicoIpv6PoolNatOutgoing     types.Bool      `tfsdk:"calico_ipv6_pool_nat_outgoing"`
-	CalicoNatOutgoing             types.Bool      `tfsdk:"calico_nat_outgoing"`
-	CalicoNodeCpuLimit            types.String    `tfsdk:"calico_node_cpu_limit"`
-	CalicoNodeMemoryLimit         types.String    `tfsdk:"calico_node_memory_limit"`
-	CalicoRouterId                types.String    `tfsdk:"calico_router_id"`
-	CalicoTyphaCpuLimit           types.String    `tfsdk:"calico_typha_cpu_limit"`
-	CalicoTyphaMemoryLimit        types.String    `tfsdk:"calico_typha_memory_limit"`
-	CalicoV4BlockSize             types.String    `tfsdk:"calico_v4_block_size"`
-	CertExpiryHrs                 types.Int64     `tfsdk:"cert_expiry_hrs"`
-	CloudProviderName             types.String    `tfsdk:"cloud_provider_name"`
-	CloudProviderType             types.String    `tfsdk:"cloud_provider_type"`
-	CloudProviderUuid             types.String    `tfsdk:"cloud_provider_uuid"`
-	ContainerRuntime              types.String    `tfsdk:"container_runtime"`
-	ContainersCidr                types.String    `tfsdk:"containers_cidr"`
-	CpuManagerPolicy              types.String    `tfsdk:"cpu_manager_policy"`
-	CreatedAt                     types.String    `tfsdk:"created_at"`
-	CustomRegistryCertPath        types.String    `tfsdk:"custom_registry_cert_path"`
-	CustomRegistryPassword        types.String    `tfsdk:"custom_registry_password"`
-	CustomRegistryRepoPath        types.String    `tfsdk:"custom_registry_repo_path"`
-	CustomRegistrySelfSignedCerts types.Bool      `tfsdk:"custom_registry_self_signed_certs"`
-	CustomRegistrySkipTls         types.Bool      `tfsdk:"custom_registry_skip_tls"`
-	CustomRegistryUrl             types.String    `tfsdk:"custom_registry_url"`
-	CustomRegistryUsername        types.String    `tfsdk:"custom_registry_username"`
-	DockerCentosPackageRepoUrl    types.String    `tfsdk:"docker_centos_package_repo_url"`
-	DockerPrivateRegistry         types.String    `tfsdk:"docker_private_registry"`
-	DockerRoot                    types.String    `tfsdk:"docker_root"`
-	DockerUbuntuPackageRepoUrl    types.String    `tfsdk:"docker_ubuntu_package_repo_url"`
-	EnableEtcdEncryption          types.Bool      `tfsdk:"enable_etcd_encryption"`
-	EtcdBackup                    EtcdBackupValue `tfsdk:"etcd_backup"`
-	EtcdDataDir                   types.String    `tfsdk:"etcd_data_dir"`
-	EtcdElectionTimeoutMs         types.Int64     `tfsdk:"etcd_election_timeout_ms"`
-	EtcdHeartbeatIntervalMs       types.Int64     `tfsdk:"etcd_heartbeat_interval_ms"`
-	EtcdVersion                   types.String    `tfsdk:"etcd_version"`
-	ExternalDnsName               types.String    `tfsdk:"external_dns_name"`
-	FelixIpv6Support              types.Bool      `tfsdk:"felix_ipv6_support"`
-	FlannelIfaceLabel             types.String    `tfsdk:"flannel_iface_label"`
-	FlannelPublicIfaceLabel       types.String    `tfsdk:"flannel_public_iface_label"`
-	GcrPrivateRegistry            types.String    `tfsdk:"gcr_private_registry"`
-	Id                            types.String    `tfsdk:"id"`
-	InterfaceDetectionMethod      types.String    `tfsdk:"interface_detection_method"`
-	InterfaceName                 types.String    `tfsdk:"interface_name"`
-	InterfaceReachableIp          types.String    `tfsdk:"interface_reachable_ip"`
-	Ipv6                          types.Bool      `tfsdk:"ipv6"`
-	K8sApiPort                    types.String    `tfsdk:"k8s_api_port"`
-	K8sPrivateRegistry            types.String    `tfsdk:"k8s_private_registry"`
-	KubeRoleVersion               types.String    `tfsdk:"kube_role_version"`
-	LastOk                        types.String    `tfsdk:"last_ok"`
-	LastOp                        types.String    `tfsdk:"last_op"`
-	MasterIp                      types.String    `tfsdk:"master_ip"`
-	MasterNodes                   types.Set       `tfsdk:"master_nodes"`
-	MasterStatus                  types.String    `tfsdk:"master_status"`
-	MasterVipIface                types.String    `tfsdk:"master_vip_iface"`
-	MasterVipIpv4                 types.String    `tfsdk:"master_vip_ipv4"`
-	MasterVipVrouterId            types.String    `tfsdk:"master_vip_vrouter_id"`
-	Masterless                    types.Bool      `tfsdk:"masterless"`
-	MtuSize                       types.Int64     `tfsdk:"mtu_size"`
-	Name                          types.String    `tfsdk:"name"`
-	NetworkPlugin                 types.String    `tfsdk:"network_plugin"`
-	NodePoolName                  types.String    `tfsdk:"node_pool_name"`
-	NodePoolUuid                  types.String    `tfsdk:"node_pool_uuid"`
-	Privileged                    types.Bool      `tfsdk:"privileged"`
-	ProjectId                     types.String    `tfsdk:"project_id"`
-	QuayPrivateRegistry           types.String    `tfsdk:"quay_private_registry"`
-	RuntimeConfig                 types.String    `tfsdk:"runtime_config"`
-	ServicesCidr                  types.String    `tfsdk:"services_cidr"`
-	Status                        types.String    `tfsdk:"status"`
-	Tags                          types.Map       `tfsdk:"tags"`
-	TaskError                     types.String    `tfsdk:"task_error"`
-	TaskStatus                    types.String    `tfsdk:"task_status"`
-	TopologyManagerPolicy         types.String    `tfsdk:"topology_manager_policy"`
-	UpgradeKubeRoleVersion        types.String    `tfsdk:"upgrade_kube_role_version"`
-	UseHostname                   types.Bool      `tfsdk:"use_hostname"`
-	WorkerNodes                   types.Set       `tfsdk:"worker_nodes"`
-	WorkerStatus                  types.String    `tfsdk:"worker_status"`
+	Addons                     types.Map           `tfsdk:"addons"`
+	AllowWorkloadsOnMaster     types.Bool          `tfsdk:"allow_workloads_on_master"`
+	BatchUpgradePercent        types.Int64         `tfsdk:"batch_upgrade_percent"`
+	CalicoIpIpMode             types.String        `tfsdk:"calico_ip_ip_mode"`
+	CalicoIpv4                 types.String        `tfsdk:"calico_ipv4"`
+	CalicoIpv4DetectionMethod  types.String        `tfsdk:"calico_ipv4_detection_method"`
+	CalicoIpv6                 types.String        `tfsdk:"calico_ipv6"`
+	CalicoIpv6DetectionMethod  types.String        `tfsdk:"calico_ipv6_detection_method"`
+	CalicoIpv6PoolBlockSize    types.String        `tfsdk:"calico_ipv6_pool_block_size"`
+	CalicoIpv6PoolCidr         types.String        `tfsdk:"calico_ipv6_pool_cidr"`
+	CalicoIpv6PoolNatOutgoing  types.Bool          `tfsdk:"calico_ipv6_pool_nat_outgoing"`
+	CalicoLimits               CalicoLimitsValue   `tfsdk:"calico_limits"`
+	CalicoNatOutgoing          types.Bool          `tfsdk:"calico_nat_outgoing"`
+	CalicoRouterId             types.String        `tfsdk:"calico_router_id"`
+	CalicoV4BlockSize          types.String        `tfsdk:"calico_v4_block_size"`
+	CertExpiryHrs              types.Int64         `tfsdk:"cert_expiry_hrs"`
+	CloudProvider              CloudProviderValue  `tfsdk:"cloud_provider"`
+	ContainerRuntime           types.String        `tfsdk:"container_runtime"`
+	ContainersCidr             types.String        `tfsdk:"containers_cidr"`
+	CpuManagerPolicy           types.String        `tfsdk:"cpu_manager_policy"`
+	CreatedAt                  types.String        `tfsdk:"created_at"`
+	CustomRegistry             CustomRegistryValue `tfsdk:"custom_registry"`
+	DockerCentosPackageRepoUrl types.String        `tfsdk:"docker_centos_package_repo_url"`
+	DockerPrivateRegistry      types.String        `tfsdk:"docker_private_registry"`
+	DockerRoot                 types.String        `tfsdk:"docker_root"`
+	DockerUbuntuPackageRepoUrl types.String        `tfsdk:"docker_ubuntu_package_repo_url"`
+	Etcd                       EtcdValue           `tfsdk:"etcd"`
+	EtcdBackup                 EtcdBackupValue     `tfsdk:"etcd_backup"`
+	ExternalDnsName            types.String        `tfsdk:"external_dns_name"`
+	FelixIpv6Support           types.Bool          `tfsdk:"felix_ipv6_support"`
+	FlannelIfaceLabel          types.String        `tfsdk:"flannel_iface_label"`
+	FlannelPublicIfaceLabel    types.String        `tfsdk:"flannel_public_iface_label"`
+	GcrPrivateRegistry         types.String        `tfsdk:"gcr_private_registry"`
+	Id                         types.String        `tfsdk:"id"`
+	InterfaceDetectionMethod   types.String        `tfsdk:"interface_detection_method"`
+	InterfaceName              types.String        `tfsdk:"interface_name"`
+	InterfaceReachableIp       types.String        `tfsdk:"interface_reachable_ip"`
+	Ipv6                       types.Bool          `tfsdk:"ipv6"`
+	K8sApiPort                 types.Int64         `tfsdk:"k8s_api_port"`
+	K8sConfig                  K8sConfigValue      `tfsdk:"k8s_config"`
+	K8sPrivateRegistry         types.String        `tfsdk:"k8s_private_registry"`
+	KubeRoleVersion            types.String        `tfsdk:"kube_role_version"`
+	MasterIp                   types.String        `tfsdk:"master_ip"`
+	MasterNodes                types.Set           `tfsdk:"master_nodes"`
+	MasterVipIface             types.String        `tfsdk:"master_vip_iface"`
+	MasterVipIpv4              types.String        `tfsdk:"master_vip_ipv4"`
+	MasterVipVrouterId         types.String        `tfsdk:"master_vip_vrouter_id"`
+	Masterless                 types.Bool          `tfsdk:"masterless"`
+	MtuSize                    types.Int64         `tfsdk:"mtu_size"`
+	Name                       types.String        `tfsdk:"name"`
+	NetworkPlugin              types.String        `tfsdk:"network_plugin"`
+	NodePoolName               types.String        `tfsdk:"node_pool_name"`
+	NodePoolUuid               types.String        `tfsdk:"node_pool_uuid"`
+	Privileged                 types.Bool          `tfsdk:"privileged"`
+	ProjectId                  types.String        `tfsdk:"project_id"`
+	QuayPrivateRegistry        types.String        `tfsdk:"quay_private_registry"`
+	ReservedCpus               types.String        `tfsdk:"reserved_cpus"`
+	ServicesCidr               types.String        `tfsdk:"services_cidr"`
+	Status                     StatusValue         `tfsdk:"status"`
+	Tags                       types.Map           `tfsdk:"tags"`
+	TopologyManagerPolicy      types.String        `tfsdk:"topology_manager_policy"`
+	UpgradeKubeRoleVersion     types.String        `tfsdk:"upgrade_kube_role_version"`
+	UseHostname                types.Bool          `tfsdk:"use_hostname"`
+	WorkerNodes                types.Set           `tfsdk:"worker_nodes"`
 }
 
 var _ basetypes.ObjectTypable = AddonsType{}
@@ -1278,6 +1389,2197 @@ func (v AddonsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	}
 }
 
+var _ basetypes.ObjectTypable = CalicoLimitsType{}
+
+type CalicoLimitsType struct {
+	basetypes.ObjectType
+}
+
+func (t CalicoLimitsType) Equal(o attr.Type) bool {
+	other, ok := o.(CalicoLimitsType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t CalicoLimitsType) String() string {
+	return "CalicoLimitsType"
+}
+
+func (t CalicoLimitsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	controllerCpuLimitAttribute, ok := attributes["controller_cpu_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`controller_cpu_limit is missing from object`)
+
+		return nil, diags
+	}
+
+	controllerCpuLimitVal, ok := controllerCpuLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`controller_cpu_limit expected to be basetypes.StringValue, was: %T`, controllerCpuLimitAttribute))
+	}
+
+	controllerMemoryLimitAttribute, ok := attributes["controller_memory_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`controller_memory_limit is missing from object`)
+
+		return nil, diags
+	}
+
+	controllerMemoryLimitVal, ok := controllerMemoryLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`controller_memory_limit expected to be basetypes.StringValue, was: %T`, controllerMemoryLimitAttribute))
+	}
+
+	nodeCpuLimitAttribute, ok := attributes["node_cpu_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`node_cpu_limit is missing from object`)
+
+		return nil, diags
+	}
+
+	nodeCpuLimitVal, ok := nodeCpuLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`node_cpu_limit expected to be basetypes.StringValue, was: %T`, nodeCpuLimitAttribute))
+	}
+
+	nodeMemoryLimitAttribute, ok := attributes["node_memory_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`node_memory_limit is missing from object`)
+
+		return nil, diags
+	}
+
+	nodeMemoryLimitVal, ok := nodeMemoryLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`node_memory_limit expected to be basetypes.StringValue, was: %T`, nodeMemoryLimitAttribute))
+	}
+
+	typhaCpuLimitAttribute, ok := attributes["typha_cpu_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`typha_cpu_limit is missing from object`)
+
+		return nil, diags
+	}
+
+	typhaCpuLimitVal, ok := typhaCpuLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`typha_cpu_limit expected to be basetypes.StringValue, was: %T`, typhaCpuLimitAttribute))
+	}
+
+	typhaMemoryLimitAttribute, ok := attributes["typha_memory_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`typha_memory_limit is missing from object`)
+
+		return nil, diags
+	}
+
+	typhaMemoryLimitVal, ok := typhaMemoryLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`typha_memory_limit expected to be basetypes.StringValue, was: %T`, typhaMemoryLimitAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return CalicoLimitsValue{
+		ControllerCpuLimit:    controllerCpuLimitVal,
+		ControllerMemoryLimit: controllerMemoryLimitVal,
+		NodeCpuLimit:          nodeCpuLimitVal,
+		NodeMemoryLimit:       nodeMemoryLimitVal,
+		TyphaCpuLimit:         typhaCpuLimitVal,
+		TyphaMemoryLimit:      typhaMemoryLimitVal,
+		state:                 attr.ValueStateKnown,
+	}, diags
+}
+
+func NewCalicoLimitsValueNull() CalicoLimitsValue {
+	return CalicoLimitsValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewCalicoLimitsValueUnknown() CalicoLimitsValue {
+	return CalicoLimitsValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewCalicoLimitsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (CalicoLimitsValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing CalicoLimitsValue Attribute Value",
+				"While creating a CalicoLimitsValue value, a missing attribute value was detected. "+
+					"A CalicoLimitsValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("CalicoLimitsValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid CalicoLimitsValue Attribute Type",
+				"While creating a CalicoLimitsValue value, an invalid attribute value was detected. "+
+					"A CalicoLimitsValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("CalicoLimitsValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("CalicoLimitsValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra CalicoLimitsValue Attribute Value",
+				"While creating a CalicoLimitsValue value, an extra attribute value was detected. "+
+					"A CalicoLimitsValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra CalicoLimitsValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewCalicoLimitsValueUnknown(), diags
+	}
+
+	controllerCpuLimitAttribute, ok := attributes["controller_cpu_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`controller_cpu_limit is missing from object`)
+
+		return NewCalicoLimitsValueUnknown(), diags
+	}
+
+	controllerCpuLimitVal, ok := controllerCpuLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`controller_cpu_limit expected to be basetypes.StringValue, was: %T`, controllerCpuLimitAttribute))
+	}
+
+	controllerMemoryLimitAttribute, ok := attributes["controller_memory_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`controller_memory_limit is missing from object`)
+
+		return NewCalicoLimitsValueUnknown(), diags
+	}
+
+	controllerMemoryLimitVal, ok := controllerMemoryLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`controller_memory_limit expected to be basetypes.StringValue, was: %T`, controllerMemoryLimitAttribute))
+	}
+
+	nodeCpuLimitAttribute, ok := attributes["node_cpu_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`node_cpu_limit is missing from object`)
+
+		return NewCalicoLimitsValueUnknown(), diags
+	}
+
+	nodeCpuLimitVal, ok := nodeCpuLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`node_cpu_limit expected to be basetypes.StringValue, was: %T`, nodeCpuLimitAttribute))
+	}
+
+	nodeMemoryLimitAttribute, ok := attributes["node_memory_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`node_memory_limit is missing from object`)
+
+		return NewCalicoLimitsValueUnknown(), diags
+	}
+
+	nodeMemoryLimitVal, ok := nodeMemoryLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`node_memory_limit expected to be basetypes.StringValue, was: %T`, nodeMemoryLimitAttribute))
+	}
+
+	typhaCpuLimitAttribute, ok := attributes["typha_cpu_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`typha_cpu_limit is missing from object`)
+
+		return NewCalicoLimitsValueUnknown(), diags
+	}
+
+	typhaCpuLimitVal, ok := typhaCpuLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`typha_cpu_limit expected to be basetypes.StringValue, was: %T`, typhaCpuLimitAttribute))
+	}
+
+	typhaMemoryLimitAttribute, ok := attributes["typha_memory_limit"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`typha_memory_limit is missing from object`)
+
+		return NewCalicoLimitsValueUnknown(), diags
+	}
+
+	typhaMemoryLimitVal, ok := typhaMemoryLimitAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`typha_memory_limit expected to be basetypes.StringValue, was: %T`, typhaMemoryLimitAttribute))
+	}
+
+	if diags.HasError() {
+		return NewCalicoLimitsValueUnknown(), diags
+	}
+
+	return CalicoLimitsValue{
+		ControllerCpuLimit:    controllerCpuLimitVal,
+		ControllerMemoryLimit: controllerMemoryLimitVal,
+		NodeCpuLimit:          nodeCpuLimitVal,
+		NodeMemoryLimit:       nodeMemoryLimitVal,
+		TyphaCpuLimit:         typhaCpuLimitVal,
+		TyphaMemoryLimit:      typhaMemoryLimitVal,
+		state:                 attr.ValueStateKnown,
+	}, diags
+}
+
+func NewCalicoLimitsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) CalicoLimitsValue {
+	object, diags := NewCalicoLimitsValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewCalicoLimitsValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t CalicoLimitsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewCalicoLimitsValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewCalicoLimitsValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewCalicoLimitsValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewCalicoLimitsValueMust(CalicoLimitsValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t CalicoLimitsType) ValueType(ctx context.Context) attr.Value {
+	return CalicoLimitsValue{}
+}
+
+var _ basetypes.ObjectValuable = CalicoLimitsValue{}
+
+type CalicoLimitsValue struct {
+	ControllerCpuLimit    basetypes.StringValue `tfsdk:"controller_cpu_limit"`
+	ControllerMemoryLimit basetypes.StringValue `tfsdk:"controller_memory_limit"`
+	NodeCpuLimit          basetypes.StringValue `tfsdk:"node_cpu_limit"`
+	NodeMemoryLimit       basetypes.StringValue `tfsdk:"node_memory_limit"`
+	TyphaCpuLimit         basetypes.StringValue `tfsdk:"typha_cpu_limit"`
+	TyphaMemoryLimit      basetypes.StringValue `tfsdk:"typha_memory_limit"`
+	state                 attr.ValueState
+}
+
+func (v CalicoLimitsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 6)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["controller_cpu_limit"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["controller_memory_limit"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["node_cpu_limit"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["node_memory_limit"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["typha_cpu_limit"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["typha_memory_limit"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 6)
+
+		val, err = v.ControllerCpuLimit.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["controller_cpu_limit"] = val
+
+		val, err = v.ControllerMemoryLimit.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["controller_memory_limit"] = val
+
+		val, err = v.NodeCpuLimit.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["node_cpu_limit"] = val
+
+		val, err = v.NodeMemoryLimit.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["node_memory_limit"] = val
+
+		val, err = v.TyphaCpuLimit.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["typha_cpu_limit"] = val
+
+		val, err = v.TyphaMemoryLimit.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["typha_memory_limit"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v CalicoLimitsValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v CalicoLimitsValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v CalicoLimitsValue) String() string {
+	return "CalicoLimitsValue"
+}
+
+func (v CalicoLimitsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"controller_cpu_limit":    basetypes.StringType{},
+			"controller_memory_limit": basetypes.StringType{},
+			"node_cpu_limit":          basetypes.StringType{},
+			"node_memory_limit":       basetypes.StringType{},
+			"typha_cpu_limit":         basetypes.StringType{},
+			"typha_memory_limit":      basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"controller_cpu_limit":    v.ControllerCpuLimit,
+			"controller_memory_limit": v.ControllerMemoryLimit,
+			"node_cpu_limit":          v.NodeCpuLimit,
+			"node_memory_limit":       v.NodeMemoryLimit,
+			"typha_cpu_limit":         v.TyphaCpuLimit,
+			"typha_memory_limit":      v.TyphaMemoryLimit,
+		})
+
+	return objVal, diags
+}
+
+func (v CalicoLimitsValue) Equal(o attr.Value) bool {
+	other, ok := o.(CalicoLimitsValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.ControllerCpuLimit.Equal(other.ControllerCpuLimit) {
+		return false
+	}
+
+	if !v.ControllerMemoryLimit.Equal(other.ControllerMemoryLimit) {
+		return false
+	}
+
+	if !v.NodeCpuLimit.Equal(other.NodeCpuLimit) {
+		return false
+	}
+
+	if !v.NodeMemoryLimit.Equal(other.NodeMemoryLimit) {
+		return false
+	}
+
+	if !v.TyphaCpuLimit.Equal(other.TyphaCpuLimit) {
+		return false
+	}
+
+	if !v.TyphaMemoryLimit.Equal(other.TyphaMemoryLimit) {
+		return false
+	}
+
+	return true
+}
+
+func (v CalicoLimitsValue) Type(ctx context.Context) attr.Type {
+	return CalicoLimitsType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v CalicoLimitsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"controller_cpu_limit":    basetypes.StringType{},
+		"controller_memory_limit": basetypes.StringType{},
+		"node_cpu_limit":          basetypes.StringType{},
+		"node_memory_limit":       basetypes.StringType{},
+		"typha_cpu_limit":         basetypes.StringType{},
+		"typha_memory_limit":      basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = CloudProviderType{}
+
+type CloudProviderType struct {
+	basetypes.ObjectType
+}
+
+func (t CloudProviderType) Equal(o attr.Type) bool {
+	other, ok := o.(CloudProviderType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t CloudProviderType) String() string {
+	return "CloudProviderType"
+}
+
+func (t CloudProviderType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	nameAttribute, ok := attributes["name"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`name is missing from object`)
+
+		return nil, diags
+	}
+
+	nameVal, ok := nameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+	}
+
+	typeAttribute, ok := attributes["type"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`type is missing from object`)
+
+		return nil, diags
+	}
+
+	typeVal, ok := typeAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`type expected to be basetypes.StringValue, was: %T`, typeAttribute))
+	}
+
+	uuidAttribute, ok := attributes["uuid"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`uuid is missing from object`)
+
+		return nil, diags
+	}
+
+	uuidVal, ok := uuidAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`uuid expected to be basetypes.StringValue, was: %T`, uuidAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return CloudProviderValue{
+		Name:              nameVal,
+		CloudProviderType: typeVal,
+		Uuid:              uuidVal,
+		state:             attr.ValueStateKnown,
+	}, diags
+}
+
+func NewCloudProviderValueNull() CloudProviderValue {
+	return CloudProviderValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewCloudProviderValueUnknown() CloudProviderValue {
+	return CloudProviderValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewCloudProviderValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (CloudProviderValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing CloudProviderValue Attribute Value",
+				"While creating a CloudProviderValue value, a missing attribute value was detected. "+
+					"A CloudProviderValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("CloudProviderValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid CloudProviderValue Attribute Type",
+				"While creating a CloudProviderValue value, an invalid attribute value was detected. "+
+					"A CloudProviderValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("CloudProviderValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("CloudProviderValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra CloudProviderValue Attribute Value",
+				"While creating a CloudProviderValue value, an extra attribute value was detected. "+
+					"A CloudProviderValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra CloudProviderValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewCloudProviderValueUnknown(), diags
+	}
+
+	nameAttribute, ok := attributes["name"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`name is missing from object`)
+
+		return NewCloudProviderValueUnknown(), diags
+	}
+
+	nameVal, ok := nameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`name expected to be basetypes.StringValue, was: %T`, nameAttribute))
+	}
+
+	typeAttribute, ok := attributes["type"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`type is missing from object`)
+
+		return NewCloudProviderValueUnknown(), diags
+	}
+
+	typeVal, ok := typeAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`type expected to be basetypes.StringValue, was: %T`, typeAttribute))
+	}
+
+	uuidAttribute, ok := attributes["uuid"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`uuid is missing from object`)
+
+		return NewCloudProviderValueUnknown(), diags
+	}
+
+	uuidVal, ok := uuidAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`uuid expected to be basetypes.StringValue, was: %T`, uuidAttribute))
+	}
+
+	if diags.HasError() {
+		return NewCloudProviderValueUnknown(), diags
+	}
+
+	return CloudProviderValue{
+		Name:              nameVal,
+		CloudProviderType: typeVal,
+		Uuid:              uuidVal,
+		state:             attr.ValueStateKnown,
+	}, diags
+}
+
+func NewCloudProviderValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) CloudProviderValue {
+	object, diags := NewCloudProviderValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewCloudProviderValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t CloudProviderType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewCloudProviderValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewCloudProviderValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewCloudProviderValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewCloudProviderValueMust(CloudProviderValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t CloudProviderType) ValueType(ctx context.Context) attr.Value {
+	return CloudProviderValue{}
+}
+
+var _ basetypes.ObjectValuable = CloudProviderValue{}
+
+type CloudProviderValue struct {
+	Name              basetypes.StringValue `tfsdk:"name"`
+	CloudProviderType basetypes.StringValue `tfsdk:"type"`
+	Uuid              basetypes.StringValue `tfsdk:"uuid"`
+	state             attr.ValueState
+}
+
+func (v CloudProviderValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 3)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["name"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["type"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["uuid"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 3)
+
+		val, err = v.Name.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["name"] = val
+
+		val, err = v.CloudProviderType.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["type"] = val
+
+		val, err = v.Uuid.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["uuid"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v CloudProviderValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v CloudProviderValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v CloudProviderValue) String() string {
+	return "CloudProviderValue"
+}
+
+func (v CloudProviderValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"name": basetypes.StringType{},
+			"type": basetypes.StringType{},
+			"uuid": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"name": v.Name,
+			"type": v.CloudProviderType,
+			"uuid": v.Uuid,
+		})
+
+	return objVal, diags
+}
+
+func (v CloudProviderValue) Equal(o attr.Value) bool {
+	other, ok := o.(CloudProviderValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.Name.Equal(other.Name) {
+		return false
+	}
+
+	if !v.CloudProviderType.Equal(other.CloudProviderType) {
+		return false
+	}
+
+	if !v.Uuid.Equal(other.Uuid) {
+		return false
+	}
+
+	return true
+}
+
+func (v CloudProviderValue) Type(ctx context.Context) attr.Type {
+	return CloudProviderType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v CloudProviderValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"name": basetypes.StringType{},
+		"type": basetypes.StringType{},
+		"uuid": basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = CustomRegistryType{}
+
+type CustomRegistryType struct {
+	basetypes.ObjectType
+}
+
+func (t CustomRegistryType) Equal(o attr.Type) bool {
+	other, ok := o.(CustomRegistryType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t CustomRegistryType) String() string {
+	return "CustomRegistryType"
+}
+
+func (t CustomRegistryType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	certPathAttribute, ok := attributes["cert_path"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`cert_path is missing from object`)
+
+		return nil, diags
+	}
+
+	certPathVal, ok := certPathAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`cert_path expected to be basetypes.StringValue, was: %T`, certPathAttribute))
+	}
+
+	passwordAttribute, ok := attributes["password"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`password is missing from object`)
+
+		return nil, diags
+	}
+
+	passwordVal, ok := passwordAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`password expected to be basetypes.StringValue, was: %T`, passwordAttribute))
+	}
+
+	repoPathAttribute, ok := attributes["repo_path"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`repo_path is missing from object`)
+
+		return nil, diags
+	}
+
+	repoPathVal, ok := repoPathAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`repo_path expected to be basetypes.StringValue, was: %T`, repoPathAttribute))
+	}
+
+	selfSignedCertsAttribute, ok := attributes["self_signed_certs"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`self_signed_certs is missing from object`)
+
+		return nil, diags
+	}
+
+	selfSignedCertsVal, ok := selfSignedCertsAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`self_signed_certs expected to be basetypes.BoolValue, was: %T`, selfSignedCertsAttribute))
+	}
+
+	skipTlsAttribute, ok := attributes["skip_tls"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`skip_tls is missing from object`)
+
+		return nil, diags
+	}
+
+	skipTlsVal, ok := skipTlsAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`skip_tls expected to be basetypes.BoolValue, was: %T`, skipTlsAttribute))
+	}
+
+	urlAttribute, ok := attributes["url"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`url is missing from object`)
+
+		return nil, diags
+	}
+
+	urlVal, ok := urlAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`url expected to be basetypes.StringValue, was: %T`, urlAttribute))
+	}
+
+	usernameAttribute, ok := attributes["username"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`username is missing from object`)
+
+		return nil, diags
+	}
+
+	usernameVal, ok := usernameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`username expected to be basetypes.StringValue, was: %T`, usernameAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return CustomRegistryValue{
+		CertPath:        certPathVal,
+		Password:        passwordVal,
+		RepoPath:        repoPathVal,
+		SelfSignedCerts: selfSignedCertsVal,
+		SkipTls:         skipTlsVal,
+		Url:             urlVal,
+		Username:        usernameVal,
+		state:           attr.ValueStateKnown,
+	}, diags
+}
+
+func NewCustomRegistryValueNull() CustomRegistryValue {
+	return CustomRegistryValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewCustomRegistryValueUnknown() CustomRegistryValue {
+	return CustomRegistryValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewCustomRegistryValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (CustomRegistryValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing CustomRegistryValue Attribute Value",
+				"While creating a CustomRegistryValue value, a missing attribute value was detected. "+
+					"A CustomRegistryValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("CustomRegistryValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid CustomRegistryValue Attribute Type",
+				"While creating a CustomRegistryValue value, an invalid attribute value was detected. "+
+					"A CustomRegistryValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("CustomRegistryValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("CustomRegistryValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra CustomRegistryValue Attribute Value",
+				"While creating a CustomRegistryValue value, an extra attribute value was detected. "+
+					"A CustomRegistryValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra CustomRegistryValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewCustomRegistryValueUnknown(), diags
+	}
+
+	certPathAttribute, ok := attributes["cert_path"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`cert_path is missing from object`)
+
+		return NewCustomRegistryValueUnknown(), diags
+	}
+
+	certPathVal, ok := certPathAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`cert_path expected to be basetypes.StringValue, was: %T`, certPathAttribute))
+	}
+
+	passwordAttribute, ok := attributes["password"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`password is missing from object`)
+
+		return NewCustomRegistryValueUnknown(), diags
+	}
+
+	passwordVal, ok := passwordAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`password expected to be basetypes.StringValue, was: %T`, passwordAttribute))
+	}
+
+	repoPathAttribute, ok := attributes["repo_path"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`repo_path is missing from object`)
+
+		return NewCustomRegistryValueUnknown(), diags
+	}
+
+	repoPathVal, ok := repoPathAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`repo_path expected to be basetypes.StringValue, was: %T`, repoPathAttribute))
+	}
+
+	selfSignedCertsAttribute, ok := attributes["self_signed_certs"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`self_signed_certs is missing from object`)
+
+		return NewCustomRegistryValueUnknown(), diags
+	}
+
+	selfSignedCertsVal, ok := selfSignedCertsAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`self_signed_certs expected to be basetypes.BoolValue, was: %T`, selfSignedCertsAttribute))
+	}
+
+	skipTlsAttribute, ok := attributes["skip_tls"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`skip_tls is missing from object`)
+
+		return NewCustomRegistryValueUnknown(), diags
+	}
+
+	skipTlsVal, ok := skipTlsAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`skip_tls expected to be basetypes.BoolValue, was: %T`, skipTlsAttribute))
+	}
+
+	urlAttribute, ok := attributes["url"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`url is missing from object`)
+
+		return NewCustomRegistryValueUnknown(), diags
+	}
+
+	urlVal, ok := urlAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`url expected to be basetypes.StringValue, was: %T`, urlAttribute))
+	}
+
+	usernameAttribute, ok := attributes["username"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`username is missing from object`)
+
+		return NewCustomRegistryValueUnknown(), diags
+	}
+
+	usernameVal, ok := usernameAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`username expected to be basetypes.StringValue, was: %T`, usernameAttribute))
+	}
+
+	if diags.HasError() {
+		return NewCustomRegistryValueUnknown(), diags
+	}
+
+	return CustomRegistryValue{
+		CertPath:        certPathVal,
+		Password:        passwordVal,
+		RepoPath:        repoPathVal,
+		SelfSignedCerts: selfSignedCertsVal,
+		SkipTls:         skipTlsVal,
+		Url:             urlVal,
+		Username:        usernameVal,
+		state:           attr.ValueStateKnown,
+	}, diags
+}
+
+func NewCustomRegistryValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) CustomRegistryValue {
+	object, diags := NewCustomRegistryValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewCustomRegistryValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t CustomRegistryType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewCustomRegistryValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewCustomRegistryValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewCustomRegistryValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewCustomRegistryValueMust(CustomRegistryValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t CustomRegistryType) ValueType(ctx context.Context) attr.Value {
+	return CustomRegistryValue{}
+}
+
+var _ basetypes.ObjectValuable = CustomRegistryValue{}
+
+type CustomRegistryValue struct {
+	CertPath        basetypes.StringValue `tfsdk:"cert_path"`
+	Password        basetypes.StringValue `tfsdk:"password"`
+	RepoPath        basetypes.StringValue `tfsdk:"repo_path"`
+	SelfSignedCerts basetypes.BoolValue   `tfsdk:"self_signed_certs"`
+	SkipTls         basetypes.BoolValue   `tfsdk:"skip_tls"`
+	Url             basetypes.StringValue `tfsdk:"url"`
+	Username        basetypes.StringValue `tfsdk:"username"`
+	state           attr.ValueState
+}
+
+func (v CustomRegistryValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 7)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["cert_path"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["password"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["repo_path"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["self_signed_certs"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["skip_tls"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["url"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["username"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 7)
+
+		val, err = v.CertPath.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["cert_path"] = val
+
+		val, err = v.Password.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["password"] = val
+
+		val, err = v.RepoPath.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["repo_path"] = val
+
+		val, err = v.SelfSignedCerts.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["self_signed_certs"] = val
+
+		val, err = v.SkipTls.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["skip_tls"] = val
+
+		val, err = v.Url.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["url"] = val
+
+		val, err = v.Username.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["username"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v CustomRegistryValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v CustomRegistryValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v CustomRegistryValue) String() string {
+	return "CustomRegistryValue"
+}
+
+func (v CustomRegistryValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"cert_path":         basetypes.StringType{},
+			"password":          basetypes.StringType{},
+			"repo_path":         basetypes.StringType{},
+			"self_signed_certs": basetypes.BoolType{},
+			"skip_tls":          basetypes.BoolType{},
+			"url":               basetypes.StringType{},
+			"username":          basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"cert_path":         v.CertPath,
+			"password":          v.Password,
+			"repo_path":         v.RepoPath,
+			"self_signed_certs": v.SelfSignedCerts,
+			"skip_tls":          v.SkipTls,
+			"url":               v.Url,
+			"username":          v.Username,
+		})
+
+	return objVal, diags
+}
+
+func (v CustomRegistryValue) Equal(o attr.Value) bool {
+	other, ok := o.(CustomRegistryValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.CertPath.Equal(other.CertPath) {
+		return false
+	}
+
+	if !v.Password.Equal(other.Password) {
+		return false
+	}
+
+	if !v.RepoPath.Equal(other.RepoPath) {
+		return false
+	}
+
+	if !v.SelfSignedCerts.Equal(other.SelfSignedCerts) {
+		return false
+	}
+
+	if !v.SkipTls.Equal(other.SkipTls) {
+		return false
+	}
+
+	if !v.Url.Equal(other.Url) {
+		return false
+	}
+
+	if !v.Username.Equal(other.Username) {
+		return false
+	}
+
+	return true
+}
+
+func (v CustomRegistryValue) Type(ctx context.Context) attr.Type {
+	return CustomRegistryType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v CustomRegistryValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"cert_path":         basetypes.StringType{},
+		"password":          basetypes.StringType{},
+		"repo_path":         basetypes.StringType{},
+		"self_signed_certs": basetypes.BoolType{},
+		"skip_tls":          basetypes.BoolType{},
+		"url":               basetypes.StringType{},
+		"username":          basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = EtcdType{}
+
+type EtcdType struct {
+	basetypes.ObjectType
+}
+
+func (t EtcdType) Equal(o attr.Type) bool {
+	other, ok := o.(EtcdType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t EtcdType) String() string {
+	return "EtcdType"
+}
+
+func (t EtcdType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	dataDirAttribute, ok := attributes["data_dir"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`data_dir is missing from object`)
+
+		return nil, diags
+	}
+
+	dataDirVal, ok := dataDirAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`data_dir expected to be basetypes.StringValue, was: %T`, dataDirAttribute))
+	}
+
+	electionTimeoutMsAttribute, ok := attributes["election_timeout_ms"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`election_timeout_ms is missing from object`)
+
+		return nil, diags
+	}
+
+	electionTimeoutMsVal, ok := electionTimeoutMsAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`election_timeout_ms expected to be basetypes.Int64Value, was: %T`, electionTimeoutMsAttribute))
+	}
+
+	enableEncryptionAttribute, ok := attributes["enable_encryption"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`enable_encryption is missing from object`)
+
+		return nil, diags
+	}
+
+	enableEncryptionVal, ok := enableEncryptionAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`enable_encryption expected to be basetypes.BoolValue, was: %T`, enableEncryptionAttribute))
+	}
+
+	heartbeatIntervalMsAttribute, ok := attributes["heartbeat_interval_ms"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`heartbeat_interval_ms is missing from object`)
+
+		return nil, diags
+	}
+
+	heartbeatIntervalMsVal, ok := heartbeatIntervalMsAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`heartbeat_interval_ms expected to be basetypes.Int64Value, was: %T`, heartbeatIntervalMsAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return nil, diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return EtcdValue{
+		DataDir:             dataDirVal,
+		ElectionTimeoutMs:   electionTimeoutMsVal,
+		EnableEncryption:    enableEncryptionVal,
+		HeartbeatIntervalMs: heartbeatIntervalMsVal,
+		Version:             versionVal,
+		state:               attr.ValueStateKnown,
+	}, diags
+}
+
+func NewEtcdValueNull() EtcdValue {
+	return EtcdValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewEtcdValueUnknown() EtcdValue {
+	return EtcdValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewEtcdValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (EtcdValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing EtcdValue Attribute Value",
+				"While creating a EtcdValue value, a missing attribute value was detected. "+
+					"A EtcdValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("EtcdValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid EtcdValue Attribute Type",
+				"While creating a EtcdValue value, an invalid attribute value was detected. "+
+					"A EtcdValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("EtcdValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("EtcdValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra EtcdValue Attribute Value",
+				"While creating a EtcdValue value, an extra attribute value was detected. "+
+					"A EtcdValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra EtcdValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewEtcdValueUnknown(), diags
+	}
+
+	dataDirAttribute, ok := attributes["data_dir"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`data_dir is missing from object`)
+
+		return NewEtcdValueUnknown(), diags
+	}
+
+	dataDirVal, ok := dataDirAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`data_dir expected to be basetypes.StringValue, was: %T`, dataDirAttribute))
+	}
+
+	electionTimeoutMsAttribute, ok := attributes["election_timeout_ms"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`election_timeout_ms is missing from object`)
+
+		return NewEtcdValueUnknown(), diags
+	}
+
+	electionTimeoutMsVal, ok := electionTimeoutMsAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`election_timeout_ms expected to be basetypes.Int64Value, was: %T`, electionTimeoutMsAttribute))
+	}
+
+	enableEncryptionAttribute, ok := attributes["enable_encryption"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`enable_encryption is missing from object`)
+
+		return NewEtcdValueUnknown(), diags
+	}
+
+	enableEncryptionVal, ok := enableEncryptionAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`enable_encryption expected to be basetypes.BoolValue, was: %T`, enableEncryptionAttribute))
+	}
+
+	heartbeatIntervalMsAttribute, ok := attributes["heartbeat_interval_ms"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`heartbeat_interval_ms is missing from object`)
+
+		return NewEtcdValueUnknown(), diags
+	}
+
+	heartbeatIntervalMsVal, ok := heartbeatIntervalMsAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`heartbeat_interval_ms expected to be basetypes.Int64Value, was: %T`, heartbeatIntervalMsAttribute))
+	}
+
+	versionAttribute, ok := attributes["version"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`version is missing from object`)
+
+		return NewEtcdValueUnknown(), diags
+	}
+
+	versionVal, ok := versionAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`version expected to be basetypes.StringValue, was: %T`, versionAttribute))
+	}
+
+	if diags.HasError() {
+		return NewEtcdValueUnknown(), diags
+	}
+
+	return EtcdValue{
+		DataDir:             dataDirVal,
+		ElectionTimeoutMs:   electionTimeoutMsVal,
+		EnableEncryption:    enableEncryptionVal,
+		HeartbeatIntervalMs: heartbeatIntervalMsVal,
+		Version:             versionVal,
+		state:               attr.ValueStateKnown,
+	}, diags
+}
+
+func NewEtcdValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) EtcdValue {
+	object, diags := NewEtcdValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewEtcdValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t EtcdType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewEtcdValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewEtcdValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewEtcdValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewEtcdValueMust(EtcdValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t EtcdType) ValueType(ctx context.Context) attr.Value {
+	return EtcdValue{}
+}
+
+var _ basetypes.ObjectValuable = EtcdValue{}
+
+type EtcdValue struct {
+	DataDir             basetypes.StringValue `tfsdk:"data_dir"`
+	ElectionTimeoutMs   basetypes.Int64Value  `tfsdk:"election_timeout_ms"`
+	EnableEncryption    basetypes.BoolValue   `tfsdk:"enable_encryption"`
+	HeartbeatIntervalMs basetypes.Int64Value  `tfsdk:"heartbeat_interval_ms"`
+	Version             basetypes.StringValue `tfsdk:"version"`
+	state               attr.ValueState
+}
+
+func (v EtcdValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 5)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["data_dir"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["election_timeout_ms"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["enable_encryption"] = basetypes.BoolType{}.TerraformType(ctx)
+	attrTypes["heartbeat_interval_ms"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 5)
+
+		val, err = v.DataDir.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["data_dir"] = val
+
+		val, err = v.ElectionTimeoutMs.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["election_timeout_ms"] = val
+
+		val, err = v.EnableEncryption.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["enable_encryption"] = val
+
+		val, err = v.HeartbeatIntervalMs.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["heartbeat_interval_ms"] = val
+
+		val, err = v.Version.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["version"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v EtcdValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v EtcdValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v EtcdValue) String() string {
+	return "EtcdValue"
+}
+
+func (v EtcdValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"data_dir":              basetypes.StringType{},
+			"election_timeout_ms":   basetypes.Int64Type{},
+			"enable_encryption":     basetypes.BoolType{},
+			"heartbeat_interval_ms": basetypes.Int64Type{},
+			"version":               basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"data_dir":              v.DataDir,
+			"election_timeout_ms":   v.ElectionTimeoutMs,
+			"enable_encryption":     v.EnableEncryption,
+			"heartbeat_interval_ms": v.HeartbeatIntervalMs,
+			"version":               v.Version,
+		})
+
+	return objVal, diags
+}
+
+func (v EtcdValue) Equal(o attr.Value) bool {
+	other, ok := o.(EtcdValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.DataDir.Equal(other.DataDir) {
+		return false
+	}
+
+	if !v.ElectionTimeoutMs.Equal(other.ElectionTimeoutMs) {
+		return false
+	}
+
+	if !v.EnableEncryption.Equal(other.EnableEncryption) {
+		return false
+	}
+
+	if !v.HeartbeatIntervalMs.Equal(other.HeartbeatIntervalMs) {
+		return false
+	}
+
+	if !v.Version.Equal(other.Version) {
+		return false
+	}
+
+	return true
+}
+
+func (v EtcdValue) Type(ctx context.Context) attr.Type {
+	return EtcdType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v EtcdValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"data_dir":              basetypes.StringType{},
+		"election_timeout_ms":   basetypes.Int64Type{},
+		"enable_encryption":     basetypes.BoolType{},
+		"heartbeat_interval_ms": basetypes.Int64Type{},
+		"version":               basetypes.StringType{},
+	}
+}
+
 var _ basetypes.ObjectTypable = EtcdBackupType{}
 
 type EtcdBackupType struct {
@@ -1303,112 +3605,40 @@ func (t EtcdBackupType) ValueFromObject(ctx context.Context, in basetypes.Object
 
 	attributes := in.Attributes()
 
-	dailyBackupTimeAttribute, ok := attributes["daily_backup_time"]
+	dailyAttribute, ok := attributes["daily"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`daily_backup_time is missing from object`)
+			`daily is missing from object`)
 
 		return nil, diags
 	}
 
-	dailyBackupTimeVal, ok := dailyBackupTimeAttribute.(basetypes.StringValue)
+	dailyVal, ok := dailyAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`daily_backup_time expected to be basetypes.StringValue, was: %T`, dailyBackupTimeAttribute))
+			fmt.Sprintf(`daily expected to be basetypes.ObjectValue, was: %T`, dailyAttribute))
 	}
 
-	intervalInHoursAttribute, ok := attributes["interval_in_hours"]
+	intervalAttribute, ok := attributes["interval"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`interval_in_hours is missing from object`)
+			`interval is missing from object`)
 
 		return nil, diags
 	}
 
-	intervalInHoursVal, ok := intervalInHoursAttribute.(basetypes.Int64Value)
+	intervalVal, ok := intervalAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`interval_in_hours expected to be basetypes.Int64Value, was: %T`, intervalInHoursAttribute))
-	}
-
-	intervalInMinsAttribute, ok := attributes["interval_in_mins"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`interval_in_mins is missing from object`)
-
-		return nil, diags
-	}
-
-	intervalInMinsVal, ok := intervalInMinsAttribute.(basetypes.Int64Value)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`interval_in_mins expected to be basetypes.Int64Value, was: %T`, intervalInMinsAttribute))
-	}
-
-	isEtcdBackupEnabledAttribute, ok := attributes["is_etcd_backup_enabled"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`is_etcd_backup_enabled is missing from object`)
-
-		return nil, diags
-	}
-
-	isEtcdBackupEnabledVal, ok := isEtcdBackupEnabledAttribute.(basetypes.BoolValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`is_etcd_backup_enabled expected to be basetypes.BoolValue, was: %T`, isEtcdBackupEnabledAttribute))
-	}
-
-	maxIntervalBackupCountAttribute, ok := attributes["max_interval_backup_count"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`max_interval_backup_count is missing from object`)
-
-		return nil, diags
-	}
-
-	maxIntervalBackupCountVal, ok := maxIntervalBackupCountAttribute.(basetypes.Int64Value)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`max_interval_backup_count expected to be basetypes.Int64Value, was: %T`, maxIntervalBackupCountAttribute))
-	}
-
-	maxTimestampBackupCountAttribute, ok := attributes["max_timestamp_backup_count"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`max_timestamp_backup_count is missing from object`)
-
-		return nil, diags
-	}
-
-	maxTimestampBackupCountVal, ok := maxTimestampBackupCountAttribute.(basetypes.Int64Value)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`max_timestamp_backup_count expected to be basetypes.Int64Value, was: %T`, maxTimestampBackupCountAttribute))
+			fmt.Sprintf(`interval expected to be basetypes.ObjectValue, was: %T`, intervalAttribute))
 	}
 
 	storageLocalPathAttribute, ok := attributes["storage_local_path"]
@@ -1452,15 +3682,11 @@ func (t EtcdBackupType) ValueFromObject(ctx context.Context, in basetypes.Object
 	}
 
 	return EtcdBackupValue{
-		DailyBackupTime:         dailyBackupTimeVal,
-		IntervalInHours:         intervalInHoursVal,
-		IntervalInMins:          intervalInMinsVal,
-		IsEtcdBackupEnabled:     isEtcdBackupEnabledVal,
-		MaxIntervalBackupCount:  maxIntervalBackupCountVal,
-		MaxTimestampBackupCount: maxTimestampBackupCountVal,
-		StorageLocalPath:        storageLocalPathVal,
-		StorageType:             storageTypeVal,
-		state:                   attr.ValueStateKnown,
+		Daily:            dailyVal,
+		Interval:         intervalVal,
+		StorageLocalPath: storageLocalPathVal,
+		StorageType:      storageTypeVal,
+		state:            attr.ValueStateKnown,
 	}, diags
 }
 
@@ -1527,112 +3753,40 @@ func NewEtcdBackupValue(attributeTypes map[string]attr.Type, attributes map[stri
 		return NewEtcdBackupValueUnknown(), diags
 	}
 
-	dailyBackupTimeAttribute, ok := attributes["daily_backup_time"]
+	dailyAttribute, ok := attributes["daily"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`daily_backup_time is missing from object`)
+			`daily is missing from object`)
 
 		return NewEtcdBackupValueUnknown(), diags
 	}
 
-	dailyBackupTimeVal, ok := dailyBackupTimeAttribute.(basetypes.StringValue)
+	dailyVal, ok := dailyAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`daily_backup_time expected to be basetypes.StringValue, was: %T`, dailyBackupTimeAttribute))
+			fmt.Sprintf(`daily expected to be basetypes.ObjectValue, was: %T`, dailyAttribute))
 	}
 
-	intervalInHoursAttribute, ok := attributes["interval_in_hours"]
+	intervalAttribute, ok := attributes["interval"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`interval_in_hours is missing from object`)
+			`interval is missing from object`)
 
 		return NewEtcdBackupValueUnknown(), diags
 	}
 
-	intervalInHoursVal, ok := intervalInHoursAttribute.(basetypes.Int64Value)
+	intervalVal, ok := intervalAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`interval_in_hours expected to be basetypes.Int64Value, was: %T`, intervalInHoursAttribute))
-	}
-
-	intervalInMinsAttribute, ok := attributes["interval_in_mins"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`interval_in_mins is missing from object`)
-
-		return NewEtcdBackupValueUnknown(), diags
-	}
-
-	intervalInMinsVal, ok := intervalInMinsAttribute.(basetypes.Int64Value)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`interval_in_mins expected to be basetypes.Int64Value, was: %T`, intervalInMinsAttribute))
-	}
-
-	isEtcdBackupEnabledAttribute, ok := attributes["is_etcd_backup_enabled"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`is_etcd_backup_enabled is missing from object`)
-
-		return NewEtcdBackupValueUnknown(), diags
-	}
-
-	isEtcdBackupEnabledVal, ok := isEtcdBackupEnabledAttribute.(basetypes.BoolValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`is_etcd_backup_enabled expected to be basetypes.BoolValue, was: %T`, isEtcdBackupEnabledAttribute))
-	}
-
-	maxIntervalBackupCountAttribute, ok := attributes["max_interval_backup_count"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`max_interval_backup_count is missing from object`)
-
-		return NewEtcdBackupValueUnknown(), diags
-	}
-
-	maxIntervalBackupCountVal, ok := maxIntervalBackupCountAttribute.(basetypes.Int64Value)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`max_interval_backup_count expected to be basetypes.Int64Value, was: %T`, maxIntervalBackupCountAttribute))
-	}
-
-	maxTimestampBackupCountAttribute, ok := attributes["max_timestamp_backup_count"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`max_timestamp_backup_count is missing from object`)
-
-		return NewEtcdBackupValueUnknown(), diags
-	}
-
-	maxTimestampBackupCountVal, ok := maxTimestampBackupCountAttribute.(basetypes.Int64Value)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`max_timestamp_backup_count expected to be basetypes.Int64Value, was: %T`, maxTimestampBackupCountAttribute))
+			fmt.Sprintf(`interval expected to be basetypes.ObjectValue, was: %T`, intervalAttribute))
 	}
 
 	storageLocalPathAttribute, ok := attributes["storage_local_path"]
@@ -1676,15 +3830,11 @@ func NewEtcdBackupValue(attributeTypes map[string]attr.Type, attributes map[stri
 	}
 
 	return EtcdBackupValue{
-		DailyBackupTime:         dailyBackupTimeVal,
-		IntervalInHours:         intervalInHoursVal,
-		IntervalInMins:          intervalInMinsVal,
-		IsEtcdBackupEnabled:     isEtcdBackupEnabledVal,
-		MaxIntervalBackupCount:  maxIntervalBackupCountVal,
-		MaxTimestampBackupCount: maxTimestampBackupCountVal,
-		StorageLocalPath:        storageLocalPathVal,
-		StorageType:             storageTypeVal,
-		state:                   attr.ValueStateKnown,
+		Daily:            dailyVal,
+		Interval:         intervalVal,
+		StorageLocalPath: storageLocalPathVal,
+		StorageType:      storageTypeVal,
+		state:            attr.ValueStateKnown,
 	}, diags
 }
 
@@ -1756,29 +3906,25 @@ func (t EtcdBackupType) ValueType(ctx context.Context) attr.Value {
 var _ basetypes.ObjectValuable = EtcdBackupValue{}
 
 type EtcdBackupValue struct {
-	DailyBackupTime         basetypes.StringValue `tfsdk:"daily_backup_time"`
-	IntervalInHours         basetypes.Int64Value  `tfsdk:"interval_in_hours"`
-	IntervalInMins          basetypes.Int64Value  `tfsdk:"interval_in_mins"`
-	IsEtcdBackupEnabled     basetypes.BoolValue   `tfsdk:"is_etcd_backup_enabled"`
-	MaxIntervalBackupCount  basetypes.Int64Value  `tfsdk:"max_interval_backup_count"`
-	MaxTimestampBackupCount basetypes.Int64Value  `tfsdk:"max_timestamp_backup_count"`
-	StorageLocalPath        basetypes.StringValue `tfsdk:"storage_local_path"`
-	StorageType             basetypes.StringValue `tfsdk:"storage_type"`
-	state                   attr.ValueState
+	Daily            basetypes.ObjectValue `tfsdk:"daily"`
+	Interval         basetypes.ObjectValue `tfsdk:"interval"`
+	StorageLocalPath basetypes.StringValue `tfsdk:"storage_local_path"`
+	StorageType      basetypes.StringValue `tfsdk:"storage_type"`
+	state            attr.ValueState
 }
 
 func (v EtcdBackupValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 8)
+	attrTypes := make(map[string]tftypes.Type, 4)
 
 	var val tftypes.Value
 	var err error
 
-	attrTypes["daily_backup_time"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["interval_in_hours"] = basetypes.Int64Type{}.TerraformType(ctx)
-	attrTypes["interval_in_mins"] = basetypes.Int64Type{}.TerraformType(ctx)
-	attrTypes["is_etcd_backup_enabled"] = basetypes.BoolType{}.TerraformType(ctx)
-	attrTypes["max_interval_backup_count"] = basetypes.Int64Type{}.TerraformType(ctx)
-	attrTypes["max_timestamp_backup_count"] = basetypes.Int64Type{}.TerraformType(ctx)
+	attrTypes["daily"] = basetypes.ObjectType{
+		AttrTypes: DailyValue{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
+	attrTypes["interval"] = basetypes.ObjectType{
+		AttrTypes: IntervalValue{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
 	attrTypes["storage_local_path"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["storage_type"] = basetypes.StringType{}.TerraformType(ctx)
 
@@ -1786,55 +3932,23 @@ func (v EtcdBackupValue) ToTerraformValue(ctx context.Context) (tftypes.Value, e
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 8)
+		vals := make(map[string]tftypes.Value, 4)
 
-		val, err = v.DailyBackupTime.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["daily_backup_time"] = val
-
-		val, err = v.IntervalInHours.ToTerraformValue(ctx)
+		val, err = v.Daily.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["interval_in_hours"] = val
+		vals["daily"] = val
 
-		val, err = v.IntervalInMins.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["interval_in_mins"] = val
-
-		val, err = v.IsEtcdBackupEnabled.ToTerraformValue(ctx)
+		val, err = v.Interval.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["is_etcd_backup_enabled"] = val
-
-		val, err = v.MaxIntervalBackupCount.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["max_interval_backup_count"] = val
-
-		val, err = v.MaxTimestampBackupCount.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["max_timestamp_backup_count"] = val
+		vals["interval"] = val
 
 		val, err = v.StorageLocalPath.ToTerraformValue(ctx)
 
@@ -1881,26 +3995,64 @@ func (v EtcdBackupValue) String() string {
 func (v EtcdBackupValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
+	var daily basetypes.ObjectValue
+
+	if v.Daily.IsNull() {
+		daily = types.ObjectNull(
+			DailyValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.Daily.IsUnknown() {
+		daily = types.ObjectUnknown(
+			DailyValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.Daily.IsNull() && !v.Daily.IsUnknown() {
+		daily = types.ObjectValueMust(
+			DailyValue{}.AttributeTypes(ctx),
+			v.Daily.Attributes(),
+		)
+	}
+
+	var interval basetypes.ObjectValue
+
+	if v.Interval.IsNull() {
+		interval = types.ObjectNull(
+			IntervalValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.Interval.IsUnknown() {
+		interval = types.ObjectUnknown(
+			IntervalValue{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.Interval.IsNull() && !v.Interval.IsUnknown() {
+		interval = types.ObjectValueMust(
+			IntervalValue{}.AttributeTypes(ctx),
+			v.Interval.Attributes(),
+		)
+	}
+
 	objVal, diags := types.ObjectValue(
 		map[string]attr.Type{
-			"daily_backup_time":          basetypes.StringType{},
-			"interval_in_hours":          basetypes.Int64Type{},
-			"interval_in_mins":           basetypes.Int64Type{},
-			"is_etcd_backup_enabled":     basetypes.BoolType{},
-			"max_interval_backup_count":  basetypes.Int64Type{},
-			"max_timestamp_backup_count": basetypes.Int64Type{},
-			"storage_local_path":         basetypes.StringType{},
-			"storage_type":               basetypes.StringType{},
+			"daily": basetypes.ObjectType{
+				AttrTypes: DailyValue{}.AttributeTypes(ctx),
+			},
+			"interval": basetypes.ObjectType{
+				AttrTypes: IntervalValue{}.AttributeTypes(ctx),
+			},
+			"storage_local_path": basetypes.StringType{},
+			"storage_type":       basetypes.StringType{},
 		},
 		map[string]attr.Value{
-			"daily_backup_time":          v.DailyBackupTime,
-			"interval_in_hours":          v.IntervalInHours,
-			"interval_in_mins":           v.IntervalInMins,
-			"is_etcd_backup_enabled":     v.IsEtcdBackupEnabled,
-			"max_interval_backup_count":  v.MaxIntervalBackupCount,
-			"max_timestamp_backup_count": v.MaxTimestampBackupCount,
-			"storage_local_path":         v.StorageLocalPath,
-			"storage_type":               v.StorageType,
+			"daily":              daily,
+			"interval":           interval,
+			"storage_local_path": v.StorageLocalPath,
+			"storage_type":       v.StorageType,
 		})
 
 	return objVal, diags
@@ -1921,27 +4073,11 @@ func (v EtcdBackupValue) Equal(o attr.Value) bool {
 		return true
 	}
 
-	if !v.DailyBackupTime.Equal(other.DailyBackupTime) {
+	if !v.Daily.Equal(other.Daily) {
 		return false
 	}
 
-	if !v.IntervalInHours.Equal(other.IntervalInHours) {
-		return false
-	}
-
-	if !v.IntervalInMins.Equal(other.IntervalInMins) {
-		return false
-	}
-
-	if !v.IsEtcdBackupEnabled.Equal(other.IsEtcdBackupEnabled) {
-		return false
-	}
-
-	if !v.MaxIntervalBackupCount.Equal(other.MaxIntervalBackupCount) {
-		return false
-	}
-
-	if !v.MaxTimestampBackupCount.Equal(other.MaxTimestampBackupCount) {
+	if !v.Interval.Equal(other.Interval) {
 		return false
 	}
 
@@ -1966,13 +4102,1949 @@ func (v EtcdBackupValue) Type(ctx context.Context) attr.Type {
 
 func (v EtcdBackupValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
-		"daily_backup_time":          basetypes.StringType{},
-		"interval_in_hours":          basetypes.Int64Type{},
-		"interval_in_mins":           basetypes.Int64Type{},
-		"is_etcd_backup_enabled":     basetypes.BoolType{},
-		"max_interval_backup_count":  basetypes.Int64Type{},
-		"max_timestamp_backup_count": basetypes.Int64Type{},
-		"storage_local_path":         basetypes.StringType{},
-		"storage_type":               basetypes.StringType{},
+		"daily": basetypes.ObjectType{
+			AttrTypes: DailyValue{}.AttributeTypes(ctx),
+		},
+		"interval": basetypes.ObjectType{
+			AttrTypes: IntervalValue{}.AttributeTypes(ctx),
+		},
+		"storage_local_path": basetypes.StringType{},
+		"storage_type":       basetypes.StringType{},
+	}
+}
+
+var _ basetypes.ObjectTypable = DailyType{}
+
+type DailyType struct {
+	basetypes.ObjectType
+}
+
+func (t DailyType) Equal(o attr.Type) bool {
+	other, ok := o.(DailyType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t DailyType) String() string {
+	return "DailyType"
+}
+
+func (t DailyType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	backupTimeAttribute, ok := attributes["backup_time"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`backup_time is missing from object`)
+
+		return nil, diags
+	}
+
+	backupTimeVal, ok := backupTimeAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`backup_time expected to be basetypes.StringValue, was: %T`, backupTimeAttribute))
+	}
+
+	maxBackupsToRetainAttribute, ok := attributes["max_backups_to_retain"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`max_backups_to_retain is missing from object`)
+
+		return nil, diags
+	}
+
+	maxBackupsToRetainVal, ok := maxBackupsToRetainAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`max_backups_to_retain expected to be basetypes.Int64Value, was: %T`, maxBackupsToRetainAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return DailyValue{
+		BackupTime:         backupTimeVal,
+		MaxBackupsToRetain: maxBackupsToRetainVal,
+		state:              attr.ValueStateKnown,
+	}, diags
+}
+
+func NewDailyValueNull() DailyValue {
+	return DailyValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewDailyValueUnknown() DailyValue {
+	return DailyValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewDailyValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (DailyValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing DailyValue Attribute Value",
+				"While creating a DailyValue value, a missing attribute value was detected. "+
+					"A DailyValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("DailyValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid DailyValue Attribute Type",
+				"While creating a DailyValue value, an invalid attribute value was detected. "+
+					"A DailyValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("DailyValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("DailyValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra DailyValue Attribute Value",
+				"While creating a DailyValue value, an extra attribute value was detected. "+
+					"A DailyValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra DailyValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewDailyValueUnknown(), diags
+	}
+
+	backupTimeAttribute, ok := attributes["backup_time"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`backup_time is missing from object`)
+
+		return NewDailyValueUnknown(), diags
+	}
+
+	backupTimeVal, ok := backupTimeAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`backup_time expected to be basetypes.StringValue, was: %T`, backupTimeAttribute))
+	}
+
+	maxBackupsToRetainAttribute, ok := attributes["max_backups_to_retain"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`max_backups_to_retain is missing from object`)
+
+		return NewDailyValueUnknown(), diags
+	}
+
+	maxBackupsToRetainVal, ok := maxBackupsToRetainAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`max_backups_to_retain expected to be basetypes.Int64Value, was: %T`, maxBackupsToRetainAttribute))
+	}
+
+	if diags.HasError() {
+		return NewDailyValueUnknown(), diags
+	}
+
+	return DailyValue{
+		BackupTime:         backupTimeVal,
+		MaxBackupsToRetain: maxBackupsToRetainVal,
+		state:              attr.ValueStateKnown,
+	}, diags
+}
+
+func NewDailyValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) DailyValue {
+	object, diags := NewDailyValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewDailyValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t DailyType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewDailyValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewDailyValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewDailyValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewDailyValueMust(DailyValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t DailyType) ValueType(ctx context.Context) attr.Value {
+	return DailyValue{}
+}
+
+var _ basetypes.ObjectValuable = DailyValue{}
+
+type DailyValue struct {
+	BackupTime         basetypes.StringValue `tfsdk:"backup_time"`
+	MaxBackupsToRetain basetypes.Int64Value  `tfsdk:"max_backups_to_retain"`
+	state              attr.ValueState
+}
+
+func (v DailyValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 2)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["backup_time"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["max_backups_to_retain"] = basetypes.Int64Type{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 2)
+
+		val, err = v.BackupTime.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["backup_time"] = val
+
+		val, err = v.MaxBackupsToRetain.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["max_backups_to_retain"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v DailyValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v DailyValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v DailyValue) String() string {
+	return "DailyValue"
+}
+
+func (v DailyValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"backup_time":           basetypes.StringType{},
+			"max_backups_to_retain": basetypes.Int64Type{},
+		},
+		map[string]attr.Value{
+			"backup_time":           v.BackupTime,
+			"max_backups_to_retain": v.MaxBackupsToRetain,
+		})
+
+	return objVal, diags
+}
+
+func (v DailyValue) Equal(o attr.Value) bool {
+	other, ok := o.(DailyValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.BackupTime.Equal(other.BackupTime) {
+		return false
+	}
+
+	if !v.MaxBackupsToRetain.Equal(other.MaxBackupsToRetain) {
+		return false
+	}
+
+	return true
+}
+
+func (v DailyValue) Type(ctx context.Context) attr.Type {
+	return DailyType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v DailyValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"backup_time":           basetypes.StringType{},
+		"max_backups_to_retain": basetypes.Int64Type{},
+	}
+}
+
+var _ basetypes.ObjectTypable = IntervalType{}
+
+type IntervalType struct {
+	basetypes.ObjectType
+}
+
+func (t IntervalType) Equal(o attr.Type) bool {
+	other, ok := o.(IntervalType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t IntervalType) String() string {
+	return "IntervalType"
+}
+
+func (t IntervalType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	backupIntervalAttribute, ok := attributes["backup_interval"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`backup_interval is missing from object`)
+
+		return nil, diags
+	}
+
+	backupIntervalVal, ok := backupIntervalAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`backup_interval expected to be basetypes.StringValue, was: %T`, backupIntervalAttribute))
+	}
+
+	maxBackupsToRetainAttribute, ok := attributes["max_backups_to_retain"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`max_backups_to_retain is missing from object`)
+
+		return nil, diags
+	}
+
+	maxBackupsToRetainVal, ok := maxBackupsToRetainAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`max_backups_to_retain expected to be basetypes.Int64Value, was: %T`, maxBackupsToRetainAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return IntervalValue{
+		BackupInterval:     backupIntervalVal,
+		MaxBackupsToRetain: maxBackupsToRetainVal,
+		state:              attr.ValueStateKnown,
+	}, diags
+}
+
+func NewIntervalValueNull() IntervalValue {
+	return IntervalValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewIntervalValueUnknown() IntervalValue {
+	return IntervalValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewIntervalValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (IntervalValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing IntervalValue Attribute Value",
+				"While creating a IntervalValue value, a missing attribute value was detected. "+
+					"A IntervalValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("IntervalValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid IntervalValue Attribute Type",
+				"While creating a IntervalValue value, an invalid attribute value was detected. "+
+					"A IntervalValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("IntervalValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("IntervalValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra IntervalValue Attribute Value",
+				"While creating a IntervalValue value, an extra attribute value was detected. "+
+					"A IntervalValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra IntervalValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewIntervalValueUnknown(), diags
+	}
+
+	backupIntervalAttribute, ok := attributes["backup_interval"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`backup_interval is missing from object`)
+
+		return NewIntervalValueUnknown(), diags
+	}
+
+	backupIntervalVal, ok := backupIntervalAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`backup_interval expected to be basetypes.StringValue, was: %T`, backupIntervalAttribute))
+	}
+
+	maxBackupsToRetainAttribute, ok := attributes["max_backups_to_retain"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`max_backups_to_retain is missing from object`)
+
+		return NewIntervalValueUnknown(), diags
+	}
+
+	maxBackupsToRetainVal, ok := maxBackupsToRetainAttribute.(basetypes.Int64Value)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`max_backups_to_retain expected to be basetypes.Int64Value, was: %T`, maxBackupsToRetainAttribute))
+	}
+
+	if diags.HasError() {
+		return NewIntervalValueUnknown(), diags
+	}
+
+	return IntervalValue{
+		BackupInterval:     backupIntervalVal,
+		MaxBackupsToRetain: maxBackupsToRetainVal,
+		state:              attr.ValueStateKnown,
+	}, diags
+}
+
+func NewIntervalValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) IntervalValue {
+	object, diags := NewIntervalValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewIntervalValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t IntervalType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewIntervalValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewIntervalValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewIntervalValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewIntervalValueMust(IntervalValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t IntervalType) ValueType(ctx context.Context) attr.Value {
+	return IntervalValue{}
+}
+
+var _ basetypes.ObjectValuable = IntervalValue{}
+
+type IntervalValue struct {
+	BackupInterval     basetypes.StringValue `tfsdk:"backup_interval"`
+	MaxBackupsToRetain basetypes.Int64Value  `tfsdk:"max_backups_to_retain"`
+	state              attr.ValueState
+}
+
+func (v IntervalValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 2)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["backup_interval"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["max_backups_to_retain"] = basetypes.Int64Type{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 2)
+
+		val, err = v.BackupInterval.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["backup_interval"] = val
+
+		val, err = v.MaxBackupsToRetain.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["max_backups_to_retain"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v IntervalValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v IntervalValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v IntervalValue) String() string {
+	return "IntervalValue"
+}
+
+func (v IntervalValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"backup_interval":       basetypes.StringType{},
+			"max_backups_to_retain": basetypes.Int64Type{},
+		},
+		map[string]attr.Value{
+			"backup_interval":       v.BackupInterval,
+			"max_backups_to_retain": v.MaxBackupsToRetain,
+		})
+
+	return objVal, diags
+}
+
+func (v IntervalValue) Equal(o attr.Value) bool {
+	other, ok := o.(IntervalValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.BackupInterval.Equal(other.BackupInterval) {
+		return false
+	}
+
+	if !v.MaxBackupsToRetain.Equal(other.MaxBackupsToRetain) {
+		return false
+	}
+
+	return true
+}
+
+func (v IntervalValue) Type(ctx context.Context) attr.Type {
+	return IntervalType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v IntervalValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"backup_interval":       basetypes.StringType{},
+		"max_backups_to_retain": basetypes.Int64Type{},
+	}
+}
+
+var _ basetypes.ObjectTypable = K8sConfigType{}
+
+type K8sConfigType struct {
+	basetypes.ObjectType
+}
+
+func (t K8sConfigType) Equal(o attr.Type) bool {
+	other, ok := o.(K8sConfigType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t K8sConfigType) String() string {
+	return "K8sConfigType"
+}
+
+func (t K8sConfigType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	apiServerFlagsAttribute, ok := attributes["api_server_flags"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`api_server_flags is missing from object`)
+
+		return nil, diags
+	}
+
+	apiServerFlagsVal, ok := apiServerFlagsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`api_server_flags expected to be basetypes.ListValue, was: %T`, apiServerFlagsAttribute))
+	}
+
+	apiServerRuntimeConfigAttribute, ok := attributes["api_server_runtime_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`api_server_runtime_config is missing from object`)
+
+		return nil, diags
+	}
+
+	apiServerRuntimeConfigVal, ok := apiServerRuntimeConfigAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`api_server_runtime_config expected to be basetypes.StringValue, was: %T`, apiServerRuntimeConfigAttribute))
+	}
+
+	controllerManagerFlagsAttribute, ok := attributes["controller_manager_flags"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`controller_manager_flags is missing from object`)
+
+		return nil, diags
+	}
+
+	controllerManagerFlagsVal, ok := controllerManagerFlagsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`controller_manager_flags expected to be basetypes.ListValue, was: %T`, controllerManagerFlagsAttribute))
+	}
+
+	schedulerFlagsAttribute, ok := attributes["scheduler_flags"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`scheduler_flags is missing from object`)
+
+		return nil, diags
+	}
+
+	schedulerFlagsVal, ok := schedulerFlagsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`scheduler_flags expected to be basetypes.ListValue, was: %T`, schedulerFlagsAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return K8sConfigValue{
+		ApiServerFlags:         apiServerFlagsVal,
+		ApiServerRuntimeConfig: apiServerRuntimeConfigVal,
+		ControllerManagerFlags: controllerManagerFlagsVal,
+		SchedulerFlags:         schedulerFlagsVal,
+		state:                  attr.ValueStateKnown,
+	}, diags
+}
+
+func NewK8sConfigValueNull() K8sConfigValue {
+	return K8sConfigValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewK8sConfigValueUnknown() K8sConfigValue {
+	return K8sConfigValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewK8sConfigValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (K8sConfigValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing K8sConfigValue Attribute Value",
+				"While creating a K8sConfigValue value, a missing attribute value was detected. "+
+					"A K8sConfigValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("K8sConfigValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid K8sConfigValue Attribute Type",
+				"While creating a K8sConfigValue value, an invalid attribute value was detected. "+
+					"A K8sConfigValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("K8sConfigValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("K8sConfigValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra K8sConfigValue Attribute Value",
+				"While creating a K8sConfigValue value, an extra attribute value was detected. "+
+					"A K8sConfigValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra K8sConfigValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewK8sConfigValueUnknown(), diags
+	}
+
+	apiServerFlagsAttribute, ok := attributes["api_server_flags"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`api_server_flags is missing from object`)
+
+		return NewK8sConfigValueUnknown(), diags
+	}
+
+	apiServerFlagsVal, ok := apiServerFlagsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`api_server_flags expected to be basetypes.ListValue, was: %T`, apiServerFlagsAttribute))
+	}
+
+	apiServerRuntimeConfigAttribute, ok := attributes["api_server_runtime_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`api_server_runtime_config is missing from object`)
+
+		return NewK8sConfigValueUnknown(), diags
+	}
+
+	apiServerRuntimeConfigVal, ok := apiServerRuntimeConfigAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`api_server_runtime_config expected to be basetypes.StringValue, was: %T`, apiServerRuntimeConfigAttribute))
+	}
+
+	controllerManagerFlagsAttribute, ok := attributes["controller_manager_flags"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`controller_manager_flags is missing from object`)
+
+		return NewK8sConfigValueUnknown(), diags
+	}
+
+	controllerManagerFlagsVal, ok := controllerManagerFlagsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`controller_manager_flags expected to be basetypes.ListValue, was: %T`, controllerManagerFlagsAttribute))
+	}
+
+	schedulerFlagsAttribute, ok := attributes["scheduler_flags"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`scheduler_flags is missing from object`)
+
+		return NewK8sConfigValueUnknown(), diags
+	}
+
+	schedulerFlagsVal, ok := schedulerFlagsAttribute.(basetypes.ListValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`scheduler_flags expected to be basetypes.ListValue, was: %T`, schedulerFlagsAttribute))
+	}
+
+	if diags.HasError() {
+		return NewK8sConfigValueUnknown(), diags
+	}
+
+	return K8sConfigValue{
+		ApiServerFlags:         apiServerFlagsVal,
+		ApiServerRuntimeConfig: apiServerRuntimeConfigVal,
+		ControllerManagerFlags: controllerManagerFlagsVal,
+		SchedulerFlags:         schedulerFlagsVal,
+		state:                  attr.ValueStateKnown,
+	}, diags
+}
+
+func NewK8sConfigValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) K8sConfigValue {
+	object, diags := NewK8sConfigValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewK8sConfigValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t K8sConfigType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewK8sConfigValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewK8sConfigValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewK8sConfigValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewK8sConfigValueMust(K8sConfigValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t K8sConfigType) ValueType(ctx context.Context) attr.Value {
+	return K8sConfigValue{}
+}
+
+var _ basetypes.ObjectValuable = K8sConfigValue{}
+
+type K8sConfigValue struct {
+	ApiServerFlags         basetypes.ListValue   `tfsdk:"api_server_flags"`
+	ApiServerRuntimeConfig basetypes.StringValue `tfsdk:"api_server_runtime_config"`
+	ControllerManagerFlags basetypes.ListValue   `tfsdk:"controller_manager_flags"`
+	SchedulerFlags         basetypes.ListValue   `tfsdk:"scheduler_flags"`
+	state                  attr.ValueState
+}
+
+func (v K8sConfigValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 4)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["api_server_flags"] = basetypes.ListType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["api_server_runtime_config"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["controller_manager_flags"] = basetypes.ListType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+	attrTypes["scheduler_flags"] = basetypes.ListType{
+		ElemType: types.StringType,
+	}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.ApiServerFlags.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["api_server_flags"] = val
+
+		val, err = v.ApiServerRuntimeConfig.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["api_server_runtime_config"] = val
+
+		val, err = v.ControllerManagerFlags.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["controller_manager_flags"] = val
+
+		val, err = v.SchedulerFlags.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["scheduler_flags"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v K8sConfigValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v K8sConfigValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v K8sConfigValue) String() string {
+	return "K8sConfigValue"
+}
+
+func (v K8sConfigValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	apiServerFlagsVal, d := types.ListValue(types.StringType, v.ApiServerFlags.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"api_server_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"api_server_runtime_config": basetypes.StringType{},
+			"controller_manager_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"scheduler_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+		}), diags
+	}
+
+	controllerManagerFlagsVal, d := types.ListValue(types.StringType, v.ControllerManagerFlags.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"api_server_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"api_server_runtime_config": basetypes.StringType{},
+			"controller_manager_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"scheduler_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+		}), diags
+	}
+
+	schedulerFlagsVal, d := types.ListValue(types.StringType, v.SchedulerFlags.Elements())
+
+	diags.Append(d...)
+
+	if d.HasError() {
+		return types.ObjectUnknown(map[string]attr.Type{
+			"api_server_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"api_server_runtime_config": basetypes.StringType{},
+			"controller_manager_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"scheduler_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+		}), diags
+	}
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"api_server_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"api_server_runtime_config": basetypes.StringType{},
+			"controller_manager_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+			"scheduler_flags": basetypes.ListType{
+				ElemType: types.StringType,
+			},
+		},
+		map[string]attr.Value{
+			"api_server_flags":          apiServerFlagsVal,
+			"api_server_runtime_config": v.ApiServerRuntimeConfig,
+			"controller_manager_flags":  controllerManagerFlagsVal,
+			"scheduler_flags":           schedulerFlagsVal,
+		})
+
+	return objVal, diags
+}
+
+func (v K8sConfigValue) Equal(o attr.Value) bool {
+	other, ok := o.(K8sConfigValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.ApiServerFlags.Equal(other.ApiServerFlags) {
+		return false
+	}
+
+	if !v.ApiServerRuntimeConfig.Equal(other.ApiServerRuntimeConfig) {
+		return false
+	}
+
+	if !v.ControllerManagerFlags.Equal(other.ControllerManagerFlags) {
+		return false
+	}
+
+	if !v.SchedulerFlags.Equal(other.SchedulerFlags) {
+		return false
+	}
+
+	return true
+}
+
+func (v K8sConfigValue) Type(ctx context.Context) attr.Type {
+	return K8sConfigType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v K8sConfigValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"api_server_flags": basetypes.ListType{
+			ElemType: types.StringType,
+		},
+		"api_server_runtime_config": basetypes.StringType{},
+		"controller_manager_flags": basetypes.ListType{
+			ElemType: types.StringType,
+		},
+		"scheduler_flags": basetypes.ListType{
+			ElemType: types.StringType,
+		},
+	}
+}
+
+var _ basetypes.ObjectTypable = StatusType{}
+
+type StatusType struct {
+	basetypes.ObjectType
+}
+
+func (t StatusType) Equal(o attr.Type) bool {
+	other, ok := o.(StatusType)
+
+	if !ok {
+		return false
+	}
+
+	return t.ObjectType.Equal(other.ObjectType)
+}
+
+func (t StatusType) String() string {
+	return "StatusType"
+}
+
+func (t StatusType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	attributes := in.Attributes()
+
+	lastOkAttribute, ok := attributes["last_ok"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`last_ok is missing from object`)
+
+		return nil, diags
+	}
+
+	lastOkVal, ok := lastOkAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`last_ok expected to be basetypes.StringValue, was: %T`, lastOkAttribute))
+	}
+
+	lastOpAttribute, ok := attributes["last_op"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`last_op is missing from object`)
+
+		return nil, diags
+	}
+
+	lastOpVal, ok := lastOpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`last_op expected to be basetypes.StringValue, was: %T`, lastOpAttribute))
+	}
+
+	masterStatusAttribute, ok := attributes["master_status"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`master_status is missing from object`)
+
+		return nil, diags
+	}
+
+	masterStatusVal, ok := masterStatusAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`master_status expected to be basetypes.StringValue, was: %T`, masterStatusAttribute))
+	}
+
+	statusAttribute, ok := attributes["status"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`status is missing from object`)
+
+		return nil, diags
+	}
+
+	statusVal, ok := statusAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`status expected to be basetypes.StringValue, was: %T`, statusAttribute))
+	}
+
+	taskErrorAttribute, ok := attributes["task_error"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`task_error is missing from object`)
+
+		return nil, diags
+	}
+
+	taskErrorVal, ok := taskErrorAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`task_error expected to be basetypes.StringValue, was: %T`, taskErrorAttribute))
+	}
+
+	taskStatusAttribute, ok := attributes["task_status"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`task_status is missing from object`)
+
+		return nil, diags
+	}
+
+	taskStatusVal, ok := taskStatusAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`task_status expected to be basetypes.StringValue, was: %T`, taskStatusAttribute))
+	}
+
+	workerStatusAttribute, ok := attributes["worker_status"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`worker_status is missing from object`)
+
+		return nil, diags
+	}
+
+	workerStatusVal, ok := workerStatusAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`worker_status expected to be basetypes.StringValue, was: %T`, workerStatusAttribute))
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return StatusValue{
+		LastOk:       lastOkVal,
+		LastOp:       lastOpVal,
+		MasterStatus: masterStatusVal,
+		Status:       statusVal,
+		TaskError:    taskErrorVal,
+		TaskStatus:   taskStatusVal,
+		WorkerStatus: workerStatusVal,
+		state:        attr.ValueStateKnown,
+	}, diags
+}
+
+func NewStatusValueNull() StatusValue {
+	return StatusValue{
+		state: attr.ValueStateNull,
+	}
+}
+
+func NewStatusValueUnknown() StatusValue {
+	return StatusValue{
+		state: attr.ValueStateUnknown,
+	}
+}
+
+func NewStatusValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (StatusValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
+	ctx := context.Background()
+
+	for name, attributeType := range attributeTypes {
+		attribute, ok := attributes[name]
+
+		if !ok {
+			diags.AddError(
+				"Missing StatusValue Attribute Value",
+				"While creating a StatusValue value, a missing attribute value was detected. "+
+					"A StatusValue must contain values for all attributes, even if null or unknown. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("StatusValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+			)
+
+			continue
+		}
+
+		if !attributeType.Equal(attribute.Type(ctx)) {
+			diags.AddError(
+				"Invalid StatusValue Attribute Type",
+				"While creating a StatusValue value, an invalid attribute value was detected. "+
+					"A StatusValue must use a matching attribute type for the value. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("StatusValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("StatusValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+			)
+		}
+	}
+
+	for name := range attributes {
+		_, ok := attributeTypes[name]
+
+		if !ok {
+			diags.AddError(
+				"Extra StatusValue Attribute Value",
+				"While creating a StatusValue value, an extra attribute value was detected. "+
+					"A StatusValue must not contain values beyond the expected attribute types. "+
+					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
+					fmt.Sprintf("Extra StatusValue Attribute Name: %s", name),
+			)
+		}
+	}
+
+	if diags.HasError() {
+		return NewStatusValueUnknown(), diags
+	}
+
+	lastOkAttribute, ok := attributes["last_ok"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`last_ok is missing from object`)
+
+		return NewStatusValueUnknown(), diags
+	}
+
+	lastOkVal, ok := lastOkAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`last_ok expected to be basetypes.StringValue, was: %T`, lastOkAttribute))
+	}
+
+	lastOpAttribute, ok := attributes["last_op"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`last_op is missing from object`)
+
+		return NewStatusValueUnknown(), diags
+	}
+
+	lastOpVal, ok := lastOpAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`last_op expected to be basetypes.StringValue, was: %T`, lastOpAttribute))
+	}
+
+	masterStatusAttribute, ok := attributes["master_status"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`master_status is missing from object`)
+
+		return NewStatusValueUnknown(), diags
+	}
+
+	masterStatusVal, ok := masterStatusAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`master_status expected to be basetypes.StringValue, was: %T`, masterStatusAttribute))
+	}
+
+	statusAttribute, ok := attributes["status"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`status is missing from object`)
+
+		return NewStatusValueUnknown(), diags
+	}
+
+	statusVal, ok := statusAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`status expected to be basetypes.StringValue, was: %T`, statusAttribute))
+	}
+
+	taskErrorAttribute, ok := attributes["task_error"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`task_error is missing from object`)
+
+		return NewStatusValueUnknown(), diags
+	}
+
+	taskErrorVal, ok := taskErrorAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`task_error expected to be basetypes.StringValue, was: %T`, taskErrorAttribute))
+	}
+
+	taskStatusAttribute, ok := attributes["task_status"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`task_status is missing from object`)
+
+		return NewStatusValueUnknown(), diags
+	}
+
+	taskStatusVal, ok := taskStatusAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`task_status expected to be basetypes.StringValue, was: %T`, taskStatusAttribute))
+	}
+
+	workerStatusAttribute, ok := attributes["worker_status"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`worker_status is missing from object`)
+
+		return NewStatusValueUnknown(), diags
+	}
+
+	workerStatusVal, ok := workerStatusAttribute.(basetypes.StringValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`worker_status expected to be basetypes.StringValue, was: %T`, workerStatusAttribute))
+	}
+
+	if diags.HasError() {
+		return NewStatusValueUnknown(), diags
+	}
+
+	return StatusValue{
+		LastOk:       lastOkVal,
+		LastOp:       lastOpVal,
+		MasterStatus: masterStatusVal,
+		Status:       statusVal,
+		TaskError:    taskErrorVal,
+		TaskStatus:   taskStatusVal,
+		WorkerStatus: workerStatusVal,
+		state:        attr.ValueStateKnown,
+	}, diags
+}
+
+func NewStatusValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) StatusValue {
+	object, diags := NewStatusValue(attributeTypes, attributes)
+
+	if diags.HasError() {
+		// This could potentially be added to the diag package.
+		diagsStrings := make([]string, 0, len(diags))
+
+		for _, diagnostic := range diags {
+			diagsStrings = append(diagsStrings, fmt.Sprintf(
+				"%s | %s | %s",
+				diagnostic.Severity(),
+				diagnostic.Summary(),
+				diagnostic.Detail()))
+		}
+
+		panic("NewStatusValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+	}
+
+	return object
+}
+
+func (t StatusType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	if in.Type() == nil {
+		return NewStatusValueNull(), nil
+	}
+
+	if !in.Type().Equal(t.TerraformType(ctx)) {
+		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
+	}
+
+	if !in.IsKnown() {
+		return NewStatusValueUnknown(), nil
+	}
+
+	if in.IsNull() {
+		return NewStatusValueNull(), nil
+	}
+
+	attributes := map[string]attr.Value{}
+
+	val := map[string]tftypes.Value{}
+
+	err := in.As(&val)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range val {
+		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		attributes[k] = a
+	}
+
+	return NewStatusValueMust(StatusValue{}.AttributeTypes(ctx), attributes), nil
+}
+
+func (t StatusType) ValueType(ctx context.Context) attr.Value {
+	return StatusValue{}
+}
+
+var _ basetypes.ObjectValuable = StatusValue{}
+
+type StatusValue struct {
+	LastOk       basetypes.StringValue `tfsdk:"last_ok"`
+	LastOp       basetypes.StringValue `tfsdk:"last_op"`
+	MasterStatus basetypes.StringValue `tfsdk:"master_status"`
+	Status       basetypes.StringValue `tfsdk:"status"`
+	TaskError    basetypes.StringValue `tfsdk:"task_error"`
+	TaskStatus   basetypes.StringValue `tfsdk:"task_status"`
+	WorkerStatus basetypes.StringValue `tfsdk:"worker_status"`
+	state        attr.ValueState
+}
+
+func (v StatusValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+	attrTypes := make(map[string]tftypes.Type, 7)
+
+	var val tftypes.Value
+	var err error
+
+	attrTypes["last_ok"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["last_op"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["master_status"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["status"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["task_error"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["task_status"] = basetypes.StringType{}.TerraformType(ctx)
+	attrTypes["worker_status"] = basetypes.StringType{}.TerraformType(ctx)
+
+	objectType := tftypes.Object{AttributeTypes: attrTypes}
+
+	switch v.state {
+	case attr.ValueStateKnown:
+		vals := make(map[string]tftypes.Value, 7)
+
+		val, err = v.LastOk.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["last_ok"] = val
+
+		val, err = v.LastOp.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["last_op"] = val
+
+		val, err = v.MasterStatus.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["master_status"] = val
+
+		val, err = v.Status.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["status"] = val
+
+		val, err = v.TaskError.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["task_error"] = val
+
+		val, err = v.TaskStatus.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["task_status"] = val
+
+		val, err = v.WorkerStatus.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["worker_status"] = val
+
+		if err := tftypes.ValidateValue(objectType, vals); err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		return tftypes.NewValue(objectType, vals), nil
+	case attr.ValueStateNull:
+		return tftypes.NewValue(objectType, nil), nil
+	case attr.ValueStateUnknown:
+		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
+	default:
+		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
+	}
+}
+
+func (v StatusValue) IsNull() bool {
+	return v.state == attr.ValueStateNull
+}
+
+func (v StatusValue) IsUnknown() bool {
+	return v.state == attr.ValueStateUnknown
+}
+
+func (v StatusValue) String() string {
+	return "StatusValue"
+}
+
+func (v StatusValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	objVal, diags := types.ObjectValue(
+		map[string]attr.Type{
+			"last_ok":       basetypes.StringType{},
+			"last_op":       basetypes.StringType{},
+			"master_status": basetypes.StringType{},
+			"status":        basetypes.StringType{},
+			"task_error":    basetypes.StringType{},
+			"task_status":   basetypes.StringType{},
+			"worker_status": basetypes.StringType{},
+		},
+		map[string]attr.Value{
+			"last_ok":       v.LastOk,
+			"last_op":       v.LastOp,
+			"master_status": v.MasterStatus,
+			"status":        v.Status,
+			"task_error":    v.TaskError,
+			"task_status":   v.TaskStatus,
+			"worker_status": v.WorkerStatus,
+		})
+
+	return objVal, diags
+}
+
+func (v StatusValue) Equal(o attr.Value) bool {
+	other, ok := o.(StatusValue)
+
+	if !ok {
+		return false
+	}
+
+	if v.state != other.state {
+		return false
+	}
+
+	if v.state != attr.ValueStateKnown {
+		return true
+	}
+
+	if !v.LastOk.Equal(other.LastOk) {
+		return false
+	}
+
+	if !v.LastOp.Equal(other.LastOp) {
+		return false
+	}
+
+	if !v.MasterStatus.Equal(other.MasterStatus) {
+		return false
+	}
+
+	if !v.Status.Equal(other.Status) {
+		return false
+	}
+
+	if !v.TaskError.Equal(other.TaskError) {
+		return false
+	}
+
+	if !v.TaskStatus.Equal(other.TaskStatus) {
+		return false
+	}
+
+	if !v.WorkerStatus.Equal(other.WorkerStatus) {
+		return false
+	}
+
+	return true
+}
+
+func (v StatusValue) Type(ctx context.Context) attr.Type {
+	return StatusType{
+		basetypes.ObjectType{
+			AttrTypes: v.AttributeTypes(ctx),
+		},
+	}
+}
+
+func (v StatusValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+	return map[string]attr.Type{
+		"last_ok":       basetypes.StringType{},
+		"last_op":       basetypes.StringType{},
+		"master_status": basetypes.StringType{},
+		"status":        basetypes.StringType{},
+		"task_error":    basetypes.StringType{},
+		"task_status":   basetypes.StringType{},
+		"worker_status": basetypes.StringType{},
 	}
 }

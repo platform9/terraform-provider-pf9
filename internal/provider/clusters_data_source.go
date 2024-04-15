@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"github.com/platform9/terraform-provider-pf9/internal/provider/datasource_clusters"
 
@@ -105,7 +104,7 @@ func (d *clustersDataSource) Read(ctx context.Context, req datasource.ReadReques
 		clusterIDs = append(clusterIDs, cluster.UUID)
 	}
 
-	data.ClusterIds, diags = types.ListValueFrom(ctx, basetypes.StringType{}, clusterIDs)
+	data.ClusterIds, diags = types.ListValueFrom(ctx, types.StringType, clusterIDs)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

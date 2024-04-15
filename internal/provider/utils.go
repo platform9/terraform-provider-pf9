@@ -1,11 +1,14 @@
 package provider
 
 import (
+	"context"
+	"encoding/json"
 	"net"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/platform9/pf9-sdk-go/pf9/qbert"
+	"k8s.io/utils/ptr"
 )
 
 type Diff struct {
@@ -50,18 +53,37 @@ func findDiff(slice1, slice2 []string) Diff {
 // getIntOrNullIfZero returns int64 value if i is not zero, else returns null
 // omitempty tag in struct does not work for int64, it returns 0 for null (empty) value
 // This is a helper function to convert 0 to null
-func getIntOrNullIfZero(i int) basetypes.Int64Value {
+func getIntOrNullIfZero(i int) types.Int64 {
 	if i == 0 {
 		return types.Int64Null()
 	}
 	return types.Int64Value(int64(i))
 }
 
-func getStrOrNullIfEmpty(s string) basetypes.StringValue {
+// qbert API returns empty string for null values, this function converts empty string to null to prevent
+// Provider produced inconsistent result after apply, .external_dns_name: was null, but now cty.StringVal("")
+func getStrOrNullIfEmpty(s string) types.String {
 	if s == "" {
 		return types.StringNull()
 	}
 	return types.StringValue(s)
+}
+
+func getBoolFromIntPtr(b *int) types.Bool {
+	if b == nil {
+		return types.BoolNull()
+	}
+	return types.BoolValue(*b != 0)
+}
+
+func getIntPtrFromBool(b types.Bool) *int {
+	if b.IsNull() || b.IsUnknown() {
+		return nil
+	}
+	if b.ValueBool() {
+		return ptr.To(1)
+	}
+	return ptr.To(0)
 }
 
 func findLatestKubeRoleVersion(roles []qbert.Role) qbert.Role {
@@ -88,15 +110,6 @@ func areNotMutuallyExclusive(slice1, slice2 []string) bool {
 		}
 	}
 	return false
-}
-
-// qbert API returns empty string for null values, this function converts empty string to null to prevent
-// Provider produced inconsistent result after apply, .external_dns_name: was null, but now cty.StringVal("")
-func emptyStringToNull(s string) basetypes.StringValue {
-	if s == "" {
-		return types.StringNull()
-	}
-	return types.StringValue(s)
 }
 
 // CheckCIDROverlap checks if two CIDR blocks are overlapping
@@ -130,4 +143,38 @@ func (p StrMap) Equals(other StrMap) bool {
 		}
 	}
 	return true
+}
+
+// Builds str list from json string array
+func strListFromJsonArr(ctx context.Context, strArrayStr string) (types.List, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if strArrayStr == "" {
+		return types.ListNull(types.StringType), diags
+	}
+	var strSlice []string
+	err := json.Unmarshal([]byte(strArrayStr), &strSlice)
+	if err != nil {
+		diags.AddError("Failed to parse string array", err.Error())
+		return types.ListNull(types.StringType), diags
+	}
+	return types.ListValueFrom(ctx, types.StringType, strSlice)
+}
+
+func toJsonArrFromStrList(ctx context.Context, strList types.List) (string, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if strList.IsNull() {
+		return "", diags
+	}
+	strSlice := make([]string, len(strList.Elements()))
+	convertDiags := strList.ElementsAs(ctx, &strSlice, false)
+	diags.Append(convertDiags...)
+	if diags.HasError() {
+		return "", diags
+	}
+	jsonBytes, err := json.Marshal(strSlice)
+	if err != nil {
+		diags.AddError("Failed to convert string array to json", err.Error())
+		return "", diags
+	}
+	return string(jsonBytes), diags
 }

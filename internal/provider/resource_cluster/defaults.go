@@ -6,8 +6,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/defaults"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 // DefaultAddons returns the default addons for a cluster.
@@ -33,7 +33,7 @@ func DefaultAddons() defaults.Map {
 	return mapdefault.StaticValue(addonsMapValue)
 }
 
-func GetDefaultAddons(ctx context.Context) (basetypes.MapValue, diag.Diagnostics) {
+func GetDefaultAddons(ctx context.Context) (types.Map, diag.Diagnostics) {
 	// TODO: Investigate why the default addon parameters are not being preserved in the plan.
 	// During observation, the parameter values are set correctly until the `ModifyPlan()` function is called,
 	// but they are lost after that. The `Create()` function then receives all the other fields except the params.
@@ -70,4 +70,24 @@ func getAddonWithParams(ctx context.Context, params map[string]string) AddonsVal
 		panic("Failed to create default addons value from object value")
 	}
 	return objValuable.(AddonsValue)
+}
+
+func DefaultEtcdBackup(ctx context.Context) defaults.Object {
+	dailyObjValue, diags := DailyValue{
+		BackupTime:         types.StringValue("02:00"),
+		MaxBackupsToRetain: types.Int64Value(3),
+	}.ToObjectValue(ctx)
+	if diags.HasError() {
+		panic("Failed to create default daily object value")
+	}
+	etcdObjVal, diags := EtcdBackupValue{
+		Daily:            dailyObjValue,
+		Interval:         types.ObjectNull(IntervalValue{}.AttributeTypes(ctx)),
+		StorageLocalPath: types.StringValue("/etc/pf9/etcd-backup"),
+		StorageType:      types.StringValue("local"),
+	}.ToObjectValue(ctx)
+	if diags.HasError() {
+		panic("Failed to create default etcd backup object value")
+	}
+	return objectdefault.StaticValue(etcdObjVal)
 }
