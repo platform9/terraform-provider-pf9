@@ -203,13 +203,14 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 					return
 				}
 			} else {
+				tflog.Debug(ctx, "upgrade_kube_role_version is not found in the plan")
 				// This happens when API does not return the next available upgrade version.
 				// API returns upgrade versions only when the cluster is in a state to be upgraded.
 				// Because of this state does not contain next available upgrade version.
 				// TODO: Find workaround, for example call getCluster here and check if it can
 				// be upgraded.
-				resp.Diagnostics.AddError("Refresh local state", "Cluster is currently being upgraded or local state is out of date")
-				return
+				// resp.Diagnostics.AddError("Refresh local state", "Cluster is currently being upgraded or local state is out of date")
+				// return
 			}
 		}
 	}
@@ -254,6 +255,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Failed to create cluster", err.Error())
 		return
 	}
+	// TODO: Save intermediate state to prevent inconsistency between local and remote state
 
 	nodeList := []qbert.Node{}
 	var masterNodeIDs []string
@@ -277,6 +279,14 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 			UUID:     nodeID,
 			IsMaster: 0,
 		})
+	}
+	nodesToAttachIDs := []string{}
+	nodesToAttachIDs = append(nodesToAttachIDs, masterNodeIDs...)
+	nodesToAttachIDs = append(nodesToAttachIDs, workerNodeIDs...)
+	err = r.verifyNodes(ctx, clusterID, projectID, nodesToAttachIDs)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to verify nodes", err.Error())
+		return
 	}
 	tflog.Info(ctx, "Attaching nodes", map[string]interface{}{"nodeList": nodeList})
 	err = qbertClient.AttachNodes(clusterID, nodeList)
@@ -508,7 +518,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	clusterID := state.Id.ValueString()
 	if !plan.WorkerNodes.Equal(state.WorkerNodes) || !plan.MasterNodes.Equal(state.MasterNodes) {
 		tflog.Debug(ctx, "Change in nodes detected, attaching/detaching nodes")
-		resp.Diagnostics.Append(r.attachDetachNodes(ctx, plan, state)...)
+		resp.Diagnostics.Append(r.attachDetachNodes(ctx, clusterID, projectID, plan, state)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -805,7 +815,7 @@ func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, pr
 	return diags
 }
 
-func (r *clusterResource) attachDetachNodes(ctx context.Context, plan resource_cluster.ClusterModel, state resource_cluster.ClusterModel) diag.Diagnostics {
+func (r *clusterResource) attachDetachNodes(ctx context.Context, clusterID string, projectID string, plan resource_cluster.ClusterModel, state resource_cluster.ClusterModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 	masterNodesFromPlan := []string{}
 	diags.Append(plan.MasterNodes.ElementsAs(ctx, &masterNodesFromPlan, false)...)
@@ -850,18 +860,26 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, plan resource_c
 			return diags
 		}
 	}
+	nodesToAttachIDs := []string{}
 	nodeList = []qbert.Node{}
 	for _, nodeID := range diffMasters.Added {
 		nodeList = append(nodeList, qbert.Node{
 			UUID:     nodeID,
 			IsMaster: 1,
 		})
+		nodesToAttachIDs = append(nodesToAttachIDs, nodeID)
 	}
 	for _, nodeID := range diffWorkers.Added {
 		nodeList = append(nodeList, qbert.Node{
 			UUID:     nodeID,
 			IsMaster: 0,
 		})
+		nodesToAttachIDs = append(nodesToAttachIDs, nodeID)
+	}
+	err := r.verifyNodes(ctx, clusterID, projectID, nodesToAttachIDs)
+	if err != nil {
+		diags.AddError("Failed to verify nodes", err.Error())
+		return diags
 	}
 	if len(nodeList) > 0 {
 		tflog.Debug(ctx, "Attaching nodes", map[string]interface{}{"nodeList": nodeList})
@@ -873,6 +891,32 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, plan resource_c
 	}
 
 	return diags
+}
+
+func (r *clusterResource) verifyNodes(ctx context.Context, clusterID, projectID string, nodesToAttachIDs []string) error {
+	tflog.Info(ctx, "Checking if nodes can be attached", map[string]interface{}{"nodesToAttachIDs": nodesToAttachIDs})
+	nodes, err := r.client.Qbert().ListNodes(projectID)
+	if err != nil {
+		return fmt.Errorf("failed to list nodes: %w", err)
+	}
+	nodesMap := map[string]qbert.Node{}
+	for _, node := range nodes {
+		nodesMap[node.UUID] = node
+	}
+
+	for _, nodeID := range nodesToAttachIDs {
+		node, found := nodesMap[nodeID]
+		if !found {
+			return fmt.Errorf("node %v is not found in the list of nodes", nodeID)
+		}
+		if node.Status != "ok" {
+			return fmt.Errorf("node %v is not in a 'ok' state. Current state:%v", nodeID, node.Status)
+		}
+		if node.ClusterName != "" && node.ClusterUUID != clusterID {
+			return fmt.Errorf("node %v is already attached to a cluster %v", nodeID, node.ClusterName)
+		}
+	}
+	return nil
 }
 
 func sunpikeAddonsToTerraformAddons(ctx context.Context, sunpikeAddons []sunpikev1alpha2.ClusterAddon) (map[string]resource_cluster.AddonsValue, diag.Diagnostics) {
