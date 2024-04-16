@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -96,7 +97,12 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Default: stringdefault.StaticString("Always"),
 			},
 			"calico_ipv4": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"calico_ipv4_detection_method": schema.StringAttribute{
 				Optional:            true,
@@ -373,9 +379,11 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 			},
 			"docker_root": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"docker_ubuntu_package_repo_url": schema.StringAttribute{
@@ -387,16 +395,31 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			"etcd": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"data_dir": schema.StringAttribute{
+						Optional: true,
 						Computed: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+							stringplanmodifier.RequiresReplace(),
+						},
 					},
 					"election_timeout_ms": schema.Int64Attribute{
+						Optional: true,
 						Computed: true,
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+							int64planmodifier.RequiresReplace(),
+						},
 					},
 					"enable_encryption": schema.BoolAttribute{
 						Computed: true,
 					},
 					"heartbeat_interval_ms": schema.Int64Attribute{
+						Optional: true,
 						Computed: true,
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+							int64planmodifier.RequiresReplace(),
+						},
 					},
 					"version": schema.StringAttribute{
 						Computed: true,
@@ -407,6 +430,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 						AttrTypes: EtcdValue{}.AttributeTypes(ctx),
 					},
 				},
+				Optional: true,
 				Computed: true,
 			},
 			"etcd_backup": schema.SingleNestedAttribute{
@@ -553,6 +577,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "UUID of the cluster",
 				MarkdownDescription: "UUID of the cluster",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"interface_detection_method": schema.StringAttribute{
 				Optional:            true,
@@ -677,12 +704,18 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "IP of master node",
 				MarkdownDescription: "IP of master node",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"master_nodes": schema.SetAttribute{
 				ElementType:         types.StringType,
 				Required:            true,
 				Description:         "List of uuid of master nodes",
 				MarkdownDescription: "List of uuid of master nodes",
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+				},
 			},
 			"master_vip_iface": schema.StringAttribute{
 				Optional:            true,
@@ -708,10 +741,17 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				},
 			},
 			"master_vip_vrouter_id": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Virtual router ID of the master VIP",
+				MarkdownDescription: "Virtual router ID of the master VIP",
 			},
 			"masterless": schema.BoolAttribute{
-				Computed: true,
+				Computed:            true,
+				Description:         "Field is set to true if the cluster is masterless",
+				MarkdownDescription: "Field is set to true if the cluster is masterless",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"mtu_size": schema.Int64Attribute{
 				Optional:            true,
@@ -772,6 +812,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"project_id": schema.StringAttribute{
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"quay_private_registry": schema.StringAttribute{
 				Optional: true,
@@ -873,6 +916,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				Optional:            true,
 				Description:         "List of uuid of worker nodes. Required if allow_workloads_on_master is false",
 				MarkdownDescription: "List of uuid of worker nodes. Required if allow_workloads_on_master is false",
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+				},
 			},
 		},
 	}

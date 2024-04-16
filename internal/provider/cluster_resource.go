@@ -23,6 +23,7 @@ import (
 
 var _ resource.Resource = (*clusterResource)(nil)
 var _ resource.ResourceWithModifyPlan = (*clusterResource)(nil)
+var _ resource.ResourceWithValidateConfig = (*clusterResource)(nil)
 
 func NewClusterResource() resource.Resource {
 	return &clusterResource{}
@@ -49,21 +50,66 @@ func (r *clusterResource) Configure(ctx context.Context, req resource.ConfigureR
 	r.addonsClient = NewAddonClient(r.client.Sunpike())
 }
 
+func (c clusterResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data resource_cluster.ClusterModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	workerNodes := []string{}
+	if !data.WorkerNodes.IsNull() && !data.WorkerNodes.IsUnknown() {
+		resp.Diagnostics.Append(data.WorkerNodes.ElementsAs(ctx, &workerNodes, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+	masterNodes := []string{}
+	if !data.MasterNodes.IsNull() && !data.MasterNodes.IsUnknown() {
+		resp.Diagnostics.Append(data.MasterNodes.ElementsAs(ctx, &masterNodes, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+	for _, m := range masterNodes {
+		for _, w := range workerNodes {
+			if m == w {
+				resp.Diagnostics.AddAttributeError(path.Root("worker_nodes"), "Master and worker nodes overlap",
+					fmt.Sprintf("The node with ID %v is configured to be part of both the master and worker nodes, which is not allowed."+
+						" Each node must be assigned to either the master or the worker role, but not both.", m))
+				return
+			}
+		}
+	}
+	if len(workerNodes) == 0 {
+		var allowWorkloadsOnMaster types.Bool
+		resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("allow_workloads_on_master"), &allowWorkloadsOnMaster)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if !allowWorkloadsOnMaster.IsNull() && !allowWorkloadsOnMaster.IsUnknown() && !allowWorkloadsOnMaster.ValueBool() {
+			resp.Diagnostics.AddAttributeError(path.Root("worker_nodes"), "worker_nodes is required", "The allow_workloads_on_master should be true or worker_nodes should be provided")
+			return
+		}
+	}
+
+	if !data.ContainersCidr.IsNull() && !data.ContainersCidr.IsUnknown() &&
+		!data.ServicesCidr.IsNull() && !data.ServicesCidr.IsUnknown() {
+		isOverlap, err := CheckCIDROverlap(data.ContainersCidr.ValueString(), data.ServicesCidr.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("Error checking cidr overlap", err.Error())
+			return
+		}
+		if isOverlap {
+			resp.Diagnostics.AddAttributeError(path.Root("containers_cidr"), "CIDRs overlap", "containers_cidr and services_cidr cannot overlap")
+		}
+	}
+}
+
 func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	// Ref: https://developer.hashicorp.com/terraform/plugin/framework/resources/plan-modification
 	if req.Plan.Raw.IsNull() {
 		// resource is being destroyed
-		return
-	}
-
-	var containersCidr types.String
-	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("containers_cidr"), &containersCidr)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	var servicesCidr types.String
-	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("services_cidr"), &servicesCidr)...)
-	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -93,7 +139,7 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 				allowedKubeRoleVersions = append(allowedKubeRoleVersions, role.RoleVersion)
 			}
 			if !StrSliceContains(allowedKubeRoleVersions, kubeRoleVersion.ValueString()) {
-				resp.Diagnostics.AddAttributeError(path.Root("kube_role_version"), "kube_role_version provided is unsupported", fmt.Sprintf("Supported versions: %v", allowedKubeRoleVersions))
+				resp.Diagnostics.AddAttributeError(path.Root("kube_role_version"), "Provided value is not supported", fmt.Sprintf("Supported versions: %v", allowedKubeRoleVersions))
 				return
 			}
 		} else {
@@ -110,36 +156,29 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 			}
 		}
 
-		// Containers & ServiceCidr has different default value for single-node cluster(one-click cluster)
 		workerNodes := []string{}
 		resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("worker_nodes"), &workerNodes)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
 		if len(workerNodes) == 0 {
-			var allowWorkloadsOnMaster types.Bool
-			resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("allow_workloads_on_master"), &allowWorkloadsOnMaster)...)
+			var containersCidr types.String
+			resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("containers_cidr"), &containersCidr)...)
 			if resp.Diagnostics.HasError() {
 				return
 			}
-			if !allowWorkloadsOnMaster.IsNull() && !allowWorkloadsOnMaster.IsUnknown() && !allowWorkloadsOnMaster.ValueBool() {
-				resp.Diagnostics.AddAttributeError(path.Root("worker_nodes"), "worker_nodes is required", "Set allow_workloads_on_master to true or provide worker_nodes")
+			var servicesCidr types.String
+			resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("services_cidr"), &servicesCidr)...)
+			if resp.Diagnostics.HasError() {
 				return
-			} else if allowWorkloadsOnMaster.IsNull() || allowWorkloadsOnMaster.IsUnknown() {
-				// This can never happen, because allow_workloads_on_master has a default value=false
-				resp.Diagnostics.Append(req.Plan.SetAttribute(ctx, path.Root("allow_workloads_on_master"), true)...)
 			}
+			// Containers & ServiceCidr has different default value for single-node cluster(worker_nodes=0)
 			if containersCidr.IsNull() || containersCidr.IsUnknown() {
 				resp.Diagnostics.Append(req.Plan.SetAttribute(ctx, path.Root("containers_cidr"), "10.20.0.0/22")...)
 			}
 			if servicesCidr.IsNull() || servicesCidr.IsUnknown() {
 				resp.Diagnostics.Append(req.Plan.SetAttribute(ctx, path.Root("services_cidr"), "10.21.0.0/22")...)
 			}
-		}
-		var addonsMapVal types.Map
-		resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("addons"), &addonsMapVal)...)
-		if resp.Diagnostics.HasError() {
-			return
 		}
 	}
 	if !req.State.Raw.IsNull() && !req.Plan.Raw.IsNull() {
@@ -172,17 +211,6 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 				resp.Diagnostics.AddError("Refresh local state", "Cluster is currently being upgraded or local state is out of date")
 				return
 			}
-		}
-	}
-	if !containersCidr.IsNull() && !servicesCidr.IsNull() {
-		isOverlap, err := CheckCIDROverlap(containersCidr.ValueString(), servicesCidr.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError("Error checking cidr overlap", err.Error())
-			return
-		}
-		if isOverlap {
-			resp.Diagnostics.AddAttributeError(path.Root("containers_cidr"), "CIDRs overlap", "containers_cidr and services_cidr cannot overlap")
-			return
 		}
 	}
 }
@@ -766,9 +794,13 @@ func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, pr
 	if diags.HasError() {
 		return diags
 	}
-	state.WorkerNodes, diags = types.SetValueFrom(ctx, types.StringType, workerNodes)
-	if diags.HasError() {
-		return diags
+	if len(workerNodes) > 0 {
+		state.WorkerNodes, diags = types.SetValueFrom(ctx, types.StringType, workerNodes)
+		if diags.HasError() {
+			return diags
+		}
+	} else {
+		state.WorkerNodes = types.SetNull(types.StringType)
 	}
 	return diags
 }
@@ -997,12 +1029,12 @@ func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Clu
 		clusterModel.UpgradeKubeRoleVersion = types.StringNull()
 	}
 
-	etcd, convertDiags := getEtcdValue(ctx, qbertCluster)
+	etcdValue, convertDiags := getEtcdValue(ctx, qbertCluster)
 	diags.Append(convertDiags...)
 	if diags.HasError() {
 		return diags
 	}
-	clusterModel.Etcd = etcd
+	clusterModel.Etcd = etcdValue
 	etcdBackupValue, convertDiags := getEtcdBackupValue(ctx, qbertCluster.EtcdBackup)
 	diags.Append(convertDiags...)
 	if diags.HasError() {
@@ -1074,7 +1106,24 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 	createClusterReq.CalicoIPIPMode = clusterModel.CalicoIpIpMode.ValueString()
 	createClusterReq.CalicoNatOutgoing = clusterModel.CalicoNatOutgoing.ValueBoolPointer()
 	createClusterReq.CalicoV4BlockSize = clusterModel.CalicoV4BlockSize.ValueString()
+	createClusterReq.CalicoIpv4 = clusterModel.CalicoIpv4.ValueString()
 	createClusterReq.CalicoIpv4DetectionMethod = clusterModel.CalicoIpv4DetectionMethod.ValueString()
+	if !clusterModel.Etcd.EnableEncryption.IsNull() && !clusterModel.Etcd.EnableEncryption.IsUnknown() {
+		// TODO: This does not work, etcd encryption always gets enabled
+		createClusterReq.EnableEtcdEncryption = fmt.Sprintf("%v", clusterModel.Etcd.EnableEncryption.ValueBool())
+	}
+	if !clusterModel.Etcd.DataDir.IsNull() && !clusterModel.Etcd.DataDir.IsUnknown() {
+		createClusterReq.EtcdDataDir = clusterModel.Etcd.DataDir.ValueString()
+	}
+	if !clusterModel.Etcd.Version.IsNull() && !clusterModel.Etcd.Version.IsUnknown() {
+		createClusterReq.EtcdVersion = clusterModel.Etcd.Version.ValueString()
+	}
+	if !clusterModel.Etcd.ElectionTimeoutMs.IsNull() && !clusterModel.Etcd.ElectionTimeoutMs.IsUnknown() {
+		createClusterReq.EtcdElectionTimeoutMs = fmt.Sprintf("%d", clusterModel.Etcd.ElectionTimeoutMs.ValueInt64())
+	}
+	if !clusterModel.Etcd.HeartbeatIntervalMs.IsNull() && !clusterModel.Etcd.HeartbeatIntervalMs.IsUnknown() {
+		createClusterReq.EtcdHeartbeatIntervalMs = fmt.Sprintf("%d", clusterModel.Etcd.HeartbeatIntervalMs.ValueInt64())
+	}
 	createClusterReq.NetworkPlugin = qbert.CNIBackend(clusterModel.NetworkPlugin.ValueString())
 	if !clusterModel.K8sConfig.IsNull() && !clusterModel.K8sConfig.IsUnknown() {
 		if !clusterModel.K8sConfig.ApiServerRuntimeConfig.IsNull() && !clusterModel.K8sConfig.ApiServerRuntimeConfig.IsUnknown() {
