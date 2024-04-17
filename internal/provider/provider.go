@@ -36,12 +36,7 @@ func (p *pf9Provider) Schema(ctx context.Context, req provider.SchemaRequest, re
 func (p *pf9Provider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	tflog.Info(ctx, "Configuring client")
 
-	duFQDN := os.Getenv("DU_FQDN")
-	username := os.Getenv("DU_USERNAME")
-	password := os.Getenv("DU_PASSWORD")
-	tenant := os.Getenv("DU_TENANT")
-	region := os.Getenv("DU_REGION")
-
+	var accountURL, username, password, region, tenant string
 	var pf9Model provider_pf9.Pf9Model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &pf9Model)...)
 	if resp.Diagnostics.HasError() {
@@ -49,50 +44,51 @@ func (p *pf9Provider) Configure(ctx context.Context, req provider.ConfigureReque
 		return
 	}
 
-	if duFQDN == "" {
-		if pf9Model.DuFqdn.IsNull() {
-			tflog.Error(ctx, "DU_FQDN is empty")
-			resp.Diagnostics.AddAttributeError(path.Root("du_fqdn"), "DU_FQDN is empty", "DU_FQDN is empty")
-		}
-		duFQDN = pf9Model.DuFqdn.ValueString()
+	if !pf9Model.AccountUrl.IsNull() {
+		accountURL = pf9Model.AccountUrl.ValueString()
+	} else {
+		resp.Diagnostics.AddAttributeError(path.Root("account_url"), "Account URL is required", "Account URL is required")
 	}
-	if username == "" {
-		if pf9Model.DuUsername.IsNull() {
-			tflog.Error(ctx, "DU_USERNAME is empty")
-			resp.Diagnostics.AddAttributeError(path.Root("du_username"), "DU_USERNAME is empty", "DU_USERNAME is empty")
-		}
-		username = pf9Model.DuUsername.ValueString()
+
+	if !pf9Model.Username.IsNull() {
+		username = pf9Model.Username.ValueString()
+	} else {
+		resp.Diagnostics.AddAttributeError(path.Root("username"), "Username is required", "Username is required")
 	}
-	if region == "" {
-		if pf9Model.DuRegion.IsNull() {
-			region = "RegionOne"
-		} else {
-			region = pf9Model.DuRegion.ValueString()
-		}
+	if !pf9Model.Password.IsNull() {
+		password = pf9Model.Password.ValueString()
+	} else {
+		resp.Diagnostics.AddAttributeError(path.Root("password"), "Password is required", "Password is required")
 	}
-	if tenant == "" {
-		if pf9Model.DuTenant.IsNull() {
-			tenant = "service"
-		} else {
-			tenant = pf9Model.DuTenant.String()
-		}
+
+	if pf9Model.Region.IsNull() {
+		region = "RegionOne"
+	} else {
+		region = pf9Model.Region.ValueString()
+	}
+
+	if pf9Model.Tenant.IsNull() {
+		tenant = "service"
+	} else {
+		tenant = pf9Model.Tenant.ValueString()
 	}
 	if resp.Diagnostics.HasError() {
-		tflog.Error(ctx, "One or more required attributes are empty")
 		return
 	}
 
-	unAuthenticatedClient := pmk.NewClient(duFQDN)
+	unAuthenticatedClient := pmk.NewClient(accountURL)
 	if err := unAuthenticatedClient.Ping(ctx); err != nil {
 		tflog.Error(ctx, "Failed to ping")
 		resp.Diagnostics.AddError("Failed to ping", err.Error())
 		return
 	}
+	// Setting this env variable to be used in kubeconfig data source
 	err := os.Setenv("DU_USERNAME", username)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to set env variable", "env variable DU_USERNAME cant be set")
 		return
 	}
+	// Setting this env variable to be used in kubeconfig data source
 	err = os.Setenv("DU_PASSWORD", password)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to set env variable", "env variable DU_PASSWORD cant be set")
@@ -106,7 +102,6 @@ func (p *pf9Provider) Configure(ctx context.Context, req provider.ConfigureReque
 	})
 	authInfo, err := client.Authenticator().Auth(ctx)
 	if err != nil {
-		tflog.Error(ctx, "Failed to authenticate", map[string]interface{}{"error": err})
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}

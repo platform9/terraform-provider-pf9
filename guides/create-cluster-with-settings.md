@@ -23,9 +23,7 @@ terraform {
 }
 
 provider "pf9" {
-  # The environment variable DU_PASSWORD must be set
-  du_fqdn     = "<FQDN>"
-  du_username = "<Username>"
+  # provider configuration
 }
 
 resource "pf9_cluster" "example" {
@@ -51,8 +49,7 @@ terraform {
 }
 
 provider "pf9" {
-  du_fqdn     = "<FQDN>"
-  du_username = "<Username>"
+  # provider configuration
 }
 
 resource "pf9_cluster" "example" {
@@ -81,8 +78,7 @@ terraform {
 }
 
 provider "pf9" {
-  du_fqdn     = "<FQDN>"
-  du_username = "<Username>"
+  # provider configuration
 }
 
 resource "pf9_cluster" "example" {
@@ -114,8 +110,7 @@ terraform {
 }
 
 provider "pf9" {
-  du_fqdn     = "<FQDN>"
-  du_username = "<Username>"
+  # provider configuration
 }
 
 data "pf9_nodes" "masters" {

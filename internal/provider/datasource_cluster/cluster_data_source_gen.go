@@ -218,6 +218,11 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 			"docker_ubuntu_package_repo_url": schema.StringAttribute{
 				Computed: true,
 			},
+			"enable_catapult_monitoring": schema.BoolAttribute{
+				Computed:            true,
+				Description:         "True if platform9 Catapult monitoring is deployed on the cluster",
+				MarkdownDescription: "True if platform9 Catapult monitoring is deployed on the cluster",
+			},
 			"etcd": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"data_dir": schema.StringAttribute{
@@ -549,6 +554,7 @@ type ClusterModel struct {
 	DockerPrivateRegistry      types.String        `tfsdk:"docker_private_registry"`
 	DockerRoot                 types.String        `tfsdk:"docker_root"`
 	DockerUbuntuPackageRepoUrl types.String        `tfsdk:"docker_ubuntu_package_repo_url"`
+	EnableCatapultMonitoring   types.Bool          `tfsdk:"enable_catapult_monitoring"`
 	Etcd                       EtcdValue           `tfsdk:"etcd"`
 	EtcdBackup                 EtcdBackupValue     `tfsdk:"etcd_backup"`
 	ExternalDnsName            types.String        `tfsdk:"external_dns_name"`

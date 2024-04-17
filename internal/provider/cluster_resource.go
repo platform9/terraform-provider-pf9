@@ -552,6 +552,13 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		editClusterReq.CustomRegistrySelfSignedCerts = getIntPtrFromBool(plan.CustomRegistry.SelfSignedCerts)
 	}
 
+	if !plan.EnableCatapultMonitoring.Equal(state.EnableCatapultMonitoring) {
+		editRequired = true
+		if !plan.EnableCatapultMonitoring.IsNull() && !plan.EnableCatapultMonitoring.IsUnknown() {
+			editClusterReq.EnableCatapultMonitoring = plan.EnableCatapultMonitoring.ValueBoolPointer()
+		}
+	}
+
 	if editRequired {
 		// qberty API replaces tags with empty map if tags are not provided
 		editClusterReq.Tags = map[string]string{}
@@ -998,6 +1005,9 @@ func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Clu
 	clusterModel.CalicoIpv4DetectionMethod = types.StringValue(qbertCluster.CalicoIPv4DetectionMethod)
 	clusterModel.NetworkPlugin = types.StringValue(qbertCluster.NetworkPlugin)
 	clusterModel.ContainerRuntime = types.StringValue(qbertCluster.ContainerRuntime)
+	if qbertCluster.EnableCatapultMonitoring != nil {
+		clusterModel.EnableCatapultMonitoring = types.BoolValue(*qbertCluster.EnableCatapultMonitoring)
+	}
 	k8sconfig, convertDiags := getK8sConfigValue(ctx, qbertCluster)
 	diags.Append(convertDiags...)
 	if diags.HasError() {
@@ -1152,6 +1162,9 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 	createClusterReq.CalicoV4BlockSize = clusterModel.CalicoV4BlockSize.ValueString()
 	createClusterReq.CalicoIpv4 = clusterModel.CalicoIpv4.ValueString()
 	createClusterReq.CalicoIpv4DetectionMethod = clusterModel.CalicoIpv4DetectionMethod.ValueString()
+	if !clusterModel.EnableCatapultMonitoring.IsNull() && !clusterModel.EnableCatapultMonitoring.IsUnknown() {
+		createClusterReq.EnableCatapultMonitoring = clusterModel.EnableCatapultMonitoring.ValueBoolPointer()
+	}
 	if !clusterModel.Etcd.EnableEncryption.IsNull() && !clusterModel.Etcd.EnableEncryption.IsUnknown() {
 		// TODO: This does not work, etcd encryption always gets enabled
 		createClusterReq.EnableEtcdEncryption = fmt.Sprintf("%v", clusterModel.Etcd.EnableEncryption.ValueBool())

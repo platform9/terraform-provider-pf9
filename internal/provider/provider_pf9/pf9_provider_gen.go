@@ -12,33 +12,36 @@ import (
 func Pf9ProviderSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"du_fqdn": schema.StringAttribute{
-				Optional:            true,
-				Description:         "DU FQDN",
-				MarkdownDescription: "DU FQDN",
+			"account_url": schema.StringAttribute{
+				Required:            true,
+				Description:         "Account URL associated with platform9 management control plane",
+				MarkdownDescription: "Account URL associated with platform9 management control plane",
 			},
-			"du_region": schema.StringAttribute{
-				Optional:            true,
-				Description:         "Region",
-				MarkdownDescription: "Region",
+			"password": schema.StringAttribute{
+				Required:            true,
+				Sensitive:           true,
+				Description:         "Password for platform9 management control plane",
+				MarkdownDescription: "Password for platform9 management control plane",
 			},
-			"du_tenant": schema.StringAttribute{
-				Optional:            true,
-				Description:         "Tenant",
-				MarkdownDescription: "Tenant",
+			"region": schema.StringAttribute{
+				Optional: true,
 			},
-			"du_username": schema.StringAttribute{
-				Optional:            true,
-				Description:         "Username",
-				MarkdownDescription: "Username",
+			"tenant": schema.StringAttribute{
+				Optional: true,
+			},
+			"username": schema.StringAttribute{
+				Required:            true,
+				Description:         "Username for platform9 management control plane",
+				MarkdownDescription: "Username for platform9 management control plane",
 			},
 		},
 	}
 }
 
 type Pf9Model struct {
-	DuFqdn     types.String `tfsdk:"du_fqdn"`
-	DuRegion   types.String `tfsdk:"du_region"`
-	DuTenant   types.String `tfsdk:"du_tenant"`
-	DuUsername types.String `tfsdk:"du_username"`
+	AccountUrl types.String `tfsdk:"account_url"`
+	Password   types.String `tfsdk:"password"`
+	Region     types.String `tfsdk:"region"`
+	Tenant     types.String `tfsdk:"tenant"`
+	Username   types.String `tfsdk:"username"`
 }

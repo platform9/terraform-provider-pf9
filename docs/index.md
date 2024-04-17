@@ -10,17 +10,6 @@ description: |-
 
 The Pf9 Provider is a solution for creating and managing multiple clusters, attaching and detaching nodes, and managing the lifecycle of the clusters. The provider is built on top of the Platform9 Managed Kubernetes (PMK) platform, which is a managed Kubernetes service that provides a single pane of glass for managing multiple clusters.
 
-## Authentication
-
-To use this provider, set the following environment variables.
-
-```bash
-export DU_USERNAME=<Username>
-export DU_PASSWORD=<Password>
-export DU_FQDN=<FQDN>
-export DU_TENANT=<Tenant Name>
-```
-
 ## Example Usage
 
 Declare the provider in your `main.tf`:
@@ -30,12 +19,15 @@ terraform {
   required_providers {
     pf9 = {
       source  = "platform9/pf9"
-      version = ">=0.3.0"
     }
   }
 }
 
-provider "pf9" {}
+provider "pf9" {
+  account_url = "<PF9_ACCOUNT_URL>"
+  username    = "<PF9_USERNAME>"
+  password    = "<PF9_PASSWORD>"
+}
 ```
 
 ## Create Your First Cluster

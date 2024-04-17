@@ -5,10 +5,8 @@ package datasource_clusters
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -53,12 +51,9 @@ func ClustersDataSourceSchema(ctx context.Context) schema.Schema {
 						},
 					},
 				},
-				Required:            true,
+				Optional:            true,
 				Description:         "List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed.",
 				MarkdownDescription: "List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed.",
-				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
-				},
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,

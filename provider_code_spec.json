@@ -4,31 +4,37 @@
 		"schema": {
 			"attributes": [
 				{
-					"name": "du_fqdn",
+					"name": "account_url",
 					"string": {
-						"optional_required": "optional",
-						"description": "DU FQDN"
+						"optional_required": "required",
+						"description": "Account URL associated with platform9 management control plane"
 					}
 				},
 				{
-					"name": "du_username",
+					"name": "username",
 					"string": {
-						"optional_required": "optional",
-						"description": "Username"
+						"optional_required": "required",
+						"description": "Username for platform9 management control plane"
 					}
 				},
 				{
-					"name": "du_region",
+					"name": "password",
 					"string": {
-						"optional_required": "optional",
-						"description": "Region"
+						"optional_required": "required",
+						"sensitive": true,
+						"description": "Password for platform9 management control plane"
 					}
 				},
 				{
-					"name": "du_tenant",
+					"name": "region",
 					"string": {
-						"optional_required": "optional",
-						"description": "Tenant"
+						"optional_required": "optional"
+					}
+				},
+				{
+					"name": "tenant",
+					"string": {
+						"optional_required": "optional"
 					}
 				}
 			]
@@ -149,6 +155,28 @@
 											}
 										],
 										"schema_definition": "boolplanmodifier.RequiresReplace()"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "enable_catapult_monitoring",
+						"bool": {
+							"default": {
+								"static": true
+							},
+							"computed_optional_required": "computed_optional",
+							"description": "If set to true platform9 Catapult monitoring will be deployed on the cluster",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+											}
+										],
+										"schema_definition": "boolplanmodifier.UseStateForUnknown()"
 									}
 								}
 							]
@@ -2338,6 +2366,13 @@
 					  }
 					},
 					{
+						"name": "enable_catapult_monitoring",
+						"bool": {
+							"computed_optional_required": "computed",
+							"description": "True if platform9 Catapult monitoring is deployed on the cluster"
+						}
+					},
+					{
 					  "name": "master_vip_iface",
 					  "string": {
 						"computed_optional_required": "computed",
@@ -3469,7 +3504,7 @@
 					{
 						"name": "filters",
 						"list_nested": {
-							"computed_optional_required": "required",
+							"computed_optional_required": "optional",
 							"description": "List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed.",
 							"nested_object": {
 								"attributes": [
@@ -3501,19 +3536,7 @@
 										}
 									}
 								]
-							},
-							"validators": [
-								{
-									"custom": {
-										"imports": [
-											{
-												"path": "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-											}
-										],
-										"schema_definition": "listvalidator.SizeAtLeast(1)"
-									}
-								}
-							]
+							}
 						}
 					}
 				]

@@ -20,9 +20,13 @@ terraform-provider-*
 *.tfstate
 *.backup
 *.log
-*.code-workspace
 bin/
-*.env
-TODO.md
-.vscode/launch.json
+dist/
+
+*.code-workspace
+
 main.tf
+*.env
+*.terraform*
+
+TODO.md

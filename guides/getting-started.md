@@ -30,23 +30,6 @@ pf9ctl prep-node
 
 For more information on how to use `pf9ctl`, refer to its [documentation](https://github.com/platform9/pf9ctl/).
 
-## Authentication
-
-To authenticate terraform provider with the PF9 Provider, set the following environment variables:
-
-```bash
-# Required
-export DU_FQDN="FQDN"
-export DU_USERNAME="username"
-export DU_PASSWORD="Password" # use single quotes if password contains special characters
-
-# Optional, with default values as shown below
-export DU_REGION=RegionOne
-export DU_TENANT=service
-```
-
-These environment variables will be used by the provider to authenticate with the Platform9 PMK platform. Although it is possible to set these variables in the provider configuration, it is recommended to use environment variables to avoid exposing sensitive information in your configuration files. For security reasons, it is recommended to use a secrets management tool to store and manage these credentials.
-
 ## Example Usage
 
 Declare the provider in your configuration in a file named `main.tf`.
@@ -60,7 +43,11 @@ terraform {
   }
 }
 
-provider "pf9" {}
+provider "pf9" {
+  account_url = "<url>"
+  username    = "<username>"
+  password    = "<password>"
+}
 ```
 
 ## Create Your First Cluster

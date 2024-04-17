@@ -198,6 +198,9 @@ func qbertClusterToDatasource(ctx context.Context, qbertCluster *qbert.Cluster, 
 	clusterModel.CalicoIpv4DetectionMethod = types.StringValue(qbertCluster.CalicoIPv4DetectionMethod)
 	clusterModel.NetworkPlugin = types.StringValue(qbertCluster.NetworkPlugin)
 	clusterModel.ContainerRuntime = types.StringValue(qbertCluster.ContainerRuntime)
+	if qbertCluster.EnableCatapultMonitoring != nil {
+		clusterModel.EnableCatapultMonitoring = types.BoolValue(*qbertCluster.EnableCatapultMonitoring)
+	}
 	k8sconfig, convertDiags := getDSK8sConfigValue(ctx, qbertCluster)
 	diags.Append(convertDiags...)
 	if diags.HasError() {

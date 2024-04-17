@@ -392,6 +392,16 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"enable_catapult_monitoring": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				Description:         "If set to true platform9 Catapult monitoring will be deployed on the cluster",
+				MarkdownDescription: "If set to true platform9 Catapult monitoring will be deployed on the cluster",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+				Default: booldefault.StaticBool(true),
+			},
 			"etcd": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"data_dir": schema.StringAttribute{
@@ -951,6 +961,7 @@ type ClusterModel struct {
 	DockerPrivateRegistry      types.String        `tfsdk:"docker_private_registry"`
 	DockerRoot                 types.String        `tfsdk:"docker_root"`
 	DockerUbuntuPackageRepoUrl types.String        `tfsdk:"docker_ubuntu_package_repo_url"`
+	EnableCatapultMonitoring   types.Bool          `tfsdk:"enable_catapult_monitoring"`
 	Etcd                       EtcdValue           `tfsdk:"etcd"`
 	EtcdBackup                 EtcdBackupValue     `tfsdk:"etcd_backup"`
 	ExternalDnsName            types.String        `tfsdk:"external_dns_name"`
