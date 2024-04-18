@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -177,4 +178,22 @@ func toJsonArrFromStrList(ctx context.Context, strList types.List) (string, diag
 		return "", diags
 	}
 	return string(jsonBytes), diags
+}
+
+func StrSliceContains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func RegexMatches(regexes []string, value string) bool {
+	for _, regex := range regexes {
+		if ok, _ := regexp.Match(regex, []byte(value)); ok {
+			return true
+		}
+	}
+	return false
 }

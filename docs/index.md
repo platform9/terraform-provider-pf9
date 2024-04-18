@@ -47,6 +47,7 @@ provider "pf9" {
 resource "pf9_cluster" "example" {
   name = "example-cluster"
   master_nodes = [ "<node-id>" ]
+  # other attributes...
 }
 ```
 
@@ -90,13 +91,11 @@ It is also possible to provide the node IDs using `nodes` data source.
 variable "master_ip" {
   description = "The primary IP address of the master node"
   type = string
-  default = "10.149.107.237"
 }
 
 variable "worker1_hostname" {
   description = "The hostname of the worker node"
   type = string
-  default = "test-pf9-bare-os-u20-3150879-320-3"
 }
 
 # find node with hostname worker1

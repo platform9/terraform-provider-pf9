@@ -70,6 +70,8 @@ func (d *nodeDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			data.NodePoolUuid = types.StringValue(node.NodePoolUUID)
 			data.IsMaster = types.BoolValue(node.IsMaster != 0)
 			data.ApiResponding = types.BoolValue(node.APIResponding != 0)
+			data.ProjectId = types.StringValue(node.ProjectID)
+			data.ActualKubeRoleVersion = types.StringValue(node.ActualKubeRoleVersion)
 			break
 		}
 	}

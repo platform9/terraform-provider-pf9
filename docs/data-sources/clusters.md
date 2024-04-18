@@ -99,7 +99,7 @@ output "example" {
 
 ### Optional
 
-- `filters` (Attributes List) List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed. (see [below for nested schema](#nestedatt--filters))
+- `filters` (Attributes List) List of filters. (see [below for nested schema](#nestedatt--filters))
 
 ### Read-Only
 

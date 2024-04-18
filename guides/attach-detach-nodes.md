@@ -82,3 +82,43 @@ resource "pf9_cluster" "example" {
 ## Changing Node Roles
 
 To change the role of a node from master to worker or vice versa, simply move its ID from `master_nodes` to `worker_nodes` or vice versa in the `pf9_cluster` resource configuration.
+
+## Identifying Nodes Available to Attach
+
+Often, it becomes necessary to identify the nodes that are available to attach to a cluster. This can be done by filtering the `hosts` that are connected to the PF9 managed control plane, and then further filtering the output based on the `status` attribute and `cluster_name` to find the nodes that are not yet part of a cluster.
+
+The following example shows how to find the node IDs of the nodes that are available to be attached to a cluster:
+
+```terraform
+# Filter hosts connected to PMK
+data "pf9_hosts" "connected" {
+  filters = [
+    {
+      name   = "responding"
+      values = ["true"]
+    }
+  ]
+}
+
+# Filter nodes that are available to be added to a cluster
+data "pf9_nodes" "available" {
+  filters = [
+    {
+      name   = "id",
+      values = data.pf9_hosts.connected.host_ids
+    },
+    {
+      name   = "status"
+      values = ["ok"]
+    },
+    {
+      name   = "cluster_name"
+      values = [""]
+    }
+  ]
+}
+
+output "example" {
+  value = data.pf9_nodes.available.node_ids
+}
+```

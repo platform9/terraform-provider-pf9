@@ -28,6 +28,7 @@ data "pf9_node" "node1" {
 
 ### Read-Only
 
+- `actual_kube_role_version` (String)
 - `api_responding` (Boolean) true indicates the API server on this node is running.
 - `cluster_name` (String) Name of the cluster the node belongs to
 - `cluster_uuid` (String) UUID of the cluster the node belongs to
@@ -36,4 +37,5 @@ data "pf9_node" "node1" {
 - `node_pool_name` (String) Name of the node pool, the node belongs to
 - `node_pool_uuid` (String) UUID of the node pool, the node belongs to
 - `primary_ip` (String) IP address of the node
+- `project_id` (String)
 - `status` (String) Status of the node. States include “ok”, ”converging”, “failed”. These states indicate the current state of kubernetes setup on the host.

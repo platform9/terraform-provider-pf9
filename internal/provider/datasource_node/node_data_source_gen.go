@@ -12,6 +12,9 @@ import (
 func NodeDataSourceSchema(ctx context.Context) schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"actual_kube_role_version": schema.StringAttribute{
+				Computed: true,
+			},
 			"api_responding": schema.BoolAttribute{
 				Computed:            true,
 				Description:         "true indicates the API server on this node is running.",
@@ -57,6 +60,9 @@ func NodeDataSourceSchema(ctx context.Context) schema.Schema {
 				Description:         "IP address of the node",
 				MarkdownDescription: "IP address of the node",
 			},
+			"project_id": schema.StringAttribute{
+				Computed: true,
+			},
 			"status": schema.StringAttribute{
 				Computed:            true,
 				Description:         "Status of the node. States include “ok”, ”converging”, “failed”. These states indicate the current state of kubernetes setup on the host.",
@@ -67,14 +73,16 @@ func NodeDataSourceSchema(ctx context.Context) schema.Schema {
 }
 
 type NodeModel struct {
-	ApiResponding types.Bool   `tfsdk:"api_responding"`
-	ClusterName   types.String `tfsdk:"cluster_name"`
-	ClusterUuid   types.String `tfsdk:"cluster_uuid"`
-	Id            types.String `tfsdk:"id"`
-	IsMaster      types.Bool   `tfsdk:"is_master"`
-	Name          types.String `tfsdk:"name"`
-	NodePoolName  types.String `tfsdk:"node_pool_name"`
-	NodePoolUuid  types.String `tfsdk:"node_pool_uuid"`
-	PrimaryIp     types.String `tfsdk:"primary_ip"`
-	Status        types.String `tfsdk:"status"`
+	ActualKubeRoleVersion types.String `tfsdk:"actual_kube_role_version"`
+	ApiResponding         types.Bool   `tfsdk:"api_responding"`
+	ClusterName           types.String `tfsdk:"cluster_name"`
+	ClusterUuid           types.String `tfsdk:"cluster_uuid"`
+	Id                    types.String `tfsdk:"id"`
+	IsMaster              types.Bool   `tfsdk:"is_master"`
+	Name                  types.String `tfsdk:"name"`
+	NodePoolName          types.String `tfsdk:"node_pool_name"`
+	NodePoolUuid          types.String `tfsdk:"node_pool_uuid"`
+	PrimaryIp             types.String `tfsdk:"primary_ip"`
+	ProjectId             types.String `tfsdk:"project_id"`
+	Status                types.String `tfsdk:"status"`
 }

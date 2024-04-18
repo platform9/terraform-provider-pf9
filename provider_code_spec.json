@@ -3256,6 +3256,18 @@
 							"computed_optional_required": "computed",
 							"description": "Status of the node. States include “ok”, ”converging”, “failed”. These states indicate the current state of kubernetes setup on the host."
 						}
+					},
+					{
+						"name": "project_id",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "actual_kube_role_version",
+						"string": {
+							"computed_optional_required": "computed"
+						}
 					}
 				]
 			}
@@ -3276,6 +3288,7 @@
 						"list_nested": {
 							"computed_optional_required": "computed",
 							"description": "List of nodes",
+							"deprecation_message": "This field is deprecated and will be removed in a future release. Use the 'node_ids' field instead.",
 							"nested_object": {
 								"attributes": [
 									{
@@ -3355,12 +3368,14 @@
 					{
 						"name": "filter",
 						"single_nested": {
-							"computed_optional_required": "required",
+							"computed_optional_required": "optional",
+							"description": "Filter to apply to the list of nodes",
+							"deprecation_message": "This field is deprecated and will be removed in a future release. Use the 'filters' field instead.",
 							"attributes": [
 								{
 									"name": "name",
 									"string": {
-										"computed_optional_required": "required",
+										"computed_optional_required": "optional",
 										"description": "Name of the attribute on which this filter is applied",
 										"validators": [
 											{
@@ -3379,13 +3394,61 @@
 								{
 									"name": "values",
 									"list": {
-										"computed_optional_required": "required",
+										"computed_optional_required": "optional",
 										"element_type": {
 											"string": {}
 										}
 									}
 								}
 							]
+						}
+					},
+					{
+						"name": "node_ids",
+						"list": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							},
+							"description": "A list of node IDs for nodes that match all the specified filters."
+						}
+					},
+					{
+						"name": "filters",
+						"list_nested": {
+							"computed_optional_required": "optional",
+							"description": "List of filters",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "Name of the attribute on which this filter should be applied."
+										}
+									},
+									{
+										"name": "values",
+										"set": {
+											"computed_optional_required": "optional",
+											"description": "Set of values for the attribute, if any of the 'value' matches then the filter is considered to be matched",
+											"element_type": {
+												"string": {}
+											}
+										}
+									},
+									{
+										"name": "regexes",
+										"set": {
+											"computed_optional_required": "optional",
+											"description": "Set of regexes to match to the attribute value, if any of the 'regex' matches then the filter is considered to be matched",
+											"element_type": {
+												"string": {}
+											}
+										}
+									}
+								]
+							}
 						}
 					}
 				]
@@ -3505,7 +3568,7 @@
 						"name": "filters",
 						"list_nested": {
 							"computed_optional_required": "optional",
-							"description": "List of filters, each filter is applied to the list of clusters one by one. Hence the results match all the specified filters. All the filters are ANDed.",
+							"description": "List of filters.",
 							"nested_object": {
 								"attributes": [
 									{
@@ -3636,6 +3699,68 @@
 										"string": {
 											"computed_optional_required": "computed",
 											"description": "IP address of the interface"
+										}
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "hosts",
+			"schema": {
+				"attributes": [
+					{
+						"name": "id",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "Placeholder for ID"
+						}
+					},
+					{
+						"name": "host_ids",
+						"list": {
+							"computed_optional_required": "computed",
+							"element_type": {
+								"string": {}
+							},
+							"description": "A list of IDs of resources that match all the specified filters."
+						}
+					},
+					{
+						"name": "filters",
+						"list_nested": {
+							"computed_optional_required": "optional",
+							"description": "List of filters.",
+							"nested_object": {
+								"attributes": [
+									{
+										"name": "name",
+										"string": {
+											"computed_optional_required": "required",
+											"description": "Name of the attribute on which this filter should be applied."
+										}
+									},
+									{
+										"name": "values",
+										"set": {
+											"computed_optional_required": "optional",
+											"description": "Set of values for the attribute, if any of the 'value' matches then the filter is considered to be matched",
+											"element_type": {
+												"string": {}
+											}
+										}
+									},
+									{
+										"name": "regexes",
+										"set": {
+											"computed_optional_required": "optional",
+											"description": "Set of regexes to match to the attribute value, if any of the 'regex' matches then the filter is considered to be matched",
+											"element_type": {
+												"string": {}
+											}
 										}
 									}
 								]
