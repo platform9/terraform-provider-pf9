@@ -198,7 +198,7 @@
 												"path": "github.com/hashicorp/terraform-plugin-framework/path"
 											}
 										],
-										"schema_definition": "stringvalidator.AlsoRequires(path.MatchRelative().AtName(\"master_vip_ipv4\"))"
+										"schema_definition": "stringvalidator.AlsoRequires(path.MatchRoot(\"master_vip_ipv4\"))"
 									}
 								}
 							],

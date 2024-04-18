@@ -8,11 +8,18 @@ description: |-
 
 # Pf9 Provider
 
-The Pf9 Provider is a solution for creating and managing multiple clusters, attaching and detaching nodes, and managing the lifecycle of the clusters. The provider is built on top of the Platform9 Managed Kubernetes (PMK) platform, which is a managed Kubernetes service that provides a single pane of glass for managing multiple clusters.
+Platform9 Managed Kubernetes (PMK) is a SaaS managed Kubernetes offering. Head over to the [Platform9 documentation](https://platform9.com/docs/kubernetes) to learn more about PMK.
+
+The Pf9 Provider is a solution for creating and managing multiple clusters, attaching and detaching nodes, and managing the lifecycle of the clusters.
+
+## Prerequisites
+
+Before you begin, ensure you have the following:
+
+1. Platform9 PMK account credentials (username, password and Account URL).
+2. Nodes connected to your Platform9 management control plane.
 
 ## Example Usage
-
-Declare the provider in your `main.tf`:
 
 ```terraform
 terraform {
@@ -23,23 +30,32 @@ terraform {
   }
 }
 
+# Set the variable value in *.tfvars file
+# or using -var="account_url=..." CLI option
+variable "account_url" {}
+variable "username" {}
+variable "password" {}
+
+# Configure the Platform9 provider
 provider "pf9" {
-  account_url = "<PF9_ACCOUNT_URL>"
-  username    = "<PF9_USERNAME>"
-  password    = "<PF9_PASSWORD>"
+  account_url = var.account_url
+  username    = var.username
+  password    = var.password
+}
+
+# Create a cluster
+resource "pf9_cluster" "example" {
+  name = "example-cluster"
+  master_nodes = [ "<node-id>" ]
 }
 ```
 
-## Create Your First Cluster
-
-In the same `main.tf` copy the following code and make necessary changes as per your infrastructure.
+## Create your first Cluster
 
 ```terraform
-# Used to manage cluster resource
 resource "pf9_cluster" "example" {
   name = "example"
   master_nodes = [
-    # node uuids of the nodes connected to PMK control plane
     "17f9b392-67bb-43b9-b0b7-3b5821f683a6",
     "7f5aa992-0abe-40a0-9bf9-6a06ebb9ccfd",
     "a17fa56d-722b-4f10-8b50-ffa5a4bed36e"
@@ -68,4 +84,74 @@ resource "pf9_cluster" "example" {
 }
 ```
 
-Run `terraform init` and then `terraform apply`
+It is also possible to provide the node IDs using `nodes` data source.
+
+```terraform
+variable "master_ip" {
+  description = "The primary IP address of the master node"
+  type = string
+  default = "10.149.107.237"
+}
+
+variable "worker1_hostname" {
+  description = "The hostname of the worker node"
+  type = string
+  default = "test-pf9-bare-os-u20-3150879-320-3"
+}
+
+# find node with hostname worker1
+data "pf9_nodes" "workers" {
+  filter = {
+    name   = "name"
+    values = [var.worker1_hostname]
+  }
+}
+
+# find node with primary ip address
+data "pf9_nodes" "master" {
+  filter = {
+    name   = "primary_ip"
+    values = [var.master_ip]
+  }
+}
+
+# Retrieve the interface name associated with the master IP
+data "pf9_host" "master" {
+  id = data.pf9_nodes.master.nodes[0].id
+}
+
+locals {
+  iface_name = try(
+    [for iface in data.pf9_host.master.interfaces : iface.name if iface.ip == var.master_ip][0],
+    null
+  )
+}
+
+resource "pf9_cluster" "example" {
+  name                         = "example"
+  master_nodes                 = toset(data.pf9_nodes.master.nodes[*].id)
+  worker_nodes                 = toset(data.pf9_nodes.workers.nodes[*].id)
+  allow_workloads_on_master    = false
+  master_vip_ipv4              = data.pf9_nodes.workers.nodes[0].primary_ip
+  master_vip_iface             = local.iface_name
+  containers_cidr              = "10.20.0.0/16"
+  services_cidr                = "10.21.0.0/16"
+  interface_detection_method   = "InterfaceName"
+  interface_name               = local.iface_name
+  network_plugin               = "calico"
+  calico_ipv4_detection_method = "interface=${local.iface_name}"
+  etcd_backup = {
+    daily = {
+      backup_time = "02:00"
+    }
+  }
+  tags = {
+    "key1" = "value1"
+  }
+  depends_on = [ data.pf9_host.master, data.pf9_nodes.workers ]
+}
+```
+
+### Modify the Configuration
+
+With the provider, you can modify the configuration of the cluster. For example, you can add or remove nodes, change the network configuration, or modify the tags.

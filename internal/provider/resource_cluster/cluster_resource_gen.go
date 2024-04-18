@@ -737,7 +737,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
-					stringvalidator.AlsoRequires(path.MatchRelative().AtName("master_vip_ipv4")),
+					stringvalidator.AlsoRequires(path.MatchRoot("master_vip_ipv4")),
 				},
 			},
 			"master_vip_ipv4": schema.StringAttribute{

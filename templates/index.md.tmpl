@@ -8,18 +8,29 @@ description: |-
 
 # {{ .ProviderShortName | title }} Provider
 
-The {{ .ProviderShortName | title }} Provider is a solution for creating and managing multiple clusters, attaching and detaching nodes, and managing the lifecycle of the clusters. The provider is built on top of the Platform9 Managed Kubernetes (PMK) platform, which is a managed Kubernetes service that provides a single pane of glass for managing multiple clusters.
+Platform9 Managed Kubernetes (PMK) is a SaaS managed Kubernetes offering. Head over to the [Platform9 documentation](https://platform9.com/docs/kubernetes) to learn more about PMK.
+
+The {{ .ProviderShortName | title }} Provider is a solution for creating and managing multiple clusters, attaching and detaching nodes, and managing the lifecycle of the clusters.
+
+## Prerequisites
+
+Before you begin, ensure you have the following:
+
+1. Platform9 PMK account credentials (username, password and Account URL).
+2. Nodes connected to your Platform9 management control plane.
 
 ## Example Usage
 
-Declare the provider in your `main.tf`:
-
 {{ tffile .ExampleFile }}
 
-## Create Your First Cluster
-
-In the same `main.tf` copy the following code and make necessary changes as per your infrastructure.
+## Create your first Cluster
 
 {{ tffile "examples/resources/pf9_cluster/resource.tf" }}
 
-Run `terraform init` and then `terraform apply`
+It is also possible to provide the node IDs using `nodes` data source.
+
+{{ tffile "examples/resources/pf9_cluster/example_nodes.tf" }}
+
+### Modify the Configuration
+
+With the provider, you can modify the configuration of the cluster. For example, you can add or remove nodes, change the network configuration, or modify the tags.

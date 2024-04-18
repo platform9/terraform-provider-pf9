@@ -81,13 +81,13 @@ func (c clusterResource) ValidateConfig(ctx context.Context, req resource.Valida
 			}
 		}
 	}
-	if len(workerNodes) == 0 {
+	if len(workerNodes) == 0 && !data.WorkerNodes.IsUnknown() {
 		var allowWorkloadsOnMaster types.Bool
 		resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("allow_workloads_on_master"), &allowWorkloadsOnMaster)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if !allowWorkloadsOnMaster.IsNull() && !allowWorkloadsOnMaster.IsUnknown() && !allowWorkloadsOnMaster.ValueBool() {
+		if !allowWorkloadsOnMaster.IsNull() && !allowWorkloadsOnMaster.ValueBool() {
 			resp.Diagnostics.AddAttributeError(path.Root("worker_nodes"), "worker_nodes is required", "The allow_workloads_on_master should be true or worker_nodes should be provided")
 			return
 		}

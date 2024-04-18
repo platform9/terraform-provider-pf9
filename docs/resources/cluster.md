@@ -13,11 +13,9 @@ This can be used to create, modify, and delete pf9 cluster.
 ## Example Usage
 
 ```terraform
-# Used to manage cluster resource
 resource "pf9_cluster" "example" {
   name = "example"
   master_nodes = [
-    # node uuids of the nodes connected to PMK control plane
     "17f9b392-67bb-43b9-b0b7-3b5821f683a6",
     "7f5aa992-0abe-40a0-9bf9-6a06ebb9ccfd",
     "a17fa56d-722b-4f10-8b50-ffa5a4bed36e"
