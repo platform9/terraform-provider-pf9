@@ -102,17 +102,6 @@ func findLatestKubeRoleVersion(roles []qbert.Role) qbert.Role {
 	return latestRole
 }
 
-func areNotMutuallyExclusive(slice1, slice2 []string) bool {
-	for _, s := range slice1 {
-		for _, t := range slice2 {
-			if s == t {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // CheckCIDROverlap checks if two CIDR blocks are overlapping
 func CheckCIDROverlap(cidr1, cidr2 string) (bool, error) {
 	_, network1, err := net.ParseCIDR(cidr1)

@@ -61,7 +61,7 @@ func (d *clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 	projectID := authInfo.ProjectID
-	tflog.Info(ctx, "Reading cluster from qbert", map[string]interface{}{"clusterID": clusterID})
+	tflog.Info(ctx, "Reading cluster", map[string]interface{}{"clusterID": clusterID})
 	cluster, err := d.client.Qbert().GetCluster(ctx, projectID, clusterID)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get cluster", err.Error())
@@ -156,7 +156,7 @@ func qbertClusterToDatasource(ctx context.Context, qbertCluster *qbert.Cluster, 
 	clusterModel.Id = types.StringValue(qbertCluster.UUID)
 	clusterModel.Name = types.StringValue(qbertCluster.Name)
 	clusterModel.AllowWorkloadsOnMaster = types.BoolValue(qbertCluster.AllowWorkloadsOnMaster != 0)
-	clusterModel.MasterIp = types.StringValue(qbertCluster.MasterIp)
+	clusterModel.MasterIp = types.StringValue(qbertCluster.MasterIP)
 	clusterModel.MasterVipIface = types.StringValue(qbertCluster.MasterVipIface)
 	clusterModel.MasterVipIpv4 = types.StringValue(qbertCluster.MasterVipIpv4)
 	clusterModel.ContainersCidr = types.StringValue(qbertCluster.ContainersCidr)
@@ -171,7 +171,7 @@ func qbertClusterToDatasource(ctx context.Context, qbertCluster *qbert.Cluster, 
 	clusterModel.UseHostname = types.BoolValue(qbertCluster.UseHostname)
 	clusterModel.InterfaceDetectionMethod = types.StringValue(qbertCluster.InterfaceDetectionMethod)
 	clusterModel.InterfaceName = types.StringValue(qbertCluster.InterfaceName)
-	clusterModel.NodePoolUuid = types.StringValue(qbertCluster.NodePoolUuid)
+	clusterModel.NodePoolUuid = types.StringValue(qbertCluster.NodePoolUUID)
 	// KubeRoleVersion does not change immediately after cluster upgrade
 	// hence this is a workaround to get the correct value
 	if qbertCluster.UpgradingTo != "" {
@@ -179,10 +179,10 @@ func qbertClusterToDatasource(ctx context.Context, qbertCluster *qbert.Cluster, 
 	} else {
 		clusterModel.KubeRoleVersion = types.StringValue(qbertCluster.KubeRoleVersion)
 	}
-	if qbertCluster.K8sApiPort == "" {
+	if qbertCluster.K8sAPIPort == "" {
 		clusterModel.K8sApiPort = types.Int64Null()
 	} else {
-		intPort, err := strconv.Atoi(qbertCluster.K8sApiPort)
+		intPort, err := strconv.Atoi(qbertCluster.K8sAPIPort)
 		if err != nil {
 			diags.AddError("Failed to parse k8s api port", err.Error())
 			return diags
@@ -192,7 +192,7 @@ func qbertClusterToDatasource(ctx context.Context, qbertCluster *qbert.Cluster, 
 	clusterModel.CpuManagerPolicy = types.StringValue(qbertCluster.CPUManagerPolicy)
 	clusterModel.TopologyManagerPolicy = types.StringValue(qbertCluster.TopologyManagerPolicy)
 	clusterModel.ReservedCpus = getStrOrNullIfEmpty(qbertCluster.ReservedCPUs)
-	clusterModel.CalicoIpIpMode = types.StringValue(qbertCluster.CalicoIpIpMode)
+	clusterModel.CalicoIpIpMode = types.StringValue(qbertCluster.CalicoIPIPMode)
 	clusterModel.CalicoNatOutgoing = types.BoolValue(qbertCluster.CalicoNatOutgoing != 0)
 	clusterModel.CalicoV4BlockSize = types.StringValue(qbertCluster.CalicoV4BlockSize)
 	clusterModel.CalicoIpv4DetectionMethod = types.StringValue(qbertCluster.CalicoIPv4DetectionMethod)
@@ -208,7 +208,7 @@ func qbertClusterToDatasource(ctx context.Context, qbertCluster *qbert.Cluster, 
 	}
 	clusterModel.K8sConfig = k8sconfig
 
-	clusterModel.ExternalDnsName = getStrOrNullIfEmpty(qbertCluster.ExternalDnsName)
+	clusterModel.ExternalDnsName = getStrOrNullIfEmpty(qbertCluster.ExternalDNSName)
 	clusterModel.CertExpiryHrs = types.Int64Value(int64(qbertCluster.CertExpiryHrs))
 	calicoLimits, convertDiags := getDSCalicoLimitsValue(ctx, qbertCluster)
 	diags.Append(convertDiags...)
@@ -228,9 +228,9 @@ func qbertClusterToDatasource(ctx context.Context, qbertCluster *qbert.Cluster, 
 	clusterModel.FlannelIfaceLabel = getStrOrNullIfEmpty(qbertCluster.FlannelIfaceLabel)
 	clusterModel.FlannelPublicIfaceLabel = getStrOrNullIfEmpty(qbertCluster.FlannelPublicIfaceLabel)
 	clusterModel.DockerRoot = types.StringValue(qbertCluster.DockerRoot)
-	clusterModel.MasterVipVrouterId = types.StringValue(qbertCluster.MasterVipVrouterId)
+	clusterModel.MasterVipVrouterId = types.StringValue(qbertCluster.MasterVipVrouterID)
 
-	clusterModel.ProjectId = types.StringValue(qbertCluster.ProjectId)
+	clusterModel.ProjectId = types.StringValue(qbertCluster.ProjectID)
 	clusterModel.CreatedAt = types.StringValue(qbertCluster.CreatedAt)
 	clusterModel.CalicoIpv4 = types.StringValue(qbertCluster.CalicoIPv4)
 	clusterModel.CalicoIpv6 = types.StringValue(qbertCluster.CalicoIPv6)
@@ -254,8 +254,8 @@ func qbertClusterToDatasource(ctx context.Context, qbertCluster *qbert.Cluster, 
 	clusterModel.QuayPrivateRegistry = getStrOrNullIfEmpty(qbertCluster.QuayPrivateRegistry)
 	clusterModel.GcrPrivateRegistry = getStrOrNullIfEmpty(qbertCluster.GcrPrivateRegistry)
 	clusterModel.K8sPrivateRegistry = getStrOrNullIfEmpty(qbertCluster.K8sPrivateRegistry)
-	clusterModel.DockerCentosPackageRepoUrl = getStrOrNullIfEmpty(qbertCluster.DockerCentosPackageRepoUrl)
-	clusterModel.DockerUbuntuPackageRepoUrl = getStrOrNullIfEmpty(qbertCluster.DockerUbuntuPackageRepoUrl)
+	clusterModel.DockerCentosPackageRepoUrl = getStrOrNullIfEmpty(qbertCluster.DockerCentosPackageRepoURL)
+	clusterModel.DockerUbuntuPackageRepoUrl = getStrOrNullIfEmpty(qbertCluster.DockerUbuntuPackageRepoURL)
 	clusterModel.InterfaceReachableIp = types.StringValue(qbertCluster.InterfaceReachableIP)
 	customRegistry, convertDiags := getDSCustomRegistryValue(ctx, qbertCluster)
 	diags.Append(convertDiags...)
@@ -374,15 +374,15 @@ func getDSEtcdBackupValue(ctx context.Context, etcdBackupConfig *qbert.EtcdBacku
 
 func getDSCustomRegistryValue(ctx context.Context, qbertCluster *qbert.Cluster) (datasource_cluster.CustomRegistryValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	if qbertCluster.CustomRegistryUrl == "" {
+	if qbertCluster.CustomRegistryURL == "" {
 		return datasource_cluster.NewCustomRegistryValueNull(), diags
 	}
 	customRegistryObjValue, convertDiags := datasource_cluster.CustomRegistryValue{
-		Url:             getStrOrNullIfEmpty(qbertCluster.CustomRegistryUrl),
+		Url:             getStrOrNullIfEmpty(qbertCluster.CustomRegistryURL),
 		RepoPath:        getStrOrNullIfEmpty(qbertCluster.CustomRegistryRepoPath),
 		Username:        getStrOrNullIfEmpty(qbertCluster.CustomRegistryUsername),
 		Password:        getStrOrNullIfEmpty(qbertCluster.CustomRegistryPassword),
-		SkipTls:         getBoolFromIntPtr(qbertCluster.CustomRegistrySkipTls),
+		SkipTls:         getBoolFromIntPtr(qbertCluster.CustomRegistrySkipTLS),
 		SelfSignedCerts: getBoolFromIntPtr(qbertCluster.CustomRegistrySelfSignedCerts),
 		CertPath:        getStrOrNullIfEmpty(qbertCluster.CustomRegistryCertPath),
 	}.ToObjectValue(ctx)
@@ -442,7 +442,7 @@ func getDSEtcdValue(ctx context.Context, qbertCluster *qbert.Cluster) (datasourc
 func getDSCloudProviderValue(ctx context.Context, qbertCluster *qbert.Cluster) (datasource_cluster.CloudProviderValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	cloudProviderObjValue, convertDiags := datasource_cluster.CloudProviderValue{
-		Uuid:              getStrOrNullIfEmpty(qbertCluster.CloudProviderUuid),
+		Uuid:              getStrOrNullIfEmpty(qbertCluster.CloudProviderUUID),
 		Name:              getStrOrNullIfEmpty(qbertCluster.CloudProviderName),
 		CloudProviderType: getStrOrNullIfEmpty(qbertCluster.CloudProviderType),
 	}.ToObjectValue(ctx)
@@ -478,7 +478,7 @@ func getDSK8sConfigValue(ctx context.Context, qbertCluster *qbert.Cluster) (data
 		return datasource_cluster.NewK8sConfigValue(k8sObjVal.AttributeTypes(ctx), k8sObjVal.Attributes())
 	}
 
-	apiServerFlagsList, convertDiags := strListFromJsonArr(ctx, qbertCluster.CloudProperties.ApiServerFlags)
+	apiServerFlagsList, convertDiags := strListFromJsonArr(ctx, qbertCluster.CloudProperties.APIServerFlags)
 	diags.Append(convertDiags...)
 	if diags.HasError() {
 		return datasource_cluster.K8sConfigValue{}, diags
@@ -519,11 +519,11 @@ func getDSK8sConfigValue(ctx context.Context, qbertCluster *qbert.Cluster) (data
 func getDSCalicoLimitsValue(ctx context.Context, qbertCluster *qbert.Cluster) (datasource_cluster.CalicoLimitsValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	calicoLimitsValue := datasource_cluster.CalicoLimitsValue{
-		NodeCpuLimit:          getStrOrNullIfEmpty(qbertCluster.CalicoNodeCpuLimit),
+		NodeCpuLimit:          getStrOrNullIfEmpty(qbertCluster.CalicoNodeCPULimit),
 		NodeMemoryLimit:       getStrOrNullIfEmpty(qbertCluster.CalicoNodeMemoryLimit),
-		TyphaCpuLimit:         getStrOrNullIfEmpty(qbertCluster.CalicoTyphaCpuLimit),
+		TyphaCpuLimit:         getStrOrNullIfEmpty(qbertCluster.CalicoTyphaCPULimit),
 		TyphaMemoryLimit:      getStrOrNullIfEmpty(qbertCluster.CalicoTyphaMemoryLimit),
-		ControllerCpuLimit:    getStrOrNullIfEmpty(qbertCluster.CalicoControllerCpuLimit),
+		ControllerCpuLimit:    getStrOrNullIfEmpty(qbertCluster.CalicoControllerCPULimit),
 		ControllerMemoryLimit: getStrOrNullIfEmpty(qbertCluster.CalicoControllerMemoryLimit),
 	}
 	calicoLimitsObjVal, convertDiags := calicoLimitsValue.ToObjectValue(ctx)

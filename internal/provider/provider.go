@@ -34,7 +34,7 @@ func (p *pf9Provider) Schema(ctx context.Context, req provider.SchemaRequest, re
 }
 
 func (p *pf9Provider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	tflog.Info(ctx, "Configuring client")
+	tflog.Debug(ctx, "Configuring client")
 
 	var accountURL, username, password, region, tenant string
 	var pf9Model provider_pf9.Pf9Model
@@ -105,10 +105,11 @@ func (p *pf9Provider) Configure(ctx context.Context, req provider.ConfigureReque
 		resp.Diagnostics.AddError("Failed to authenticate", err.Error())
 		return
 	}
-	tflog.Info(ctx, "Client authenticated AuthInfo: %v", map[string]interface{}{"authInfo": authInfo})
+	tflog.Debug(ctx, "Client authenticated AuthInfo: %v", map[string]interface{}{"authInfo": authInfo})
 	resp.ResourceData = client
 	resp.DataSourceData = client
-	tflog.Info(ctx, "Client configured", map[string]interface{}{"client": client})
+	tflog.Info(ctx, "Client configured", map[string]interface{}{"accountURL": accountURL, "auth.userID": authInfo.UserID,
+		"auth.projectID": authInfo.ProjectID, "username": username, "tenant": tenant, "region": region})
 }
 
 func (p *pf9Provider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {

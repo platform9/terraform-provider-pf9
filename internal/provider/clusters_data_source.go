@@ -128,7 +128,7 @@ func (d *clustersDataSource) filterClustersByTenantName(ctx context.Context, clu
 	}
 	tenantIDToClusterMap := map[string]qbert.Cluster{}
 	for _, cluster := range clusters {
-		tenantIDToClusterMap[cluster.ProjectId] = cluster
+		tenantIDToClusterMap[cluster.ProjectID] = cluster
 	}
 
 	var filteredClusters []qbert.Cluster
@@ -159,7 +159,7 @@ func filterClusters(clusters []qbert.Cluster, attribName string, values, regexes
 		case "name":
 			valueFromCluster = cluster.Name
 		case "tenant_id":
-			valueFromCluster = cluster.ProjectId
+			valueFromCluster = cluster.ProjectID
 		}
 		for _, value := range values {
 			if valueFromCluster == value {

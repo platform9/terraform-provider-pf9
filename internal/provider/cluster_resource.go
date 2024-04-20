@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -248,9 +249,14 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		createClusterReq.NodePoolUUID = defaultNodePoolUUID
 	}
 
-	tflog.Info(ctx, "Creating a cluster")
-	qbertClient := r.client.Qbert()
-	clusterID, err := qbertClient.CreateCluster(createClusterReq, projectID, qbert.CreateClusterOptions{})
+	jsonRequest, err := json.Marshal(createClusterReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to marshal createClusterRequest", err.Error())
+		return
+	}
+	strRequest := string(jsonRequest)
+	tflog.Info(ctx, "Creating a cluster", map[string]interface{}{"request": strRequest})
+	clusterID, err := r.client.Qbert().CreateCluster(createClusterReq, projectID, qbert.CreateClusterOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create cluster", err.Error())
 		return
@@ -289,7 +295,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 	tflog.Info(ctx, "Attaching nodes", map[string]interface{}{"nodeList": nodeList})
-	err = qbertClient.AttachNodes(clusterID, nodeList)
+	err = r.client.Qbert().AttachNodes(clusterID, nodeList)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to attach nodes", err.Error())
 		return
@@ -303,11 +309,6 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 
 	if !data.Addons.IsNull() && !data.Addons.IsUnknown() {
 		// This is a workaround because default addons are not being set in the plan.
-		//
-		// Previously, we observed that the default addon parameters were being set correctly
-		// until the `ModifyPlan()` function was called. However, after that, the parameter
-		// values were no longer being passed to the `Create()` function.
-		//
 		// Since we cannot set the default addon parameters in the plan due to this issue,
 		// we are instead not enabling any addons in the plan. This ensures that the user's
 		// intent is respected, even though the backend may still enable the default addons.
@@ -543,12 +544,12 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	if !plan.CustomRegistry.Equal(state.CustomRegistry) {
 		editRequired = true
-		editClusterReq.CustomRegistryUrl = plan.CustomRegistry.Url.ValueString()
+		editClusterReq.CustomRegistryURL = plan.CustomRegistry.Url.ValueString()
 		editClusterReq.CustomRegistryRepoPath = plan.CustomRegistry.RepoPath.ValueString()
 		editClusterReq.CustomRegistryUsername = plan.CustomRegistry.Username.ValueString()
 		editClusterReq.CustomRegistryPassword = plan.CustomRegistry.Password.ValueString()
 		editClusterReq.CustomRegistryCertPath = plan.CustomRegistry.CertPath.ValueString()
-		editClusterReq.CustomRegistrySkipTls = getIntPtrFromBool(plan.CustomRegistry.SkipTls)
+		editClusterReq.CustomRegistrySkipTLS = getIntPtrFromBool(plan.CustomRegistry.SkipTls)
 		editClusterReq.CustomRegistrySelfSignedCerts = getIntPtrFromBool(plan.CustomRegistry.SelfSignedCerts)
 	}
 
@@ -568,14 +569,20 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 			return
 		}
 		editClusterReq.Tags = tagsGoMap
-
+		jsonRequest, err := json.Marshal(editClusterReq)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to marshal editClusterReq", err.Error())
+			return
+		}
+		strRequest := string(jsonRequest)
+		tflog.Info(ctx, "Editing cluster", map[string]interface{}{"request": strRequest})
 		err = r.client.Qbert().EditCluster(editClusterReq, clusterID, projectID)
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to update cluster", err.Error())
 			return
 		}
 	} else {
-		tflog.Debug(ctx, "No change detected, skipping update")
+		tflog.Debug(ctx, "No change detected, skipping edit cluster")
 	}
 
 	sunpikeAddons, err := r.listClusterAddons(ctx, clusterID)
@@ -667,8 +674,8 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	if !plan.KubeRoleVersion.Equal(state.KubeRoleVersion) {
-		tflog.Info(ctx, "Requested upgrade of the cluster", map[string]interface{}{"from": state.KubeRoleVersion, "to": plan.KubeRoleVersion})
-		tflog.Info(ctx, "Reading cluster from qbert", map[string]interface{}{"clusterID": clusterID})
+		tflog.Debug(ctx, "Requested upgrade of the cluster", map[string]interface{}{"from": state.KubeRoleVersion, "to": plan.KubeRoleVersion})
+		tflog.Debug(ctx, "Reading cluster from qbert", map[string]interface{}{"clusterID": clusterID})
 		cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to get cluster", err.Error())
@@ -702,6 +709,14 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 		// We did not add addonVersions inside upgradeClusterReq;
 		// because it will be upgraded using sunpike apis
+		jsonRequest, err := json.Marshal(upgradeClusterReq)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to marshal upgradeClusterReq", err.Error())
+			return
+		}
+		strRequest := string(jsonRequest)
+		tflog.Info(ctx, "Upgrading a cluster", map[string]interface{}{"request": strRequest, "clusterID": clusterID,
+			"type": upgradeClusterReq.KubeRoleVersionUpgradeType})
 		err = r.client.Qbert().UpgradeCluster(ctx, upgradeClusterReq, clusterID)
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to upgrade cluster", err.Error())
@@ -781,7 +796,7 @@ func (r *clusterResource) ImportState(ctx context.Context, req resource.ImportSt
 func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, projectID string, state *resource_cluster.ClusterModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	tflog.Info(ctx, "Reading cluster from qbert", map[string]interface{}{"clusterID": clusterID})
+	tflog.Info(ctx, "Reading cluster", map[string]interface{}{"clusterID": clusterID})
 	cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
 	if err != nil {
 		diags.AddError("Failed to get cluster", err.Error())
@@ -901,7 +916,7 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, clusterID strin
 }
 
 func (r *clusterResource) verifyNodes(ctx context.Context, clusterID, projectID string, nodesToAttachIDs []string) error {
-	tflog.Info(ctx, "Checking if nodes can be attached", map[string]interface{}{"nodesToAttachIDs": nodesToAttachIDs})
+	tflog.Debug(ctx, "Checking if nodes can be attached", map[string]interface{}{"nodesToAttachIDs": nodesToAttachIDs})
 	nodes, err := r.client.Qbert().ListNodes(projectID)
 	if err != nil {
 		return fmt.Errorf("failed to list nodes: %w", err)
@@ -963,22 +978,66 @@ func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Clu
 	clusterModel.Id = types.StringValue(qbertCluster.UUID)
 	clusterModel.Name = types.StringValue(qbertCluster.Name)
 	clusterModel.AllowWorkloadsOnMaster = types.BoolValue(qbertCluster.AllowWorkloadsOnMaster != 0)
-	clusterModel.MasterIp = types.StringValue(qbertCluster.MasterIp)
+	clusterModel.MasterIp = types.StringValue(qbertCluster.MasterIP)
 	clusterModel.MasterVipIface = types.StringValue(qbertCluster.MasterVipIface)
 	clusterModel.MasterVipIpv4 = types.StringValue(qbertCluster.MasterVipIpv4)
+	clusterModel.MasterVipVrouterId = types.StringValue(qbertCluster.MasterVipVrouterID)
 	clusterModel.ContainersCidr = types.StringValue(qbertCluster.ContainersCidr)
 	clusterModel.ServicesCidr = types.StringValue(qbertCluster.ServicesCidr)
+	clusterModel.Privileged = types.BoolValue(qbertCluster.Privileged != 0)
+	clusterModel.UseHostname = types.BoolValue(qbertCluster.UseHostname)
+	clusterModel.InterfaceName = types.StringValue(qbertCluster.InterfaceName)
+	clusterModel.InterfaceReachableIp = types.StringValue(qbertCluster.InterfaceReachableIP)
+	clusterModel.InterfaceDetectionMethod = types.StringValue(qbertCluster.InterfaceDetectionMethod)
+	clusterModel.NodePoolUuid = types.StringValue(qbertCluster.NodePoolUUID)
+	clusterModel.NodePoolName = types.StringValue(qbertCluster.NodePoolName)
+
 	mtuSizeInt, err := strconv.Atoi(qbertCluster.MtuSize)
 	if err != nil {
 		diags.AddError("Failed to parse mtu size", err.Error())
 		return diags
 	}
 	clusterModel.MtuSize = types.Int64Value(int64(mtuSizeInt))
-	clusterModel.Privileged = types.BoolValue(qbertCluster.Privileged != 0)
-	clusterModel.UseHostname = types.BoolValue(qbertCluster.UseHostname)
-	clusterModel.InterfaceDetectionMethod = types.StringValue(qbertCluster.InterfaceDetectionMethod)
-	clusterModel.InterfaceName = types.StringValue(qbertCluster.InterfaceName)
-	clusterModel.NodePoolUuid = types.StringValue(qbertCluster.NodePoolUuid)
+
+	clusterModel.ContainerRuntime = types.StringValue(qbertCluster.ContainerRuntime)
+	clusterModel.DockerRoot = types.StringValue(qbertCluster.DockerRoot)
+	clusterModel.FelixIpv6Support = types.BoolValue(qbertCluster.FelixIPv6Support != 0)
+	clusterModel.Masterless = types.BoolValue(qbertCluster.Masterless != 0)
+	clusterModel.ExternalDnsName = getStrOrNullIfEmpty(qbertCluster.ExternalDNSName)
+	clusterModel.CertExpiryHrs = types.Int64Value(int64(qbertCluster.CertExpiryHrs))
+	clusterModel.Ipv6 = types.BoolValue(qbertCluster.IPv6 != 0)
+
+	clusterModel.CpuManagerPolicy = types.StringValue(qbertCluster.CPUManagerPolicy)
+	clusterModel.TopologyManagerPolicy = types.StringValue(qbertCluster.TopologyManagerPolicy)
+	clusterModel.ReservedCpus = getStrOrNullIfEmpty(qbertCluster.ReservedCPUs)
+
+	clusterModel.NetworkPlugin = types.StringValue(qbertCluster.NetworkPlugin)
+
+	clusterModel.FlannelIfaceLabel = getStrOrNullIfEmpty(qbertCluster.FlannelIfaceLabel)
+	clusterModel.FlannelPublicIfaceLabel = getStrOrNullIfEmpty(qbertCluster.FlannelPublicIfaceLabel)
+
+	clusterModel.CalicoIpv4 = types.StringValue(qbertCluster.CalicoIPv4)
+	clusterModel.CalicoIpv6 = types.StringValue(qbertCluster.CalicoIPv6)
+	clusterModel.CalicoIpv6DetectionMethod = types.StringValue(qbertCluster.CalicoIPv6DetectionMethod)
+	clusterModel.CalicoRouterId = types.StringValue(qbertCluster.CalicoRouterID)
+	clusterModel.CalicoIpv6PoolCidr = getStrOrNullIfEmpty(qbertCluster.CalicoIPv6PoolCidr)
+	clusterModel.CalicoIpv6PoolBlockSize = types.StringValue(qbertCluster.CalicoIPv6PoolBlockSize)
+	clusterModel.CalicoIpv6PoolNatOutgoing = types.BoolValue(qbertCluster.CalicoIPv6PoolNatOutgoing != 0)
+	clusterModel.CalicoIpIpMode = types.StringValue(qbertCluster.CalicoIPIPMode)
+	clusterModel.CalicoNatOutgoing = types.BoolValue(qbertCluster.CalicoNatOutgoing != 0)
+	clusterModel.CalicoV4BlockSize = types.StringValue(qbertCluster.CalicoV4BlockSize)
+	clusterModel.CalicoIpv4DetectionMethod = types.StringValue(qbertCluster.CalicoIPv4DetectionMethod)
+
+	clusterModel.DockerPrivateRegistry = getStrOrNullIfEmpty(qbertCluster.DockerPrivateRegistry)
+	clusterModel.QuayPrivateRegistry = getStrOrNullIfEmpty(qbertCluster.QuayPrivateRegistry)
+	clusterModel.GcrPrivateRegistry = getStrOrNullIfEmpty(qbertCluster.GcrPrivateRegistry)
+	clusterModel.K8sPrivateRegistry = getStrOrNullIfEmpty(qbertCluster.K8sPrivateRegistry)
+	clusterModel.DockerCentosPackageRepoUrl = getStrOrNullIfEmpty(qbertCluster.DockerCentosPackageRepoURL)
+	clusterModel.DockerUbuntuPackageRepoUrl = getStrOrNullIfEmpty(qbertCluster.DockerUbuntuPackageRepoURL)
+
+	clusterModel.CreatedAt = types.StringValue(qbertCluster.CreatedAt)
+	clusterModel.ProjectId = types.StringValue(qbertCluster.ProjectID)
+
 	// KubeRoleVersion does not change immediately after cluster upgrade
 	// hence this is a workaround to get the correct value
 	if qbertCluster.UpgradingTo != "" {
@@ -986,25 +1045,16 @@ func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Clu
 	} else {
 		clusterModel.KubeRoleVersion = types.StringValue(qbertCluster.KubeRoleVersion)
 	}
-	if qbertCluster.K8sApiPort == "" {
+	if qbertCluster.K8sAPIPort == "" {
 		clusterModel.K8sApiPort = types.Int64Null()
 	} else {
-		intPort, err := strconv.Atoi(qbertCluster.K8sApiPort)
+		intPort, err := strconv.Atoi(qbertCluster.K8sAPIPort)
 		if err != nil {
 			diags.AddError("Failed to parse k8s api port", err.Error())
 			return diags
 		}
 		clusterModel.K8sApiPort = types.Int64Value(int64(intPort))
 	}
-	clusterModel.CpuManagerPolicy = types.StringValue(qbertCluster.CPUManagerPolicy)
-	clusterModel.TopologyManagerPolicy = types.StringValue(qbertCluster.TopologyManagerPolicy)
-	clusterModel.ReservedCpus = getStrOrNullIfEmpty(qbertCluster.ReservedCPUs)
-	clusterModel.CalicoIpIpMode = types.StringValue(qbertCluster.CalicoIpIpMode)
-	clusterModel.CalicoNatOutgoing = types.BoolValue(qbertCluster.CalicoNatOutgoing != 0)
-	clusterModel.CalicoV4BlockSize = types.StringValue(qbertCluster.CalicoV4BlockSize)
-	clusterModel.CalicoIpv4DetectionMethod = types.StringValue(qbertCluster.CalicoIPv4DetectionMethod)
-	clusterModel.NetworkPlugin = types.StringValue(qbertCluster.NetworkPlugin)
-	clusterModel.ContainerRuntime = types.StringValue(qbertCluster.ContainerRuntime)
 	if qbertCluster.EnableCatapultMonitoring != nil {
 		clusterModel.EnableCatapultMonitoring = types.BoolValue(*qbertCluster.EnableCatapultMonitoring)
 	}
@@ -1015,8 +1065,6 @@ func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Clu
 	}
 	clusterModel.K8sConfig = k8sconfig
 
-	clusterModel.ExternalDnsName = getStrOrNullIfEmpty(qbertCluster.ExternalDnsName)
-	clusterModel.CertExpiryHrs = types.Int64Value(int64(qbertCluster.CertExpiryHrs))
 	calicoLimits, convertDiags := getCalicoLimitsValue(ctx, qbertCluster)
 	diags.Append(convertDiags...)
 	if diags.HasError() {
@@ -1032,38 +1080,13 @@ func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Clu
 	}
 	clusterModel.Status = statusValue
 
-	clusterModel.FlannelIfaceLabel = getStrOrNullIfEmpty(qbertCluster.FlannelIfaceLabel)
-	clusterModel.FlannelPublicIfaceLabel = getStrOrNullIfEmpty(qbertCluster.FlannelPublicIfaceLabel)
-	clusterModel.DockerRoot = types.StringValue(qbertCluster.DockerRoot)
-	clusterModel.MasterVipVrouterId = types.StringValue(qbertCluster.MasterVipVrouterId)
-
-	clusterModel.ProjectId = types.StringValue(qbertCluster.ProjectId)
-	clusterModel.CreatedAt = types.StringValue(qbertCluster.CreatedAt)
-	clusterModel.CalicoIpv4 = types.StringValue(qbertCluster.CalicoIPv4)
-	clusterModel.CalicoIpv6 = types.StringValue(qbertCluster.CalicoIPv6)
-	clusterModel.CalicoIpv6DetectionMethod = types.StringValue(qbertCluster.CalicoIPv6DetectionMethod)
-	clusterModel.CalicoRouterId = types.StringValue(qbertCluster.CalicoRouterID)
-	clusterModel.CalicoIpv6PoolCidr = getStrOrNullIfEmpty(qbertCluster.CalicoIPv6PoolCidr)
-	clusterModel.CalicoIpv6PoolBlockSize = types.StringValue(qbertCluster.CalicoIPv6PoolBlockSize)
-	clusterModel.CalicoIpv6PoolNatOutgoing = types.BoolValue(qbertCluster.CalicoIPv6PoolNatOutgoing != 0)
-	clusterModel.FelixIpv6Support = types.BoolValue(qbertCluster.FelixIPv6Support != 0)
-	clusterModel.Masterless = types.BoolValue(qbertCluster.Masterless != 0)
-
-	clusterModel.Ipv6 = types.BoolValue(qbertCluster.IPv6 != 0)
-	clusterModel.NodePoolName = types.StringValue(qbertCluster.NodePoolName)
 	cloudProviderValue, convertDiags := getCloudProviderValue(ctx, qbertCluster)
 	diags.Append(convertDiags...)
 	if diags.HasError() {
 		return diags
 	}
 	clusterModel.CloudProvider = cloudProviderValue
-	clusterModel.DockerPrivateRegistry = getStrOrNullIfEmpty(qbertCluster.DockerPrivateRegistry)
-	clusterModel.QuayPrivateRegistry = getStrOrNullIfEmpty(qbertCluster.QuayPrivateRegistry)
-	clusterModel.GcrPrivateRegistry = getStrOrNullIfEmpty(qbertCluster.GcrPrivateRegistry)
-	clusterModel.K8sPrivateRegistry = getStrOrNullIfEmpty(qbertCluster.K8sPrivateRegistry)
-	clusterModel.DockerCentosPackageRepoUrl = getStrOrNullIfEmpty(qbertCluster.DockerCentosPackageRepoUrl)
-	clusterModel.DockerUbuntuPackageRepoUrl = getStrOrNullIfEmpty(qbertCluster.DockerUbuntuPackageRepoUrl)
-	clusterModel.InterfaceReachableIp = types.StringValue(qbertCluster.InterfaceReachableIP)
+
 	customRegistry, convertDiags := getCustomRegistryValue(ctx, qbertCluster)
 	diags.Append(convertDiags...)
 	if diags.HasError() {
@@ -1120,9 +1143,6 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 		EtcdBackup: &qbert.EtcdBackupConfig{},
 		Monitoring: &qbert.MonitoringConfig{},
 	}
-	createClusterReq.Name = clusterModel.Name.ValueString()
-	createClusterReq.Privileged = clusterModel.Privileged.ValueBoolPointer()
-	createClusterReq.MasterIP = clusterModel.MasterIp.ValueString()
 	masterNodes := []string{}
 	diags.Append(clusterModel.MasterNodes.ElementsAs(ctx, &masterNodes, false)...)
 	if diags.HasError() {
@@ -1137,31 +1157,76 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 			return createClusterReq, diags
 		}
 		createClusterReq.WorkerNodes = workerNodes
-		if areNotMutuallyExclusive(masterNodes, workerNodes) {
-			diags.AddAttributeError(path.Root("worker_nodes"), "worker_nodes and master_nodes should be mutually exclusive", "Same node can not be part of both worker and master nodes")
-			return createClusterReq, diags
-		}
 	}
-	createClusterReq.AllowWorkloadOnMaster = clusterModel.AllowWorkloadsOnMaster.ValueBoolPointer()
+	createClusterReq.Name = clusterModel.Name.ValueString()
+	createClusterReq.MasterIP = clusterModel.MasterIp.ValueString()
+	if !clusterModel.AllowWorkloadsOnMaster.IsNull() && !clusterModel.AllowWorkloadsOnMaster.IsUnknown() {
+		createClusterReq.AllowWorkloadOnMaster = clusterModel.AllowWorkloadsOnMaster.ValueBoolPointer()
+	}
 	createClusterReq.MasterVirtualIPIface = clusterModel.MasterVipIface.ValueString()
 	createClusterReq.MasterVirtualIP = clusterModel.MasterVipIpv4.ValueString()
 	createClusterReq.ContainerCIDR = clusterModel.ContainersCidr.ValueString()
 	createClusterReq.ServiceCIDR = clusterModel.ServicesCidr.ValueString()
 	createClusterReq.MTUSize = ptr.To(int(clusterModel.MtuSize.ValueInt64()))
-	createClusterReq.Privileged = clusterModel.Privileged.ValueBoolPointer()
-	createClusterReq.UseHostname = clusterModel.UseHostname.ValueBoolPointer()
+	if !clusterModel.Privileged.IsNull() && !clusterModel.Privileged.IsUnknown() {
+		createClusterReq.Privileged = clusterModel.Privileged.ValueBoolPointer()
+	}
+	if !clusterModel.UseHostname.IsNull() && !clusterModel.UseHostname.IsUnknown() {
+		createClusterReq.UseHostname = clusterModel.UseHostname.ValueBoolPointer()
+	}
 	createClusterReq.InterfaceDetectionMethod = clusterModel.InterfaceDetectionMethod.ValueString()
 	createClusterReq.InterfaceName = clusterModel.InterfaceName.ValueString()
+	createClusterReq.InterfaceReachableIP = clusterModel.InterfaceReachableIp.ValueString()
 	createClusterReq.KubeRoleVersion = clusterModel.KubeRoleVersion.ValueString()
 	createClusterReq.CPUManagerPolicy = clusterModel.CpuManagerPolicy.ValueString()
 	createClusterReq.ExternalDNSName = clusterModel.ExternalDnsName.ValueString()
 	createClusterReq.TopologyManagerPolicy = clusterModel.TopologyManagerPolicy.ValueString()
-	createClusterReq.ReservedCpus = clusterModel.ReservedCpus.ValueString()
+	createClusterReq.ReservedCPUs = clusterModel.ReservedCpus.ValueString()
+	createClusterReq.ContainerRuntime = qbert.ContainerRuntime(clusterModel.ContainerRuntime.ValueString())
+	createClusterReq.DockerRoot = clusterModel.DockerRoot.ValueString()
+	createClusterReq.IPv6 = getIntPtrFromBool(clusterModel.Ipv6)
+	createClusterReq.FelixIPv6Support = getIntPtrFromBool(clusterModel.FelixIpv6Support)
+
+	createClusterReq.NetworkPlugin = qbert.CNIBackend(clusterModel.NetworkPlugin.ValueString())
+	createClusterReq.FlannelIfaceLabel = clusterModel.FlannelIfaceLabel.ValueString()
+	createClusterReq.FlannelPublicIfaceLabel = clusterModel.FlannelPublicIfaceLabel.ValueString()
 	createClusterReq.CalicoIPIPMode = clusterModel.CalicoIpIpMode.ValueString()
-	createClusterReq.CalicoNatOutgoing = clusterModel.CalicoNatOutgoing.ValueBoolPointer()
+	// The qbert api accepts this field as bool but returns as int
+	if !clusterModel.CalicoNatOutgoing.IsNull() && !clusterModel.CalicoNatOutgoing.IsUnknown() {
+		createClusterReq.CalicoNatOutgoing = clusterModel.CalicoNatOutgoing.ValueBoolPointer()
+	}
 	createClusterReq.CalicoV4BlockSize = clusterModel.CalicoV4BlockSize.ValueString()
 	createClusterReq.CalicoIpv4 = clusterModel.CalicoIpv4.ValueString()
 	createClusterReq.CalicoIpv4DetectionMethod = clusterModel.CalicoIpv4DetectionMethod.ValueString()
+
+	createClusterReq.CalicoIPv6 = clusterModel.CalicoIpv6.ValueString()
+	createClusterReq.CalicoIPv6DetectionMethod = clusterModel.CalicoIpv6DetectionMethod.ValueString()
+	createClusterReq.CalicoIPv6PoolCidr = clusterModel.CalicoIpv6PoolCidr.ValueString()
+	createClusterReq.CalicoIPv6PoolBlockSize = clusterModel.CalicoIpv6PoolBlockSize.ValueString()
+	createClusterReq.CalicoIPv6PoolNatOutgoing = getIntPtrFromBool(clusterModel.CalicoIpv6PoolNatOutgoing)
+
+	createClusterReq.CalicoNodeCPULimit = clusterModel.CalicoLimits.NodeCpuLimit.ValueString()
+	createClusterReq.CalicoNodeMemoryLimit = clusterModel.CalicoLimits.NodeMemoryLimit.ValueString()
+	createClusterReq.CalicoTyphaCPULimit = clusterModel.CalicoLimits.TyphaCpuLimit.ValueString()
+	createClusterReq.CalicoTyphaMemoryLimit = clusterModel.CalicoLimits.TyphaMemoryLimit.ValueString()
+	createClusterReq.CalicoControllerCPULimit = clusterModel.CalicoLimits.ControllerCpuLimit.ValueString()
+	createClusterReq.CalicoControllerMemoryLimit = clusterModel.CalicoLimits.ControllerMemoryLimit.ValueString()
+
+	createClusterReq.DockerPrivateRegistry = clusterModel.DockerPrivateRegistry.ValueString()
+	createClusterReq.QuayPrivateRegistry = clusterModel.QuayPrivateRegistry.ValueString()
+	createClusterReq.GcrPrivateRegistry = clusterModel.GcrPrivateRegistry.ValueString()
+	createClusterReq.K8sPrivateRegistry = clusterModel.K8sPrivateRegistry.ValueString()
+	createClusterReq.DockerCentosPackageRepoURL = clusterModel.DockerCentosPackageRepoUrl.ValueString()
+	createClusterReq.DockerUbuntuPackageRepoURL = clusterModel.DockerUbuntuPackageRepoUrl.ValueString()
+
+	createClusterReq.CustomRegistryURL = clusterModel.CustomRegistry.Url.ValueString()
+	createClusterReq.CustomRegistryRepoPath = clusterModel.CustomRegistry.RepoPath.ValueString()
+	createClusterReq.CustomRegistryUsername = clusterModel.CustomRegistry.Username.ValueString()
+	createClusterReq.CustomRegistryPassword = clusterModel.CustomRegistry.Password.ValueString()
+	createClusterReq.CustomRegistryCertPath = clusterModel.CustomRegistry.CertPath.ValueString()
+	createClusterReq.CustomRegistrySkipTLS = getIntPtrFromBool(clusterModel.CustomRegistry.SkipTls)
+	createClusterReq.CustomRegistrySelfSignedCerts = getIntPtrFromBool(clusterModel.CustomRegistry.SelfSignedCerts)
+
 	if !clusterModel.EnableCatapultMonitoring.IsNull() && !clusterModel.EnableCatapultMonitoring.IsUnknown() {
 		createClusterReq.EnableCatapultMonitoring = clusterModel.EnableCatapultMonitoring.ValueBoolPointer()
 	}
@@ -1181,7 +1246,7 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 	if !clusterModel.Etcd.HeartbeatIntervalMs.IsNull() && !clusterModel.Etcd.HeartbeatIntervalMs.IsUnknown() {
 		createClusterReq.EtcdHeartbeatIntervalMs = fmt.Sprintf("%d", clusterModel.Etcd.HeartbeatIntervalMs.ValueInt64())
 	}
-	createClusterReq.NetworkPlugin = qbert.CNIBackend(clusterModel.NetworkPlugin.ValueString())
+
 	if !clusterModel.K8sConfig.IsNull() && !clusterModel.K8sConfig.IsUnknown() {
 		if !clusterModel.K8sConfig.ApiServerRuntimeConfig.IsNull() && !clusterModel.K8sConfig.ApiServerRuntimeConfig.IsUnknown() {
 			createClusterReq.RuntimeConfig = clusterModel.K8sConfig.ApiServerRuntimeConfig.ValueString()
@@ -1193,40 +1258,18 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 		}
 		createClusterReq.CloudProperties = cloudProperties
 	}
-	createClusterReq.ContainerRuntime = qbert.ContainerRuntime(clusterModel.ContainerRuntime.ValueString())
 
 	createClusterReq.EtcdBackup, diags = getEtcdBackupConfig(ctx, clusterModel.EtcdBackup)
 	if diags.HasError() {
 		return createClusterReq, diags
 	}
-	createClusterReq.ExternalDNSName = clusterModel.ExternalDnsName.ValueString()
 	if !clusterModel.CertExpiryHrs.IsNull() && !clusterModel.CertExpiryHrs.IsUnknown() {
 		createClusterReq.CertExpiryHrs = ptr.To(int(clusterModel.CertExpiryHrs.ValueInt64()))
 	}
-	createClusterReq.CalicoNodeCpuLimit = clusterModel.CalicoLimits.NodeCpuLimit.ValueString()
-	createClusterReq.CalicoNodeMemoryLimit = clusterModel.CalicoLimits.NodeMemoryLimit.ValueString()
-	createClusterReq.CalicoTyphaCpuLimit = clusterModel.CalicoLimits.TyphaCpuLimit.ValueString()
-	createClusterReq.CalicoTyphaMemoryLimit = clusterModel.CalicoLimits.TyphaMemoryLimit.ValueString()
-	createClusterReq.CalicoControllerCpuLimit = clusterModel.CalicoLimits.ControllerCpuLimit.ValueString()
-	createClusterReq.CalicoControllerMemoryLimit = clusterModel.CalicoLimits.ControllerMemoryLimit.ValueString()
-
-	createClusterReq.DockerPrivateRegistry = clusterModel.DockerPrivateRegistry.ValueString()
-	createClusterReq.QuayPrivateRegistry = clusterModel.QuayPrivateRegistry.ValueString()
-	createClusterReq.GcrPrivateRegistry = clusterModel.GcrPrivateRegistry.ValueString()
-	createClusterReq.K8sPrivateRegistry = clusterModel.K8sPrivateRegistry.ValueString()
-
-	createClusterReq.CustomRegistryUrl = clusterModel.CustomRegistry.Url.ValueString()
-	createClusterReq.CustomRegistryRepoPath = clusterModel.CustomRegistry.RepoPath.ValueString()
-	createClusterReq.CustomRegistryUsername = clusterModel.CustomRegistry.Username.ValueString()
-	createClusterReq.CustomRegistryPassword = clusterModel.CustomRegistry.Password.ValueString()
-	createClusterReq.CustomRegistryCertPath = clusterModel.CustomRegistry.CertPath.ValueString()
-	createClusterReq.CustomRegistrySkipTls = getIntPtrFromBool(clusterModel.CustomRegistry.SkipTls)
-	createClusterReq.CustomRegistrySelfSignedCerts = getIntPtrFromBool(clusterModel.CustomRegistry.SelfSignedCerts)
 
 	if !clusterModel.K8sApiPort.IsNull() && !clusterModel.K8sApiPort.IsUnknown() {
 		createClusterReq.KubeAPIPort = fmt.Sprintf("%d", clusterModel.K8sApiPort.ValueInt64())
 	}
-	createClusterReq.DockerRoot = clusterModel.DockerRoot.ValueString()
 
 	tagsGoMap := map[string]string{}
 	diags = clusterModel.Tags.ElementsAs(ctx, &tagsGoMap, false)
@@ -1238,7 +1281,7 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 }
 
 func (r *clusterResource) listClusterAddons(ctx context.Context, clusterID string) ([]sunpikev1alpha2.ClusterAddon, error) {
-	tflog.Info(ctx, "Listing addons enabled on the cluster", map[string]interface{}{"clusterID": clusterID})
+	tflog.Info(ctx, "Listing addons", map[string]interface{}{"clusterID": clusterID})
 	sunpikeAddonsList, err := r.client.Qbert().ListClusterAddons(fmt.Sprintf("sunpike.pf9.io/cluster=%s", clusterID))
 	if err != nil {
 		return nil, err
@@ -1250,7 +1293,7 @@ func getCloudPropertiesValue(ctx context.Context, k8sConfigValue resource_cluste
 	var diags, convertDiags diag.Diagnostics
 	cloudProperties := qbert.CloudProperties{}
 	if !k8sConfigValue.IsNull() && !k8sConfigValue.IsUnknown() {
-		cloudProperties.ApiServerFlags, convertDiags = toJsonArrFromStrList(ctx, k8sConfigValue.ApiServerFlags)
+		cloudProperties.APIServerFlags, convertDiags = toJsonArrFromStrList(ctx, k8sConfigValue.ApiServerFlags)
 		diags.Append(convertDiags...)
 		cloudProperties.SchedulerFlags, convertDiags = toJsonArrFromStrList(ctx, k8sConfigValue.SchedulerFlags)
 		diags.Append(convertDiags...)
@@ -1260,7 +1303,7 @@ func getCloudPropertiesValue(ctx context.Context, k8sConfigValue resource_cluste
 			return nil, diags
 		}
 	}
-	if cloudProperties.ApiServerFlags == "" && cloudProperties.SchedulerFlags == "" &&
+	if cloudProperties.APIServerFlags == "" && cloudProperties.SchedulerFlags == "" &&
 		cloudProperties.ControllerManagerFlags == "" {
 		return nil, diags
 	}
@@ -1388,15 +1431,15 @@ func getEtcdBackupValue(ctx context.Context, etcdBackupConfig *qbert.EtcdBackupC
 
 func getCustomRegistryValue(ctx context.Context, qbertCluster *qbert.Cluster) (resource_cluster.CustomRegistryValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	if qbertCluster.CustomRegistryUrl == "" {
+	if qbertCluster.CustomRegistryURL == "" {
 		return resource_cluster.NewCustomRegistryValueNull(), diags
 	}
 	customRegistryObjValue, convertDiags := resource_cluster.CustomRegistryValue{
-		Url:             getStrOrNullIfEmpty(qbertCluster.CustomRegistryUrl),
+		Url:             getStrOrNullIfEmpty(qbertCluster.CustomRegistryURL),
 		RepoPath:        getStrOrNullIfEmpty(qbertCluster.CustomRegistryRepoPath),
 		Username:        getStrOrNullIfEmpty(qbertCluster.CustomRegistryUsername),
 		Password:        getStrOrNullIfEmpty(qbertCluster.CustomRegistryPassword),
-		SkipTls:         getBoolFromIntPtr(qbertCluster.CustomRegistrySkipTls),
+		SkipTls:         getBoolFromIntPtr(qbertCluster.CustomRegistrySkipTLS),
 		SelfSignedCerts: getBoolFromIntPtr(qbertCluster.CustomRegistrySelfSignedCerts),
 		CertPath:        getStrOrNullIfEmpty(qbertCluster.CustomRegistryCertPath),
 	}.ToObjectValue(ctx)
@@ -1456,7 +1499,7 @@ func getEtcdValue(ctx context.Context, qbertCluster *qbert.Cluster) (resource_cl
 func getCloudProviderValue(ctx context.Context, qbertCluster *qbert.Cluster) (resource_cluster.CloudProviderValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	cloudProviderObjValue, convertDiags := resource_cluster.CloudProviderValue{
-		Uuid:              getStrOrNullIfEmpty(qbertCluster.CloudProviderUuid),
+		Uuid:              getStrOrNullIfEmpty(qbertCluster.CloudProviderUUID),
 		Name:              getStrOrNullIfEmpty(qbertCluster.CloudProviderName),
 		CloudProviderType: getStrOrNullIfEmpty(qbertCluster.CloudProviderType),
 	}.ToObjectValue(ctx)
@@ -1492,7 +1535,7 @@ func getK8sConfigValue(ctx context.Context, qbertCluster *qbert.Cluster) (resour
 		return resource_cluster.NewK8sConfigValue(k8sObjVal.AttributeTypes(ctx), k8sObjVal.Attributes())
 	}
 
-	apiServerFlagsList, convertDiags := strListFromJsonArr(ctx, qbertCluster.CloudProperties.ApiServerFlags)
+	apiServerFlagsList, convertDiags := strListFromJsonArr(ctx, qbertCluster.CloudProperties.APIServerFlags)
 	diags.Append(convertDiags...)
 	if diags.HasError() {
 		return resource_cluster.K8sConfigValue{}, diags
@@ -1533,11 +1576,11 @@ func getK8sConfigValue(ctx context.Context, qbertCluster *qbert.Cluster) (resour
 func getCalicoLimitsValue(ctx context.Context, qbertCluster *qbert.Cluster) (resource_cluster.CalicoLimitsValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	calicoLimitsValue := resource_cluster.CalicoLimitsValue{
-		NodeCpuLimit:          getStrOrNullIfEmpty(qbertCluster.CalicoNodeCpuLimit),
+		NodeCpuLimit:          getStrOrNullIfEmpty(qbertCluster.CalicoNodeCPULimit),
 		NodeMemoryLimit:       getStrOrNullIfEmpty(qbertCluster.CalicoNodeMemoryLimit),
-		TyphaCpuLimit:         getStrOrNullIfEmpty(qbertCluster.CalicoTyphaCpuLimit),
+		TyphaCpuLimit:         getStrOrNullIfEmpty(qbertCluster.CalicoTyphaCPULimit),
 		TyphaMemoryLimit:      getStrOrNullIfEmpty(qbertCluster.CalicoTyphaMemoryLimit),
-		ControllerCpuLimit:    getStrOrNullIfEmpty(qbertCluster.CalicoControllerCpuLimit),
+		ControllerCpuLimit:    getStrOrNullIfEmpty(qbertCluster.CalicoControllerCPULimit),
 		ControllerMemoryLimit: getStrOrNullIfEmpty(qbertCluster.CalicoControllerMemoryLimit),
 	}
 	calicoLimitsObjVal, convertDiags := calicoLimitsValue.ToObjectValue(ctx)
