@@ -1219,13 +1219,25 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 	createClusterReq.DockerCentosPackageRepoURL = clusterModel.DockerCentosPackageRepoUrl.ValueString()
 	createClusterReq.DockerUbuntuPackageRepoURL = clusterModel.DockerUbuntuPackageRepoUrl.ValueString()
 
-	createClusterReq.CustomRegistryURL = clusterModel.CustomRegistry.Url.ValueString()
-	createClusterReq.CustomRegistryRepoPath = clusterModel.CustomRegistry.RepoPath.ValueString()
-	createClusterReq.CustomRegistryUsername = clusterModel.CustomRegistry.Username.ValueString()
-	createClusterReq.CustomRegistryPassword = clusterModel.CustomRegistry.Password.ValueString()
-	createClusterReq.CustomRegistryCertPath = clusterModel.CustomRegistry.CertPath.ValueString()
-	createClusterReq.CustomRegistrySkipTLS = getIntPtrFromBool(clusterModel.CustomRegistry.SkipTls)
-	createClusterReq.CustomRegistrySelfSignedCerts = getIntPtrFromBool(clusterModel.CustomRegistry.SelfSignedCerts)
+	if !clusterModel.CustomRegistry.IsNull() && !clusterModel.CustomRegistry.IsUnknown() {
+		if !clusterModel.CustomRegistry.Url.IsNull() && !clusterModel.CustomRegistry.Url.IsUnknown() {
+			createClusterReq.CustomRegistryURL = clusterModel.CustomRegistry.Url.ValueString()
+		}
+		if !clusterModel.CustomRegistry.RepoPath.IsNull() && !clusterModel.CustomRegistry.RepoPath.IsUnknown() {
+			createClusterReq.CustomRegistryRepoPath = clusterModel.CustomRegistry.RepoPath.ValueString()
+		}
+		if !clusterModel.CustomRegistry.Username.IsNull() && !clusterModel.CustomRegistry.Username.IsUnknown() {
+			createClusterReq.CustomRegistryUsername = clusterModel.CustomRegistry.Username.ValueString()
+		}
+		if !clusterModel.CustomRegistry.Password.IsNull() && !clusterModel.CustomRegistry.Password.IsUnknown() {
+			createClusterReq.CustomRegistryPassword = clusterModel.CustomRegistry.Password.ValueString()
+		}
+		if !clusterModel.CustomRegistry.CertPath.IsNull() && !clusterModel.CustomRegistry.CertPath.IsUnknown() {
+			createClusterReq.CustomRegistryCertPath = clusterModel.CustomRegistry.CertPath.ValueString()
+		}
+		createClusterReq.CustomRegistrySkipTLS = getIntPtrFromBool(clusterModel.CustomRegistry.SkipTls)
+		createClusterReq.CustomRegistrySelfSignedCerts = getIntPtrFromBool(clusterModel.CustomRegistry.SelfSignedCerts)
+	}
 
 	if !clusterModel.EnableCatapultMonitoring.IsNull() && !clusterModel.EnableCatapultMonitoring.IsUnknown() {
 		createClusterReq.EnableCatapultMonitoring = clusterModel.EnableCatapultMonitoring.ValueBoolPointer()

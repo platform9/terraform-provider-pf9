@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -365,6 +366,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					},
 				},
 				Optional: true,
+				Validators: []validator.Object{
+					objectvalidator.AlsoRequires(path.MatchRoot("custom_registry").AtName("url")),
+				},
 			},
 			"docker_centos_package_repo_url": schema.StringAttribute{
 				Optional: true,
@@ -470,6 +474,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 								},
 								Validators: []validator.Int64{
 									int64validator.AtLeast(1),
+									int64validator.AlsoRequires(path.MatchRoot("etcd_backup").AtName("daily").AtName("backup_time")),
 								},
 								Default: int64default.StaticInt64(3),
 							},
@@ -504,6 +509,7 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 								},
 								Validators: []validator.Int64{
 									int64validator.AtLeast(1),
+									int64validator.AlsoRequires(path.MatchRoot("etcd_backup").AtName("interval").AtName("backup_interval")),
 								},
 								Default: int64default.StaticInt64(3),
 							},

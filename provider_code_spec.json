@@ -1338,6 +1338,16 @@
 																],
 																"schema_definition": "int64validator.AtLeast(1)"
 															}
+														},
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+																	}
+																],
+																"schema_definition": "int64validator.AlsoRequires(path.MatchRoot(\"etcd_backup\").AtName(\"daily\").AtName(\"backup_time\"))"
+															}
 														}
 													]
 												}
@@ -1413,6 +1423,16 @@
 																	}
 																],
 																"schema_definition": "int64validator.AtLeast(1)"
+															}
+														},
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+																	}
+																],
+																"schema_definition": "int64validator.AlsoRequires(path.MatchRoot(\"etcd_backup\").AtName(\"interval\").AtName(\"backup_interval\"))"
 															}
 														}
 													]
@@ -2243,6 +2263,18 @@
 												}
 											}
 										]
+									}
+								}
+							],
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+											}
+										],
+										"schema_definition": "objectvalidator.AlsoRequires(path.MatchRoot(\"custom_registry\").AtName(\"url\"))"
 									}
 								}
 							]
