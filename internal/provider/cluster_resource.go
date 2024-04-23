@@ -157,28 +157,35 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 			}
 		}
 
-		workerNodes := []string{}
-		resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("worker_nodes"), &workerNodes)...)
+		var workerNodesSet types.Set
+		resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("worker_nodes"), &workerNodesSet)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		if len(workerNodes) == 0 {
-			var containersCidr types.String
-			resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("containers_cidr"), &containersCidr)...)
+		if !workerNodesSet.IsNull() && !workerNodesSet.IsUnknown() {
+			workerNodes := []string{}
+			resp.Diagnostics.Append(workerNodesSet.ElementsAs(ctx, &workerNodes, false)...)
 			if resp.Diagnostics.HasError() {
 				return
 			}
-			var servicesCidr types.String
-			resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("services_cidr"), &servicesCidr)...)
-			if resp.Diagnostics.HasError() {
-				return
-			}
-			// Containers & ServiceCidr has different default value for single-node cluster(worker_nodes=0)
-			if containersCidr.IsNull() || containersCidr.IsUnknown() {
-				resp.Diagnostics.Append(req.Plan.SetAttribute(ctx, path.Root("containers_cidr"), "10.20.0.0/22")...)
-			}
-			if servicesCidr.IsNull() || servicesCidr.IsUnknown() {
-				resp.Diagnostics.Append(req.Plan.SetAttribute(ctx, path.Root("services_cidr"), "10.21.0.0/22")...)
+			if len(workerNodes) == 0 {
+				var containersCidr types.String
+				resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("containers_cidr"), &containersCidr)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+				var servicesCidr types.String
+				resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("services_cidr"), &servicesCidr)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+				// Containers & ServiceCidr has different default value for single-node cluster(worker_nodes=0)
+				if containersCidr.IsNull() {
+					resp.Diagnostics.Append(req.Plan.SetAttribute(ctx, path.Root("containers_cidr"), "10.20.0.0/22")...)
+				}
+				if servicesCidr.IsNull() {
+					resp.Diagnostics.Append(req.Plan.SetAttribute(ctx, path.Root("services_cidr"), "10.21.0.0/22")...)
+				}
 			}
 		}
 	}
