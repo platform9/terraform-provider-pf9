@@ -348,7 +348,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 		for addonName, tfAddon := range tfAddonsMap {
 			// sunpikeAddon represents remote state and tfAddon represents plan state
-			if sunpikeAddon, found := sunpikeAddonsMap[addonName]; found {
+			if sunpikeAddon, found := sunpikeAddonsMap[addonName]; found && !tfAddon.IsNull() {
 				// Case 1:
 				// if addon with the same name is available at both places, difference bw
 				// the two should be patched, prefering the plan instance.
@@ -613,7 +613,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 	for addonName, tfAddon := range tfAddonsMap {
-		if sunpikeAddon, found := sunpikeAddonsMap[addonName]; found {
+		if sunpikeAddon, found := sunpikeAddonsMap[addonName]; found && !tfAddon.IsNull() {
 			// Patch the addon
 			tflog.Debug(ctx, "Checking if addon version and params needs to be patched")
 			var addonVersion string
@@ -636,6 +636,14 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 			}, &sunpikeAddon)
 			if err != nil {
 				resp.Diagnostics.AddError("Failed to patch addon", err.Error())
+				return
+			}
+		} else if tfAddon.IsNull() {
+			// Disable the addon because it is null in the plan
+			tflog.Debug(ctx, "Disabling addon", map[string]interface{}{"addon": addonName})
+			err = r.addonsClient.Disable(ctx, AddonSpec{ClusterID: clusterID, Type: addonName})
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to disable addon", err.Error())
 				return
 			}
 		} else {

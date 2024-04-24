@@ -14,12 +14,10 @@ This data source provides filter functionality on clusters.
 
 ```terraform
 data "pf9_clusters" "example" {
-    filters = [
-        {
-            name = "name"
-            values = [ "mycluster01" ]
-        }
-    ]
+  filters = [{
+    name = "name"
+    values = [ "mycluster01" ]
+  }]
 }
 
 output "example" {
