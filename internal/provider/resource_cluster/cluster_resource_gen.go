@@ -551,8 +551,9 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 					},
 				},
 				Optional: true,
-				Computed: true,
-				Default:  DefaultEtcdBackup(ctx),
+				Validators: []validator.Object{
+					objectvalidator.AtLeastOneOf(path.MatchRoot("etcd_backup").AtName("daily"), path.MatchRoot("etcd_backup").AtName("interval")),
+				},
 			},
 			"external_dns_name": schema.StringAttribute{
 				Optional:            true,

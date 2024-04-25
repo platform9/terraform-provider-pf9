@@ -1259,12 +1259,7 @@
 					{
 						"name": "etcd_backup",
 						"single_nested": {
-							"default": {
-								"custom": {
-									"schema_definition": "DefaultEtcdBackup(ctx)"
-								}
-							},
-							"computed_optional_required": "computed_optional",
+							"computed_optional_required": "optional",
 							"attributes": [
 								{
 									"name": "daily",
@@ -1495,6 +1490,18 @@
 												}
 											}
 										]
+									}
+								}
+							],
+							"validators":[
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+											}
+										],
+										"schema_definition": "objectvalidator.AtLeastOneOf(path.MatchRoot(\"etcd_backup\").AtName(\"daily\"),path.MatchRoot(\"etcd_backup\").AtName(\"interval\"))"
 									}
 								}
 							]
