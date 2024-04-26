@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -892,8 +893,12 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			"tags": schema.MapAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
-				Description:         "User defined key-value pairs represented as a JSON object",
-				MarkdownDescription: "User defined key-value pairs represented as a JSON object",
+				Computed:            true,
+				Description:         "User defined key-value pairs",
+				MarkdownDescription: "User defined key-value pairs",
+				PlanModifiers: []planmodifier.Map{
+					mapplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"topology_manager_policy": schema.StringAttribute{
 				Optional:            true,
@@ -911,11 +916,8 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"upgrade_kube_role_version": schema.StringAttribute{
 				Computed:            true,
-				Description:         "kube role version to which the cluster can be upgraded.",
-				MarkdownDescription: "kube role version to which the cluster can be upgraded.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				Description:         "Contains the kube role version to which the cluster can be upgraded. If this is null then cluster cannot be upgraded.",
+				MarkdownDescription: "Contains the kube role version to which the cluster can be upgraded. If this is null then cluster cannot be upgraded.",
 			},
 			"use_hostname": schema.BoolAttribute{
 				Optional:            true,
@@ -931,10 +933,11 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 			"worker_nodes": schema.SetAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
+				Computed:            true,
 				Description:         "List of uuid of worker nodes. Required if allow_workloads_on_master is false",
 				MarkdownDescription: "List of uuid of worker nodes. Required if allow_workloads_on_master is false",
-				Validators: []validator.Set{
-					setvalidator.SizeAtLeast(1),
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
 				},
 			},
 		},

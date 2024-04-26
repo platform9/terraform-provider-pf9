@@ -102,7 +102,7 @@ resource "pf9_cluster" "example" {
 - `quay_private_registry` (String)
 - `reserved_cpus` (String) Enter a comma separated list of CPUs to be reserved for the system,example:4-8,9-12
 - `services_cidr` (String) CIDR used for service IP addresses, applicable also for manual deploy
-- `tags` (Map of String) User defined key-value pairs represented as a JSON object
+- `tags` (Map of String) User defined key-value pairs
 - `topology_manager_policy` (String) options: none, best-effort, restricted, single-numa-node; default: none
 - `use_hostname` (Boolean) If set to true nodes will be registered in the cluster using hostname instead of IP address. This option is only applicable to IPv4 hosts.
 - `worker_nodes` (Set of String) List of uuid of worker nodes. Required if allow_workloads_on_master is false
@@ -119,7 +119,7 @@ resource "pf9_cluster" "example" {
 - `node_pool_name` (String)
 - `project_id` (String)
 - `status` (Attributes) (see [below for nested schema](#nestedatt--status))
-- `upgrade_kube_role_version` (String) kube role version to which the cluster can be upgraded.
+- `upgrade_kube_role_version` (String) Contains the kube role version to which the cluster can be upgraded. If this is null then cluster cannot be upgraded.
 
 <a id="nestedatt--addons"></a>
 ### Nested Schema for `addons`

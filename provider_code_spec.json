@@ -109,20 +109,20 @@
 					{
 						"name": "worker_nodes",
 						"set": {
-							"computed_optional_required": "optional",
+							"computed_optional_required": "computed_optional",
 							"element_type": {
 								"string": {}
 							},
 							"description": "List of uuid of worker nodes. Required if allow_workloads_on_master is false",
-							"validators": [
+							"plan_modifiers": [
 								{
 									"custom": {
 										"imports": [
 											{
-												"path": "github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 											}
 										],
-										"schema_definition": "setvalidator.SizeAtLeast(1)"
+										"schema_definition": "setplanmodifier.UseStateForUnknown()"
 									}
 								}
 							]
@@ -649,19 +649,7 @@
 						"name": "upgrade_kube_role_version",
 						"string": {
 							"computed_optional_required": "computed",
-							"description": "kube role version to which the cluster can be upgraded.",
-							"plan_modifiers": [
-								{
-									"custom": {
-										"imports": [
-											{
-												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-											}
-										],
-										"schema_definition": "stringplanmodifier.UseStateForUnknown()"
-									}
-								}
-							]
+							"description": "Contains the kube role version to which the cluster can be upgraded. If this is null then cluster cannot be upgraded."
 						}
 					},
 					{
@@ -1510,11 +1498,23 @@
 					{
 						"name": "tags",
 						"map": {
-							"computed_optional_required": "optional",
+							"computed_optional_required": "computed_optional",
 							"element_type": {
 								"string": {}
 							},
-							"description": "User defined key-value pairs represented as a JSON object"
+							"description": "User defined key-value pairs",
+							"plan_modifiers": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
+											}
+										],
+										"schema_definition": "mapplanmodifier.UseStateForUnknown()"
+									}
+								}
+							]
 						}
 					},
 					{

@@ -283,20 +283,27 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		})
 	}
 	var workerNodeIDs []string
-	resp.Diagnostics.Append(data.WorkerNodes.ElementsAs(ctx, &workerNodeIDs, false)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	for _, nodeID := range workerNodeIDs {
-		nodeList = append(nodeList, qbert.Node{
-			UUID:     nodeID,
-			IsMaster: 0,
-		})
+	if !data.WorkerNodes.IsNull() && !data.WorkerNodes.IsUnknown() {
+		resp.Diagnostics.Append(data.WorkerNodes.ElementsAs(ctx, &workerNodeIDs, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		for _, nodeID := range workerNodeIDs {
+			nodeList = append(nodeList, qbert.Node{
+				UUID:     nodeID,
+				IsMaster: 0,
+			})
+		}
 	}
 	nodesToAttachIDs := []string{}
 	nodesToAttachIDs = append(nodesToAttachIDs, masterNodeIDs...)
 	nodesToAttachIDs = append(nodesToAttachIDs, workerNodeIDs...)
-	err = r.verifyNodes(ctx, clusterID, projectID, nodesToAttachIDs)
+	qbertNodesMap, err := r.getQbertNodesMap(projectID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get qbert nodes", err.Error())
+		return
+	}
+	err = r.verifyNodesForAttach(ctx, nodesToAttachIDs, qbertNodesMap)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to verify nodes", err.Error())
 		return
@@ -571,15 +578,22 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	}
 
-	if editRequired {
-		// qberty API replaces tags with empty map if tags are not provided
-		editClusterReq.Tags = map[string]string{}
-		tagsGoMap := map[string]string{}
-		resp.Diagnostics.Append(plan.Tags.ElementsAs(ctx, &tagsGoMap, false)...)
-		if resp.Diagnostics.HasError() {
-			return
+	if !plan.Tags.Equal(state.Tags) && !plan.Tags.IsUnknown() {
+		if !plan.Tags.IsNull() {
+			editRequired = true
+			planTagsMap := map[string]string{}
+			resp.Diagnostics.Append(plan.Tags.ElementsAs(ctx, &planTagsMap, false)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			editClusterReq.Tags = planTagsMap
+		} else {
+			editRequired = true
+			editClusterReq.Tags = map[string]string{}
 		}
-		editClusterReq.Tags = tagsGoMap
+	}
+
+	if editRequired {
 		jsonRequest, err := json.Marshal(editClusterReq)
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to marshal editClusterReq", err.Error())
@@ -860,7 +874,13 @@ func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, pr
 
 func (r *clusterResource) attachDetachNodes(ctx context.Context, clusterID string, projectID string, plan resource_cluster.ClusterModel, state resource_cluster.ClusterModel) diag.Diagnostics {
 	var diags diag.Diagnostics
+	nodeList := []qbert.Node{}
 	masterNodesFromPlan := []string{}
+	qbertNodesMap, err := r.getQbertNodesMap(projectID)
+	if err != nil {
+		diags.AddError("Failed to get qbert nodes", err.Error())
+		return diags
+	}
 	diags.Append(plan.MasterNodes.ElementsAs(ctx, &masterNodesFromPlan, false)...)
 	if diags.HasError() {
 		return diags
@@ -871,33 +891,43 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, clusterID strin
 		return diags
 	}
 	diffMasters := findDiff(masterNodesFromState, masterNodesFromPlan)
-
-	workerNodesFromPlan := []string{}
-	diags.Append(plan.WorkerNodes.ElementsAs(ctx, &workerNodesFromPlan, false)...)
-	if diags.HasError() {
-		return diags
-	}
-	workerNodesFromState := []string{}
-	diags.Append(state.WorkerNodes.ElementsAs(ctx, &workerNodesFromState, false)...)
-	if diags.HasError() {
-		return diags
-	}
-	diffWorkers := findDiff(workerNodesFromState, workerNodesFromPlan)
-
-	nodeList := []qbert.Node{}
 	for _, nodeID := range diffMasters.Removed {
+		if qbertNodesMap[nodeID].ClusterUUID == "" {
+			tflog.Debug(ctx, "Node is already detached", map[string]interface{}{"nodeID": nodeID})
+			continue
+		}
 		nodeList = append(nodeList, qbert.Node{
 			UUID: nodeID,
 		})
 	}
+
+	workerNodesFromPlan := []string{}
+	if !plan.WorkerNodes.IsNull() {
+		diags.Append(plan.WorkerNodes.ElementsAs(ctx, &workerNodesFromPlan, false)...)
+		if diags.HasError() {
+			return diags
+		}
+	}
+	workerNodesFromState := []string{}
+	if !state.WorkerNodes.IsNull() {
+		diags.Append(state.WorkerNodes.ElementsAs(ctx, &workerNodesFromState, false)...)
+		if diags.HasError() {
+			return diags
+		}
+	}
+	diffWorkers := findDiff(workerNodesFromState, workerNodesFromPlan)
 	for _, nodeID := range diffWorkers.Removed {
+		if node, found := qbertNodesMap[nodeID]; !found || node.ClusterUUID == "" {
+			tflog.Debug(ctx, "Node is already detached", map[string]interface{}{"nodeID": nodeID, "nodeFound": found})
+			continue
+		}
 		nodeList = append(nodeList, qbert.Node{
 			UUID: nodeID,
 		})
 	}
 	if len(nodeList) > 0 {
 		tflog.Debug(ctx, "Detaching nodes", map[string]interface{}{"nodeList": nodeList})
-		err := r.client.Qbert().DetachNodes(state.Id.ValueString(), nodeList)
+		err := r.client.Qbert().DetachNodes(clusterID, nodeList)
 		if err != nil {
 			diags.AddError("Failed to detach nodes", err.Error())
 			return diags
@@ -906,6 +936,10 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, clusterID strin
 	nodesToAttachIDs := []string{}
 	nodeList = []qbert.Node{}
 	for _, nodeID := range diffMasters.Added {
+		if isNodeAlreadyAttached(clusterID, qbertNodesMap[nodeID], true) {
+			tflog.Debug(ctx, "Node is already attached as master", map[string]interface{}{"nodeID": nodeID})
+			continue
+		}
 		nodeList = append(nodeList, qbert.Node{
 			UUID:     nodeID,
 			IsMaster: 1,
@@ -913,20 +947,24 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, clusterID strin
 		nodesToAttachIDs = append(nodesToAttachIDs, nodeID)
 	}
 	for _, nodeID := range diffWorkers.Added {
+		if isNodeAlreadyAttached(clusterID, qbertNodesMap[nodeID], false) {
+			tflog.Debug(ctx, "Node is already attached as worker", map[string]interface{}{"nodeID": nodeID})
+			continue
+		}
 		nodeList = append(nodeList, qbert.Node{
 			UUID:     nodeID,
 			IsMaster: 0,
 		})
 		nodesToAttachIDs = append(nodesToAttachIDs, nodeID)
 	}
-	err := r.verifyNodes(ctx, clusterID, projectID, nodesToAttachIDs)
+	err = r.verifyNodesForAttach(ctx, nodesToAttachIDs, qbertNodesMap)
 	if err != nil {
-		diags.AddError("Failed to verify nodes", err.Error())
+		diags.AddError("Failed to verify nodes are eligible to attach", err.Error())
 		return diags
 	}
 	if len(nodeList) > 0 {
 		tflog.Debug(ctx, "Attaching nodes", map[string]interface{}{"nodeList": nodeList})
-		err := r.client.Qbert().AttachNodes(state.Id.ValueString(), nodeList)
+		err := r.client.Qbert().AttachNodes(clusterID, nodeList)
 		if err != nil {
 			diags.AddError("Failed to attach nodes", err.Error())
 			return diags
@@ -936,26 +974,33 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, clusterID strin
 	return diags
 }
 
-func (r *clusterResource) verifyNodes(ctx context.Context, clusterID, projectID string, nodesToAttachIDs []string) error {
-	tflog.Debug(ctx, "Checking if nodes can be attached", map[string]interface{}{"nodesToAttachIDs": nodesToAttachIDs})
-	nodes, err := r.client.Qbert().ListNodes(projectID)
-	if err != nil {
-		return fmt.Errorf("failed to list nodes: %w", err)
-	}
+func isNodeAlreadyAttached(clusterID string, node qbert.Node, isMaster bool) bool {
+	return node.ClusterUUID == clusterID && ((isMaster && node.IsMaster == 1) || (!isMaster && node.IsMaster == 0))
+}
+
+func (r *clusterResource) getQbertNodesMap(projectID string) (map[string]qbert.Node, error) {
 	nodesMap := map[string]qbert.Node{}
-	for _, node := range nodes {
+	qbertNodes, err := r.client.Qbert().ListNodes(projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get qbert nodes: %w", err)
+	}
+	for _, node := range qbertNodes {
 		nodesMap[node.UUID] = node
 	}
+	return nodesMap, nil
+}
 
+func (r *clusterResource) verifyNodesForAttach(ctx context.Context, nodesToAttachIDs []string, qbertNodesMap map[string]qbert.Node) error {
+	tflog.Debug(ctx, "Checking if nodes can be attached", map[string]interface{}{"nodesToAttachIDs": nodesToAttachIDs})
 	for _, nodeID := range nodesToAttachIDs {
-		node, found := nodesMap[nodeID]
+		node, found := qbertNodesMap[nodeID]
 		if !found {
-			return fmt.Errorf("node %v is not found in the list of nodes", nodeID)
+			return fmt.Errorf("node %v not found", nodeID)
 		}
 		if node.Status != "ok" {
 			return fmt.Errorf("node %v is not in a 'ok' state. Current state:%v", nodeID, node.Status)
 		}
-		if node.ClusterName != "" && node.ClusterUUID != clusterID {
+		if node.ClusterName != "" {
 			return fmt.Errorf("node %v is already attached to a cluster %v", nodeID, node.ClusterName)
 		}
 	}
@@ -1317,12 +1362,14 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 		createClusterReq.KubeAPIPort = fmt.Sprintf("%d", clusterModel.K8sApiPort.ValueInt64())
 	}
 
-	tagsGoMap := map[string]string{}
-	diags = clusterModel.Tags.ElementsAs(ctx, &tagsGoMap, false)
-	if diags.HasError() {
-		return createClusterReq, diags
+	if !clusterModel.Tags.IsNull() && !clusterModel.Tags.IsUnknown() {
+		planTagsMap := map[string]string{}
+		diags = clusterModel.Tags.ElementsAs(ctx, &planTagsMap, false)
+		if diags.HasError() {
+			return createClusterReq, diags
+		}
+		createClusterReq.Tags = planTagsMap
 	}
-	createClusterReq.Tags = tagsGoMap
 	return createClusterReq, diags
 }
 
