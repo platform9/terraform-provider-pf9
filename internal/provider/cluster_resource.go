@@ -58,14 +58,14 @@ func (c clusterResource) ValidateConfig(ctx context.Context, req resource.Valida
 		return
 	}
 
-	workerNodes := []string{}
+	workerNodes := []types.String{}
 	if !data.WorkerNodes.IsNull() && !data.WorkerNodes.IsUnknown() {
 		resp.Diagnostics.Append(data.WorkerNodes.ElementsAs(ctx, &workerNodes, false)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
 	}
-	masterNodes := []string{}
+	masterNodes := []types.String{}
 	if !data.MasterNodes.IsNull() && !data.MasterNodes.IsUnknown() {
 		resp.Diagnostics.Append(data.MasterNodes.ElementsAs(ctx, &masterNodes, false)...)
 		if resp.Diagnostics.HasError() {
@@ -163,12 +163,18 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 			return
 		}
 		if !workerNodesSet.IsNull() && !workerNodesSet.IsUnknown() {
-			workerNodes := []string{}
+			workerNodes := []types.String{}
 			resp.Diagnostics.Append(workerNodesSet.ElementsAs(ctx, &workerNodes, false)...)
 			if resp.Diagnostics.HasError() {
 				return
 			}
-			if len(workerNodes) == 0 {
+			strWorkerNodes := []string{}
+			for _, nodeID := range workerNodes {
+				if !nodeID.IsNull() && !nodeID.IsUnknown() {
+					strWorkerNodes = append(strWorkerNodes, nodeID.ValueString())
+				}
+			}
+			if len(strWorkerNodes) == 0 {
 				var containersCidr types.String
 				resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("containers_cidr"), &containersCidr)...)
 				if resp.Diagnostics.HasError() {
@@ -238,38 +244,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 	projectID := authInfo.ProjectID
-	createClusterReq, diags := createCreateClusterRequest(ctx, &data)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		tflog.Error(ctx, "Failed to create createClusterRequest")
-		return
-	}
-	if !data.NodePoolUuid.IsNull() && !data.NodePoolUuid.IsUnknown() {
-		createClusterReq.NodePoolUUID = data.NodePoolUuid.ValueString()
-	} else {
-		defaultNodePoolUUID, err := r.client.Qbert().GetNodePoolID(projectID)
-		if err != nil {
-			resp.Diagnostics.AddError("Failed to get default node pool uuid", err.Error())
-			return
-		}
-		tflog.Debug(ctx, "Got default node pool", map[string]interface{}{"nodePoolUUID": defaultNodePoolUUID})
-		createClusterReq.NodePoolUUID = defaultNodePoolUUID
-	}
-
-	jsonRequest, err := json.Marshal(createClusterReq)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to marshal createClusterRequest", err.Error())
-		return
-	}
-	strRequest := string(jsonRequest)
-	tflog.Info(ctx, "Creating a cluster", map[string]interface{}{"request": strRequest})
-	clusterID, err := r.client.Qbert().CreateCluster(createClusterReq, projectID, qbert.CreateClusterOptions{})
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to create cluster", err.Error())
-		return
-	}
 	// TODO: Save intermediate state to prevent inconsistency between local and remote state
-
 	nodeList := []qbert.Node{}
 	var masterNodeIDs []string
 	resp.Diagnostics.Append(data.MasterNodes.ElementsAs(ctx, &masterNodeIDs, false)...)
@@ -308,18 +283,65 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Failed to verify nodes", err.Error())
 		return
 	}
+	createClusterReq, diags := createCreateClusterRequest(ctx, &data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		tflog.Error(ctx, "Failed to create createClusterRequest")
+		return
+	}
+	if !data.NodePoolUuid.IsNull() && !data.NodePoolUuid.IsUnknown() {
+		createClusterReq.NodePoolUUID = data.NodePoolUuid.ValueString()
+	} else {
+		defaultNodePoolUUID, err := r.client.Qbert().GetNodePoolID(projectID)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to get default node pool uuid", err.Error())
+			return
+		}
+		tflog.Debug(ctx, "Got default node pool", map[string]interface{}{"nodePoolUUID": defaultNodePoolUUID})
+		createClusterReq.NodePoolUUID = defaultNodePoolUUID
+	}
+
+	jsonRequest, err := json.Marshal(createClusterReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to marshal createClusterRequest", err.Error())
+		return
+	}
+	strRequest := string(jsonRequest)
+	tflog.Info(ctx, "Creating a cluster", map[string]interface{}{"request": strRequest})
+	clusterID, err := r.client.Qbert().CreateCluster(createClusterReq, projectID, qbert.CreateClusterOptions{})
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create cluster", err.Error())
+		return
+	}
+
+	tflog.Info(ctx, "Cluster created", map[string]interface{}{"clusterID": clusterID})
+
 	tflog.Info(ctx, "Attaching nodes", map[string]interface{}{"nodeList": nodeList})
 	err = r.client.Qbert().AttachNodes(clusterID, nodeList)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to attach nodes", err.Error())
 		return
 	}
-	// resp.State.SetAttribute(ctx, path.Root("worker_nodes"), data.WorkerNodes)
-	// resp.State.SetAttribute(ctx, path.Root("master_nodes"), data.MasterNodes)
-	// TODO: Evaluate the feasibility of saving an intermediate state between requests
-	// to prevent inconsistency between local and remote state if the provider exits
-	// unexpectedly. Consider the overhead, impact on user experience, and alternative
-	// approaches to improve reliability.
+	workerNodesSetVal, diags := types.SetValueFrom(ctx, types.StringType, workerNodeIDs)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("worker_nodes"), workerNodesSetVal)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	masterNodesSetVal, diags := types.SetValueFrom(ctx, types.StringType, masterNodeIDs)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("master_nodes"), masterNodesSetVal)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	state.WorkerNodes = workerNodesSetVal
+	state.MasterNodes = masterNodesSetVal
 
 	if !data.Addons.IsNull() && !data.Addons.IsUnknown() {
 		// This is a workaround because default addons are not being set in the plan.
@@ -362,6 +384,15 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 					// Case 1:
 					// if addon with the same name is available at both places, difference bw
 					// the two should be patched, prefering the plan instance.
+					if !tfAddon.Enabled.IsNull() && !tfAddon.Enabled.IsUnknown() && !tfAddon.Enabled.ValueBool() {
+						tflog.Debug(ctx, "Disabling addon because enabled=false", map[string]interface{}{"addon": addonName})
+						err = r.addonsClient.Disable(ctx, AddonSpec{ClusterID: clusterID, Type: addonName})
+						if err != nil {
+							resp.Diagnostics.AddError("Failed to disable addon", err.Error())
+							return
+						}
+						continue
+					}
 					tflog.Debug(ctx, "Checking if addon version and params needs to be patched")
 					var addonVersion string
 					if !tfAddon.Version.IsNull() && !tfAddon.Version.IsUnknown() {
@@ -372,10 +403,16 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 						// present in the remote state.
 						addonVersion = sunpikeAddon.Spec.Version
 					}
+					tfParamsInPlan := map[string]types.String{}
+					if !tfAddon.Params.IsUnknown() {
+						resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &tfParamsInPlan, false)...)
+						if resp.Diagnostics.HasError() {
+							return
+						}
+					}
 					paramsInPlan := map[string]string{}
-					resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
-					if resp.Diagnostics.HasError() {
-						return
+					for key, value := range tfParamsInPlan {
+						paramsInPlan[key] = value.ValueString()
 					}
 					err := r.addonsClient.Patch(ctx, AddonSpec{
 						ClusterID: clusterID,
@@ -397,10 +434,17 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 						resp.Diagnostics.AddError("Failed to get default addon versions", err.Error())
 						return
 					}
+					tfParamsInPlan := map[string]types.String{}
+					if !tfAddon.Params.IsUnknown() {
+						resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &tfParamsInPlan, false)...)
+						if resp.Diagnostics.HasError() {
+							return
+						}
+					}
 					paramsInPlan := map[string]string{}
-					resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
-					if resp.Diagnostics.HasError() {
-						return
+					for key, value := range tfParamsInPlan {
+						// TODO: Decide how to handle null values. Currently they are sent as empty strings.
+						paramsInPlan[key] = value.ValueString()
 					}
 					var addonVersion string
 					if !tfAddon.Version.IsNull() && !tfAddon.Version.IsUnknown() {
@@ -460,11 +504,12 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	state.Addons, diags = types.MapValueFrom(ctx, resource_cluster.AddonsValue{}.Type(ctx), tfAddonsMapState)
+	tfAddonsRemote, diags := types.MapValueFrom(ctx, resource_cluster.AddonsValue{}.Type(ctx), tfAddonsMapState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	state.Addons = tfAddonsRemote
 	// This attr is useful in Update only, copied value from state to prevent inconsistency
 	state.BatchUpgradePercent = data.BatchUpgradePercent
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -488,6 +533,10 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 	clusterID := data.Id.ValueString()
 	projectID := authInfo.ProjectID
+	if clusterID == "" {
+		resp.Diagnostics.AddError("Cluster ID is not provided", "Cluster ID is required to read the cluster")
+		return
+	}
 	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -499,7 +548,7 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 		resp.Diagnostics.AddError("Failed to get sunpike addons", err.Error())
 		return
 	}
-	tfAddonsMapState, diags := sunpikeAddonsToTerraformAddons(ctx, addonsOnRemote, types.MapNull(resource_cluster.AddonsValue{}.Type(ctx)))
+	tfAddonsMapState, diags := sunpikeAddonsToTerraformAddons(ctx, addonsOnRemote, data.Addons)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -535,7 +584,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 	projectID := authInfo.ProjectID
 	clusterID := state.Id.ValueString()
-	if !plan.WorkerNodes.Equal(state.WorkerNodes) || !plan.MasterNodes.Equal(state.MasterNodes) {
+	if (!plan.WorkerNodes.IsUnknown() && !plan.WorkerNodes.Equal(state.WorkerNodes)) || !plan.MasterNodes.Equal(state.MasterNodes) {
 		tflog.Debug(ctx, "Change in nodes detected, attaching/detaching nodes")
 		resp.Diagnostics.Append(r.attachDetachNodes(ctx, clusterID, projectID, plan, state)...)
 		if resp.Diagnostics.HasError() {
@@ -633,6 +682,15 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 		for addonName, tfAddon := range tfAddonsMap {
 			if sunpikeAddon, found := sunpikeAddonsMap[addonName]; found && !tfAddon.IsNull() {
+				if !tfAddon.Enabled.IsNull() && !tfAddon.Enabled.IsUnknown() && !tfAddon.Enabled.ValueBool() {
+					tflog.Debug(ctx, "Disabling addon because enabled=false", map[string]interface{}{"addon": addonName})
+					err = r.addonsClient.Disable(ctx, AddonSpec{ClusterID: clusterID, Type: addonName})
+					if err != nil {
+						resp.Diagnostics.AddError("Failed to disable addon", err.Error())
+						return
+					}
+					continue
+				}
 				// Patch the addon
 				tflog.Debug(ctx, "Checking if addon version and params needs to be patched")
 				var addonVersion string
@@ -642,10 +700,16 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 				} else {
 					addonVersion = tfAddon.Version.ValueString()
 				}
+				tfParamsInPlan := map[string]types.String{}
+				if !tfAddon.Params.IsUnknown() {
+					resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &tfParamsInPlan, false)...)
+					if resp.Diagnostics.HasError() {
+						return
+					}
+				}
 				paramsInPlan := map[string]string{}
-				resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
-				if resp.Diagnostics.HasError() {
-					return
+				for key, value := range tfParamsInPlan {
+					paramsInPlan[key] = value.ValueString()
 				}
 				err := r.addonsClient.Patch(ctx, AddonSpec{
 					ClusterID: clusterID,
@@ -668,10 +732,16 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 			} else {
 				// Enable the addon
 				tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": addonName})
+				tfParamsInPlan := map[string]types.String{}
+				if !tfAddon.Params.IsUnknown() {
+					resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &tfParamsInPlan, false)...)
+					if resp.Diagnostics.HasError() {
+						return
+					}
+				}
 				paramsInPlan := map[string]string{}
-				resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &paramsInPlan, false)...)
-				if resp.Diagnostics.HasError() {
-					return
+				for key, value := range tfParamsInPlan {
+					paramsInPlan[key] = value.ValueString()
 				}
 				var addonVersion string
 				if tfAddon.Version.IsNull() || tfAddon.Version.IsUnknown() {
@@ -875,22 +945,38 @@ func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, pr
 func (r *clusterResource) attachDetachNodes(ctx context.Context, clusterID string, projectID string, plan resource_cluster.ClusterModel, state resource_cluster.ClusterModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 	nodeList := []qbert.Node{}
-	masterNodesFromPlan := []string{}
+	masterNodesFromPlan := []types.String{}
 	qbertNodesMap, err := r.getQbertNodesMap(projectID)
 	if err != nil {
 		diags.AddError("Failed to get qbert nodes", err.Error())
 		return diags
 	}
-	diags.Append(plan.MasterNodes.ElementsAs(ctx, &masterNodesFromPlan, false)...)
-	if diags.HasError() {
-		return diags
+	if !plan.MasterNodes.IsNull() && !plan.MasterNodes.IsUnknown() {
+		diags.Append(plan.MasterNodes.ElementsAs(ctx, &masterNodesFromPlan, false)...)
+		if diags.HasError() {
+			return diags
+		}
 	}
-	masterNodesFromState := []string{}
-	diags.Append(state.MasterNodes.ElementsAs(ctx, &masterNodesFromState, false)...)
-	if diags.HasError() {
-		return diags
+	masterNodesFromState := []types.String{}
+	if !state.MasterNodes.IsNull() && !state.MasterNodes.IsUnknown() {
+		diags.Append(state.MasterNodes.ElementsAs(ctx, &masterNodesFromState, false)...)
+		if diags.HasError() {
+			return diags
+		}
 	}
-	diffMasters := findDiff(masterNodesFromState, masterNodesFromPlan)
+	strMasterNodesFromState := []string{}
+	for _, nodeID := range masterNodesFromState {
+		if !nodeID.IsNull() && !nodeID.IsUnknown() {
+			strMasterNodesFromState = append(strMasterNodesFromState, nodeID.ValueString())
+		}
+	}
+	strMasterNodesFromPlan := []string{}
+	for _, nodeID := range masterNodesFromPlan {
+		if !nodeID.IsNull() && !nodeID.IsUnknown() {
+			strMasterNodesFromPlan = append(strMasterNodesFromPlan, nodeID.ValueString())
+		}
+	}
+	diffMasters := findDiff(strMasterNodesFromState, strMasterNodesFromPlan)
 	for _, nodeID := range diffMasters.Removed {
 		if qbertNodesMap[nodeID].ClusterUUID == "" {
 			tflog.Debug(ctx, "Node is already detached", map[string]interface{}{"nodeID": nodeID})
@@ -901,21 +987,33 @@ func (r *clusterResource) attachDetachNodes(ctx context.Context, clusterID strin
 		})
 	}
 
-	workerNodesFromPlan := []string{}
-	if !plan.WorkerNodes.IsNull() {
+	workerNodesFromPlan := []types.String{}
+	if !plan.WorkerNodes.IsNull() && !plan.WorkerNodes.IsUnknown() {
 		diags.Append(plan.WorkerNodes.ElementsAs(ctx, &workerNodesFromPlan, false)...)
 		if diags.HasError() {
 			return diags
 		}
 	}
-	workerNodesFromState := []string{}
-	if !state.WorkerNodes.IsNull() {
+	workerNodesFromState := []types.String{}
+	if !state.WorkerNodes.IsNull() && !state.WorkerNodes.IsUnknown() {
 		diags.Append(state.WorkerNodes.ElementsAs(ctx, &workerNodesFromState, false)...)
 		if diags.HasError() {
 			return diags
 		}
 	}
-	diffWorkers := findDiff(workerNodesFromState, workerNodesFromPlan)
+	strWorkerNodesFromState := []string{}
+	for _, nodeID := range workerNodesFromState {
+		if !nodeID.IsNull() && !nodeID.IsUnknown() {
+			strWorkerNodesFromState = append(strWorkerNodesFromState, nodeID.ValueString())
+		}
+	}
+	strWorkerNodesFromPlan := []string{}
+	for _, nodeID := range workerNodesFromPlan {
+		if !nodeID.IsNull() && !nodeID.IsUnknown() {
+			strWorkerNodesFromPlan = append(strWorkerNodesFromPlan, nodeID.ValueString())
+		}
+	}
+	diffWorkers := findDiff(strWorkerNodesFromState, strWorkerNodesFromPlan)
 	for _, nodeID := range diffWorkers.Removed {
 		if node, found := qbertNodesMap[nodeID]; !found || node.ClusterUUID == "" {
 			tflog.Debug(ctx, "Node is already detached", map[string]interface{}{"nodeID": nodeID, "nodeFound": found})
@@ -1007,16 +1105,53 @@ func (r *clusterResource) verifyNodesForAttach(ctx context.Context, nodesToAttac
 	return nil
 }
 
+func getParamsMapForAllAddons(ctx context.Context, planAddons types.Map) (map[string]map[string]types.String, diag.Diagnostics) {
+	if !planAddons.IsNull() && !planAddons.IsUnknown() {
+		tfAddonsMap := map[string]resource_cluster.AddonsValue{}
+		var diags diag.Diagnostics
+		diags = planAddons.ElementsAs(ctx, &tfAddonsMap, false)
+		if diags.HasError() {
+			return nil, diags
+		}
+		paramsMap := map[string]map[string]types.String{}
+		for addonName, tfAddon := range tfAddonsMap {
+			if !tfAddon.Params.IsUnknown() {
+				params := map[string]types.String{}
+				diags = tfAddon.Params.ElementsAs(ctx, &params, false)
+				if diags.HasError() {
+					return nil, diags
+				}
+				paramsMap[addonName] = params
+			}
+		}
+		return paramsMap, diags
+	}
+	return nil, nil
+}
+
 func sunpikeAddonsToTerraformAddons(ctx context.Context, sunpikeAddons []sunpikev1alpha2.ClusterAddon, planAddons types.Map,
 ) (map[string]resource_cluster.AddonsValue, diag.Diagnostics) {
 	tfAddonsMap := map[string]resource_cluster.AddonsValue{}
 	var diags diag.Diagnostics
+	// know which param was null and which was empty in plan
+	paramsForAllAddons, diags := getParamsMapForAllAddons(ctx, planAddons)
+	if diags.HasError() {
+		return tfAddonsMap, diags
+	}
 	for _, sunpikeAddon := range sunpikeAddons {
+		addonName := sunpikeAddon.Spec.Type
 		version := types.StringValue(sunpikeAddon.Spec.Version)
 		phase := types.StringValue(string(sunpikeAddon.Status.Phase))
-		paramMap := map[string]string{}
+		paramMap := map[string]types.String{}
 		for _, param := range sunpikeAddon.Spec.Override.Params {
-			paramMap[param.Name] = param.Value
+			if param.Value == "" {
+				// API always returns empty for non provided params, but terraform users
+				// can either provide null or empty string, and we need to keep the state
+				// same as plan, if param is null in plan, we need to keep it null in state
+				paramMap[param.Name] = paramsForAllAddons[addonName][param.Name]
+				continue
+			}
+			paramMap[param.Name] = types.StringValue(param.Value)
 		}
 		var params types.Map
 		params, diags = types.MapValueFrom(ctx, types.StringType, paramMap)
@@ -1024,6 +1159,7 @@ func sunpikeAddonsToTerraformAddons(ctx context.Context, sunpikeAddons []sunpike
 			return tfAddonsMap, diags
 		}
 		addonObjVal, diags := resource_cluster.AddonsValue{
+			Enabled: types.BoolValue(true),
 			Version: version,
 			Phase:   phase,
 			Params:  params,
@@ -1044,8 +1180,34 @@ func sunpikeAddonsToTerraformAddons(ctx context.Context, sunpikeAddons []sunpike
 			return tfAddonsMap, diags
 		}
 		for addonName, tfPlanAddon := range tfPlanAddonsMap {
-			if _, found := tfAddonsMap[addonName]; !found && tfPlanAddon.IsNull() {
-				tfAddonsMap[addonName] = resource_cluster.NewAddonsValueNull()
+			if _, found := tfAddonsMap[addonName]; !found {
+				if tfPlanAddon.IsNull() {
+					// plan has addon=null, to make remote state same as plan we need to mark it as null in the state too
+					tfAddonsMap[addonName] = resource_cluster.NewAddonsValueNull()
+				}
+				if !tfPlanAddon.Enabled.IsNull() && !tfPlanAddon.Enabled.IsUnknown() && !tfPlanAddon.Enabled.ValueBool() {
+					// plan has addon enabled=false, to make remote state same as plan, copy plan addon to state
+					tmpParams := types.MapNull(types.StringType)
+					if !tfPlanAddon.Params.IsUnknown() {
+						tmpParams = tfPlanAddon.Params
+					}
+					addonObjVal, convertDiags := resource_cluster.AddonsValue{
+						Enabled: types.BoolValue(false),
+						Params:  tmpParams,
+						Phase:   types.StringNull(),
+						Version: tfPlanAddon.Version,
+					}.ToObjectValue(ctx)
+					diags.Append(convertDiags...)
+					if diags.HasError() {
+						return tfAddonsMap, diags
+					}
+					addonVal, convertDiags := resource_cluster.NewAddonsValue(addonObjVal.AttributeTypes(ctx), addonObjVal.Attributes())
+					diags.Append(convertDiags...)
+					if diags.HasError() {
+						return tfAddonsMap, diags
+					}
+					tfAddonsMap[addonName] = addonVal
+				}
 			}
 		}
 	}
@@ -1379,7 +1541,13 @@ func (r *clusterResource) listClusterAddons(ctx context.Context, clusterID strin
 	if err != nil {
 		return nil, err
 	}
-	return sunpikeAddonsList.Items, nil
+	notDeletedAddons := []sunpikev1alpha2.ClusterAddon{}
+	for _, addon := range sunpikeAddonsList.Items {
+		if addon.DeletionTimestamp == nil {
+			notDeletedAddons = append(notDeletedAddons, addon)
+		}
+	}
+	return notDeletedAddons, nil
 }
 
 func getCloudPropertiesValue(ctx context.Context, k8sConfigValue resource_cluster.K8sConfigValue) (*qbert.CloudProperties, diag.Diagnostics) {

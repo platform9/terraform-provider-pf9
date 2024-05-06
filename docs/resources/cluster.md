@@ -126,6 +126,7 @@ resource "pf9_cluster" "example" {
 
 Optional:
 
+- `enabled` (Boolean)
 - `params` (Map of String)
 - `version` (String)
 

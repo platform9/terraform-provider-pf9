@@ -21,6 +21,9 @@ func ClusterDataSourceSchema(ctx context.Context) schema.Schema {
 			"addons": schema.MapNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
+						"enabled": schema.BoolAttribute{
+							Computed: true,
+						},
 						"params": schema.MapAttribute{
 							ElementType: types.StringType,
 							Computed:    true,
@@ -620,6 +623,24 @@ func (t AddonsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 
 	attributes := in.Attributes()
 
+	enabledAttribute, ok := attributes["enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`enabled is missing from object`)
+
+		return nil, diags
+	}
+
+	enabledVal, ok := enabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`enabled expected to be basetypes.BoolValue, was: %T`, enabledAttribute))
+	}
+
 	paramsAttribute, ok := attributes["params"]
 
 	if !ok {
@@ -679,6 +700,7 @@ func (t AddonsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 	}
 
 	return AddonsValue{
+		Enabled: enabledVal,
 		Params:  paramsVal,
 		Phase:   phaseVal,
 		Version: versionVal,
@@ -749,6 +771,24 @@ func NewAddonsValue(attributeTypes map[string]attr.Type, attributes map[string]a
 		return NewAddonsValueUnknown(), diags
 	}
 
+	enabledAttribute, ok := attributes["enabled"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`enabled is missing from object`)
+
+		return NewAddonsValueUnknown(), diags
+	}
+
+	enabledVal, ok := enabledAttribute.(basetypes.BoolValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`enabled expected to be basetypes.BoolValue, was: %T`, enabledAttribute))
+	}
+
 	paramsAttribute, ok := attributes["params"]
 
 	if !ok {
@@ -808,6 +848,7 @@ func NewAddonsValue(attributeTypes map[string]attr.Type, attributes map[string]a
 	}
 
 	return AddonsValue{
+		Enabled: enabledVal,
 		Params:  paramsVal,
 		Phase:   phaseVal,
 		Version: versionVal,
@@ -883,6 +924,7 @@ func (t AddonsType) ValueType(ctx context.Context) attr.Value {
 var _ basetypes.ObjectValuable = AddonsValue{}
 
 type AddonsValue struct {
+	Enabled basetypes.BoolValue   `tfsdk:"enabled"`
 	Params  basetypes.MapValue    `tfsdk:"params"`
 	Phase   basetypes.StringValue `tfsdk:"phase"`
 	Version basetypes.StringValue `tfsdk:"version"`
@@ -890,11 +932,12 @@ type AddonsValue struct {
 }
 
 func (v AddonsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 3)
+	attrTypes := make(map[string]tftypes.Type, 4)
 
 	var val tftypes.Value
 	var err error
 
+	attrTypes["enabled"] = basetypes.BoolType{}.TerraformType(ctx)
 	attrTypes["params"] = basetypes.MapType{
 		ElemType: types.StringType,
 	}.TerraformType(ctx)
@@ -905,7 +948,15 @@ func (v AddonsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error
 
 	switch v.state {
 	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 3)
+		vals := make(map[string]tftypes.Value, 4)
+
+		val, err = v.Enabled.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["enabled"] = val
 
 		val, err = v.Params.ToTerraformValue(ctx)
 
@@ -966,6 +1017,7 @@ func (v AddonsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, 
 
 	if d.HasError() {
 		return types.ObjectUnknown(map[string]attr.Type{
+			"enabled": basetypes.BoolType{},
 			"params": basetypes.MapType{
 				ElemType: types.StringType,
 			},
@@ -976,6 +1028,7 @@ func (v AddonsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, 
 
 	objVal, diags := types.ObjectValue(
 		map[string]attr.Type{
+			"enabled": basetypes.BoolType{},
 			"params": basetypes.MapType{
 				ElemType: types.StringType,
 			},
@@ -983,6 +1036,7 @@ func (v AddonsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, 
 			"version": basetypes.StringType{},
 		},
 		map[string]attr.Value{
+			"enabled": v.Enabled,
 			"params":  paramsVal,
 			"phase":   v.Phase,
 			"version": v.Version,
@@ -1004,6 +1058,10 @@ func (v AddonsValue) Equal(o attr.Value) bool {
 
 	if v.state != attr.ValueStateKnown {
 		return true
+	}
+
+	if !v.Enabled.Equal(other.Enabled) {
+		return false
 	}
 
 	if !v.Params.Equal(other.Params) {
@@ -1031,6 +1089,7 @@ func (v AddonsValue) Type(ctx context.Context) attr.Type {
 
 func (v AddonsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
+		"enabled": basetypes.BoolType{},
 		"params": basetypes.MapType{
 			ElemType: types.StringType,
 		},

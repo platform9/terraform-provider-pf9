@@ -101,6 +101,7 @@ output "example" {
 
 Read-Only:
 
+- `enabled` (Boolean)
 - `params` (Map of String)
 - `phase` (String)
 - `version` (String)
