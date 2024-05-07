@@ -1191,11 +1191,15 @@ func sunpikeAddonsToTerraformAddons(ctx context.Context, sunpikeAddons []sunpike
 					if !tfPlanAddon.Params.IsUnknown() {
 						tmpParams = tfPlanAddon.Params
 					}
+					tmpVersion := types.StringNull()
+					if !tfPlanAddon.Version.IsUnknown() {
+						tmpVersion = tfPlanAddon.Version
+					}
 					addonObjVal, convertDiags := resource_cluster.AddonsValue{
 						Enabled: types.BoolValue(false),
 						Params:  tmpParams,
 						Phase:   types.StringNull(),
-						Version: tfPlanAddon.Version,
+						Version: tmpVersion,
 					}.ToObjectValue(ctx)
 					diags.Append(convertDiags...)
 					if diags.HasError() {
