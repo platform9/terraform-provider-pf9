@@ -453,7 +453,8 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 						addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
 					}
 					if addonVersion == "" {
-						resp.Diagnostics.AddError("Failed to get addon version", "Either addon is unknown or version is not provided by the API")
+						resp.Diagnostics.AddAttributeError(path.Root("addons").AtMapKey(addonName),
+							"Failed to get addon version", fmt.Sprintf("Unrecognized addon name %s or missing version in the API response", addonName))
 						return
 					}
 					err = r.addonsClient.Enable(ctx, AddonSpec{
@@ -744,14 +745,14 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 					paramsInPlan[key] = value.ValueString()
 				}
 				var addonVersion string
-				if tfAddon.Version.IsNull() || tfAddon.Version.IsUnknown() {
-					tflog.Debug(ctx, "Version is not provided in the plan, getting default version")
-					addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
-				} else {
+				if !tfAddon.Version.IsNull() && !tfAddon.Version.IsUnknown() {
 					addonVersion = tfAddon.Version.ValueString()
+				} else {
+					addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
 				}
 				if addonVersion == "" {
-					resp.Diagnostics.AddError("Failed to get addon version", "Either addon is unknown or version is not provided by the API")
+					resp.Diagnostics.AddAttributeError(path.Root("addons").AtMapKey(addonName),
+						"Failed to get addon version", fmt.Sprintf("Unrecognized addon name %s or missing version in the API response", addonName))
 					return
 				}
 				err = r.addonsClient.Enable(ctx, AddonSpec{
