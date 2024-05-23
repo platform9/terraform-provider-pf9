@@ -310,7 +310,8 @@ func qbertClusterToDatasource(ctx context.Context, qbertCluster *qbert.Cluster, 
 func getDSEtcdBackupValue(ctx context.Context, etcdBackupConfig *qbert.EtcdBackupConfig) (datasource_cluster.EtcdBackupValue, diag.Diagnostics) {
 	etcdBackupValue := datasource_cluster.EtcdBackupValue{}
 	var diags diag.Diagnostics
-	if etcdBackupConfig != nil && etcdBackupConfig.IsEtcdBackupEnabled == 1 {
+	if etcdBackupConfig != nil && etcdBackupConfig.IsEtcdBackupEnabled != nil &&
+		*etcdBackupConfig.IsEtcdBackupEnabled == 1 {
 		var dailyObjVal, intervalObjVal types.Object
 		var convertDiags diag.Diagnostics
 		if etcdBackupConfig.DailyBackupTime != "" {
@@ -326,17 +327,20 @@ func getDSEtcdBackupValue(ctx context.Context, etcdBackupConfig *qbert.EtcdBacku
 			dailyObjVal = types.ObjectNull(datasource_cluster.DailyValue{}.AttributeTypes(ctx))
 		}
 
-		if etcdBackupConfig.IntervalInHours != 0 || etcdBackupConfig.IntervalInMins != 0 {
+		if etcdBackupConfig.IntervalInHours != nil && *etcdBackupConfig.IntervalInHours != 0 || etcdBackupConfig.IntervalInMins != 0 {
 			var backupIntervalVal string
-			if etcdBackupConfig.IntervalInHours != 0 {
+			if *etcdBackupConfig.IntervalInHours != 0 {
 				backupIntervalVal = fmt.Sprintf("%dh", etcdBackupConfig.IntervalInHours)
 			} else if etcdBackupConfig.IntervalInMins != 0 {
 				backupIntervalVal = fmt.Sprintf("%dm", etcdBackupConfig.IntervalInMins)
 			}
-
+			var maxBkpToRetain int
+			if etcdBackupConfig.MaxIntervalBackupCount != nil {
+				maxBkpToRetain = *etcdBackupConfig.MaxIntervalBackupCount
+			}
 			intervalObjVal, convertDiags = datasource_cluster.IntervalValue{
 				BackupInterval:     getStrOrNullIfEmpty(backupIntervalVal),
-				MaxBackupsToRetain: getIntOrNullIfZero(etcdBackupConfig.MaxIntervalBackupCount),
+				MaxBackupsToRetain: getIntOrNullIfZero(maxBkpToRetain),
 			}.ToObjectValue(ctx)
 			diags.Append(convertDiags...)
 			if diags.HasError() {
@@ -350,9 +354,13 @@ func getDSEtcdBackupValue(ctx context.Context, etcdBackupConfig *qbert.EtcdBacku
 			localPath = *etcdBackupConfig.StorageProperties.LocalPath
 		}
 
+		var storageType string
+		if etcdBackupConfig.StorageType != nil {
+			storageType = *etcdBackupConfig.StorageType
+		}
 		etcdBackupObjVal, convertDiags := datasource_cluster.EtcdBackupValue{
 			StorageLocalPath: getStrOrNullIfEmpty(localPath),
-			StorageType:      types.StringValue(etcdBackupConfig.StorageType),
+			StorageType:      getStrOrNullIfEmpty(storageType),
 			Daily:            dailyObjVal,
 			Interval:         intervalObjVal,
 		}.ToObjectValue(ctx)

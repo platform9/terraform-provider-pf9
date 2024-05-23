@@ -290,7 +290,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 	if !data.NodePoolUuid.IsNull() && !data.NodePoolUuid.IsUnknown() {
-		createClusterReq.NodePoolUUID = data.NodePoolUuid.ValueString()
+		createClusterReq.NodePoolUUID = data.NodePoolUuid.ValueStringPointer()
 	} else {
 		defaultNodePoolUUID, err := r.client.Qbert().GetNodePoolID(projectID)
 		if err != nil {
@@ -298,7 +298,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 			return
 		}
 		tflog.Debug(ctx, "Got default node pool", map[string]interface{}{"nodePoolUUID": defaultNodePoolUUID})
-		createClusterReq.NodePoolUUID = defaultNodePoolUUID
+		createClusterReq.NodePoolUUID = ptr.To(defaultNodePoolUUID)
 	}
 
 	jsonRequest, err := json.Marshal(createClusterReq)
@@ -621,13 +621,6 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		editClusterReq.CustomRegistrySelfSignedCerts = getIntPtrFromBool(plan.CustomRegistry.SelfSignedCerts)
 	}
 
-	if !plan.EnableCatapultMonitoring.Equal(state.EnableCatapultMonitoring) {
-		editRequired = true
-		if !plan.EnableCatapultMonitoring.IsNull() && !plan.EnableCatapultMonitoring.IsUnknown() {
-			editClusterReq.EnableCatapultMonitoring = plan.EnableCatapultMonitoring.ValueBoolPointer()
-		}
-	}
-
 	if !plan.Tags.Equal(state.Tags) && !plan.Tags.IsUnknown() {
 		if !plan.Tags.IsNull() {
 			editRequired = true
@@ -795,11 +788,11 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		var upgradeClusterReq qbert.UpgradeClusterRequest
 		if cluster.CanMinorUpgrade == 1 {
 			allowedTargetVersion = cluster.MinorUpgradeRoleVersion
-			upgradeClusterReq.KubeRoleVersionUpgradeType = "minor"
+			upgradeClusterReq.UpgradeType = qbert.UpgradeTypeMinor
 		}
 		if cluster.CanPatchUpgrade == 1 {
 			allowedTargetVersion = cluster.PatchUpgradeRoleVersion
-			upgradeClusterReq.KubeRoleVersionUpgradeType = "patch"
+			upgradeClusterReq.UpgradeType = qbert.UpgradeTypePatch
 		}
 		if allowedTargetVersion == "" {
 			resp.Diagnostics.AddError("Cluster cannot be upgraded", "Cluster is not in a state to be upgraded")
@@ -822,7 +815,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 		strRequest := string(jsonRequest)
 		tflog.Info(ctx, "Upgrading a cluster", map[string]interface{}{"request": strRequest, "clusterID": clusterID,
-			"type": upgradeClusterReq.KubeRoleVersionUpgradeType})
+			"type": upgradeClusterReq.UpgradeType, "batchUpgradePercent": upgradeClusterReq.BatchUpgradePercent})
 		err = r.client.Qbert().UpgradeCluster(ctx, upgradeClusterReq, clusterID)
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to upgrade cluster", err.Error())
@@ -1409,10 +1402,10 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 	if !clusterModel.AllowWorkloadsOnMaster.IsNull() && !clusterModel.AllowWorkloadsOnMaster.IsUnknown() {
 		createClusterReq.AllowWorkloadOnMaster = clusterModel.AllowWorkloadsOnMaster.ValueBoolPointer()
 	}
-	createClusterReq.MasterVirtualIPIface = clusterModel.MasterVipIface.ValueString()
-	createClusterReq.MasterVirtualIP = clusterModel.MasterVipIpv4.ValueString()
-	createClusterReq.ContainerCIDR = clusterModel.ContainersCidr.ValueString()
-	createClusterReq.ServiceCIDR = clusterModel.ServicesCidr.ValueString()
+	createClusterReq.MasterVirtualIPIface = clusterModel.MasterVipIface.ValueStringPointer()
+	createClusterReq.MasterVirtualIP = clusterModel.MasterVipIpv4.ValueStringPointer()
+	createClusterReq.ContainerCIDR = clusterModel.ContainersCidr.ValueStringPointer()
+	createClusterReq.ServiceCIDR = clusterModel.ServicesCidr.ValueStringPointer()
 	createClusterReq.MTUSize = ptr.To(int(clusterModel.MtuSize.ValueInt64()))
 	if !clusterModel.Privileged.IsNull() && !clusterModel.Privileged.IsUnknown() {
 		createClusterReq.Privileged = clusterModel.Privileged.ValueBoolPointer()
@@ -1423,27 +1416,27 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 	createClusterReq.InterfaceDetectionMethod = clusterModel.InterfaceDetectionMethod.ValueString()
 	createClusterReq.InterfaceName = clusterModel.InterfaceName.ValueString()
 	createClusterReq.InterfaceReachableIP = clusterModel.InterfaceReachableIp.ValueString()
-	createClusterReq.KubeRoleVersion = clusterModel.KubeRoleVersion.ValueString()
+	createClusterReq.KubeRoleVersion = clusterModel.KubeRoleVersion.ValueStringPointer()
 	createClusterReq.CPUManagerPolicy = clusterModel.CpuManagerPolicy.ValueString()
-	createClusterReq.ExternalDNSName = clusterModel.ExternalDnsName.ValueString()
+	createClusterReq.ExternalDNSName = clusterModel.ExternalDnsName.ValueStringPointer()
 	createClusterReq.TopologyManagerPolicy = clusterModel.TopologyManagerPolicy.ValueString()
 	createClusterReq.ReservedCPUs = clusterModel.ReservedCpus.ValueString()
-	createClusterReq.ContainerRuntime = qbert.ContainerRuntime(clusterModel.ContainerRuntime.ValueString())
+	createClusterReq.ContainerRuntime = ptr.To(qbert.ContainerRuntime(clusterModel.ContainerRuntime.ValueString()))
 	createClusterReq.DockerRoot = clusterModel.DockerRoot.ValueString()
 	createClusterReq.IPv6 = getIntPtrFromBool(clusterModel.Ipv6)
 	createClusterReq.FelixIPv6Support = getIntPtrFromBool(clusterModel.FelixIpv6Support)
 
-	createClusterReq.NetworkPlugin = qbert.CNIBackend(clusterModel.NetworkPlugin.ValueString())
+	createClusterReq.NetworkPlugin = ptr.To(qbert.CNIBackend(clusterModel.NetworkPlugin.ValueString()))
 	createClusterReq.FlannelIfaceLabel = clusterModel.FlannelIfaceLabel.ValueString()
 	createClusterReq.FlannelPublicIfaceLabel = clusterModel.FlannelPublicIfaceLabel.ValueString()
-	createClusterReq.CalicoIPIPMode = clusterModel.CalicoIpIpMode.ValueString()
+	createClusterReq.CalicoIPIPMode = clusterModel.CalicoIpIpMode.ValueStringPointer()
 	// The qbert api accepts this field as bool but returns as int
 	if !clusterModel.CalicoNatOutgoing.IsNull() && !clusterModel.CalicoNatOutgoing.IsUnknown() {
 		createClusterReq.CalicoNatOutgoing = clusterModel.CalicoNatOutgoing.ValueBoolPointer()
 	}
-	createClusterReq.CalicoV4BlockSize = clusterModel.CalicoV4BlockSize.ValueString()
-	createClusterReq.CalicoIpv4 = clusterModel.CalicoIpv4.ValueString()
-	createClusterReq.CalicoIpv4DetectionMethod = clusterModel.CalicoIpv4DetectionMethod.ValueString()
+	createClusterReq.CalicoV4BlockSize = clusterModel.CalicoV4BlockSize.ValueStringPointer()
+	createClusterReq.CalicoIpv4 = clusterModel.CalicoIpv4.ValueStringPointer()
+	createClusterReq.CalicoIpv4DetectionMethod = clusterModel.CalicoIpv4DetectionMethod.ValueStringPointer()
 
 	createClusterReq.CalicoIPv6 = clusterModel.CalicoIpv6.ValueString()
 	createClusterReq.CalicoIPv6DetectionMethod = clusterModel.CalicoIpv6DetectionMethod.ValueString()
@@ -1526,7 +1519,7 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 	}
 
 	if !clusterModel.K8sApiPort.IsNull() && !clusterModel.K8sApiPort.IsUnknown() {
-		createClusterReq.KubeAPIPort = fmt.Sprintf("%d", clusterModel.K8sApiPort.ValueInt64())
+		createClusterReq.KubeAPIPort = ptr.To(fmt.Sprintf("%d", clusterModel.K8sApiPort.ValueInt64()))
 	}
 
 	if !clusterModel.Tags.IsNull() && !clusterModel.Tags.IsUnknown() {
@@ -1580,9 +1573,9 @@ func getEtcdBackupConfig(ctx context.Context, etcdBackupValue resource_cluster.E
 	var diags diag.Diagnostics
 	etcdBackupConfig := qbert.EtcdBackupConfig{}
 	if etcdBackupValue.IsNull() {
-		etcdBackupConfig.IsEtcdBackupEnabled = 0
+		etcdBackupConfig.IsEtcdBackupEnabled = ptr.To(0)
 	} else {
-		etcdBackupConfig.IsEtcdBackupEnabled = 1
+		etcdBackupConfig.IsEtcdBackupEnabled = ptr.To(1)
 	}
 	if !etcdBackupValue.Daily.IsNull() && !etcdBackupValue.Daily.IsUnknown() {
 		dailyValue, convertDiags := resource_cluster.NewDailyValue(etcdBackupValue.Daily.AttributeTypes(ctx), etcdBackupValue.Daily.Attributes())
@@ -1609,7 +1602,7 @@ func getEtcdBackupConfig(ctx context.Context, etcdBackupValue resource_cluster.E
 					diags.AddError("Failed to parse backup intervalValue", err.Error())
 					return nil, diags
 				}
-				etcdBackupConfig.IntervalInHours = int(intBackupInterval)
+				etcdBackupConfig.IntervalInHours = ptr.To(int(intBackupInterval))
 			} else if strBkpInterval, found := strings.CutSuffix(intervalValue.BackupInterval.ValueString(), "m"); found {
 				intBackupInterval, err := strconv.Atoi(strBkpInterval)
 				if err != nil {
@@ -1620,20 +1613,22 @@ func getEtcdBackupConfig(ctx context.Context, etcdBackupValue resource_cluster.E
 			}
 		}
 		if !intervalValue.MaxBackupsToRetain.IsNull() && !intervalValue.MaxBackupsToRetain.IsUnknown() {
-			etcdBackupConfig.MaxIntervalBackupCount = int(intervalValue.MaxBackupsToRetain.ValueInt64())
+			etcdBackupConfig.MaxIntervalBackupCount = ptr.To(int(intervalValue.MaxBackupsToRetain.ValueInt64()))
 		}
 	}
 	if !etcdBackupValue.StorageLocalPath.IsNull() && !etcdBackupValue.StorageLocalPath.IsUnknown() {
 		etcdBackupConfig.StorageProperties.LocalPath = etcdBackupValue.StorageLocalPath.ValueStringPointer()
 	}
-	etcdBackupConfig.StorageType = etcdBackupValue.StorageType.ValueString()
+	if etcdBackupValue.StorageType.ValueString() != "" {
+		etcdBackupConfig.StorageType = ptr.To(etcdBackupValue.StorageType.ValueString())
+	}
 	return &etcdBackupConfig, diags
 }
 
 func getEtcdBackupValue(ctx context.Context, etcdBackupConfig *qbert.EtcdBackupConfig) (resource_cluster.EtcdBackupValue, diag.Diagnostics) {
 	etcdBackupValue := resource_cluster.EtcdBackupValue{}
 	var diags diag.Diagnostics
-	if etcdBackupConfig != nil && etcdBackupConfig.IsEtcdBackupEnabled == 1 {
+	if etcdBackupConfig != nil && etcdBackupConfig.IsEtcdBackupEnabled != nil && *etcdBackupConfig.IsEtcdBackupEnabled == 1 {
 		var dailyObjVal, intervalObjVal types.Object
 		var convertDiags diag.Diagnostics
 		if etcdBackupConfig.DailyBackupTime != "" {
@@ -1649,17 +1644,21 @@ func getEtcdBackupValue(ctx context.Context, etcdBackupConfig *qbert.EtcdBackupC
 			dailyObjVal = types.ObjectNull(resource_cluster.DailyValue{}.AttributeTypes(ctx))
 		}
 
-		if etcdBackupConfig.IntervalInHours != 0 || etcdBackupConfig.IntervalInMins != 0 {
+		if etcdBackupConfig.IntervalInHours != nil && *etcdBackupConfig.IntervalInHours != 0 || etcdBackupConfig.IntervalInMins != 0 {
 			var backupIntervalVal string
-			if etcdBackupConfig.IntervalInHours != 0 {
+			if *etcdBackupConfig.IntervalInHours != 0 {
 				backupIntervalVal = fmt.Sprintf("%dh", etcdBackupConfig.IntervalInHours)
 			} else if etcdBackupConfig.IntervalInMins != 0 {
 				backupIntervalVal = fmt.Sprintf("%dm", etcdBackupConfig.IntervalInMins)
 			}
 
+			var maxIntervalBkpToRetain int
+			if etcdBackupConfig.MaxIntervalBackupCount != nil {
+				maxIntervalBkpToRetain = *etcdBackupConfig.MaxIntervalBackupCount
+			}
 			intervalObjVal, convertDiags = resource_cluster.IntervalValue{
 				BackupInterval:     getStrOrNullIfEmpty(backupIntervalVal),
-				MaxBackupsToRetain: getIntOrNullIfZero(etcdBackupConfig.MaxIntervalBackupCount),
+				MaxBackupsToRetain: getIntOrNullIfZero(maxIntervalBkpToRetain),
 			}.ToObjectValue(ctx)
 			diags.Append(convertDiags...)
 			if diags.HasError() {
@@ -1673,9 +1672,13 @@ func getEtcdBackupValue(ctx context.Context, etcdBackupConfig *qbert.EtcdBackupC
 			localPath = *etcdBackupConfig.StorageProperties.LocalPath
 		}
 
+		var storageType string
+		if etcdBackupConfig.StorageType != nil {
+			storageType = *etcdBackupConfig.StorageType
+		}
 		etcdBackupObjVal, convertDiags := resource_cluster.EtcdBackupValue{
 			StorageLocalPath: getStrOrNullIfEmpty(localPath),
-			StorageType:      types.StringValue(etcdBackupConfig.StorageType),
+			StorageType:      getStrOrNullIfEmpty(storageType),
 			Daily:            dailyObjVal,
 			Interval:         intervalObjVal,
 		}.ToObjectValue(ctx)
