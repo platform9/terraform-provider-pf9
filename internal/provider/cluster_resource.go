@@ -490,7 +490,7 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	} // end of addons reconcilation
 
 	// Save data into Terraform state
-	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state)...)
+	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -538,7 +538,7 @@ func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, re
 		resp.Diagnostics.AddError("Cluster ID is not provided", "Cluster ID is required to read the cluster")
 		return
 	}
-	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state)...)
+	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -823,7 +823,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 	}
 
-	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state)...)
+	resp.Diagnostics.Append(r.readStateFromRemote(ctx, clusterID, projectID, &state, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -892,7 +892,7 @@ func (r *clusterResource) ImportState(ctx context.Context, req resource.ImportSt
 }
 
 // readStateFromRemote sets the values of the attributes in the state variable retrieved from the backend
-func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, projectID string, state *resource_cluster.ClusterModel) diag.Diagnostics {
+func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, projectID string, state *resource_cluster.ClusterModel, plan *resource_cluster.ClusterModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	tflog.Info(ctx, "Reading cluster", map[string]interface{}{"clusterID": clusterID})
@@ -901,7 +901,8 @@ func (r *clusterResource) readStateFromRemote(ctx context.Context, clusterID, pr
 		diags.AddError("Failed to get cluster", err.Error())
 		return diags
 	}
-	diags = qbertClusterToTerraformCluster(ctx, cluster, state)
+	tflog.Debug(ctx, "Received cluster", map[string]interface{}{"cluster": cluster})
+	diags = qbertClusterToTerraformCluster(ctx, cluster, state, plan.Tags)
 	if diags.HasError() {
 		return diags
 	}
@@ -1212,14 +1213,14 @@ func sunpikeAddonsToTerraformAddons(ctx context.Context, sunpikeAddons []sunpike
 	return tfAddonsMap, diags
 }
 
-func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Cluster, clusterModel *resource_cluster.ClusterModel) diag.Diagnostics {
+func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Cluster, clusterModel *resource_cluster.ClusterModel, stateTags types.Map) diag.Diagnostics {
 	var diags diag.Diagnostics
 	clusterModel.Id = types.StringValue(qbertCluster.UUID)
 	clusterModel.Name = types.StringValue(qbertCluster.Name)
 	clusterModel.AllowWorkloadsOnMaster = types.BoolValue(qbertCluster.AllowWorkloadsOnMaster != 0)
 	clusterModel.MasterIp = types.StringValue(qbertCluster.MasterIP)
-	clusterModel.MasterVipIface = types.StringValue(qbertCluster.MasterVipIface)
-	clusterModel.MasterVipIpv4 = types.StringValue(qbertCluster.MasterVipIpv4)
+	clusterModel.MasterVipIface = getStrOrNullIfEmpty(qbertCluster.MasterVipIface)
+	clusterModel.MasterVipIpv4 = getStrOrNullIfEmpty(qbertCluster.MasterVipIpv4)
 	clusterModel.MasterVipVrouterId = types.StringValue(qbertCluster.MasterVipVrouterID)
 	clusterModel.ContainersCidr = types.StringValue(qbertCluster.ContainersCidr)
 	clusterModel.ServicesCidr = types.StringValue(qbertCluster.ServicesCidr)
@@ -1255,7 +1256,7 @@ func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Clu
 	clusterModel.FlannelIfaceLabel = getStrOrNullIfEmpty(qbertCluster.FlannelIfaceLabel)
 	clusterModel.FlannelPublicIfaceLabel = getStrOrNullIfEmpty(qbertCluster.FlannelPublicIfaceLabel)
 
-	clusterModel.CalicoIpv4 = types.StringValue(qbertCluster.CalicoIPv4)
+	clusterModel.CalicoIpv4 = getStrOrNullIfEmpty(qbertCluster.CalicoIPv4)
 	clusterModel.CalicoIpv6 = types.StringValue(qbertCluster.CalicoIPv6)
 	clusterModel.CalicoIpv6DetectionMethod = types.StringValue(qbertCluster.CalicoIPv6DetectionMethod)
 	clusterModel.CalicoRouterId = types.StringValue(qbertCluster.CalicoRouterID)
@@ -1359,7 +1360,15 @@ func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Clu
 	clusterModel.EtcdBackup = etcdBackupValue
 
 	if len(qbertCluster.Tags) == 0 {
-		clusterModel.Tags = types.MapNull(types.StringType)
+		if stateTags.IsNull() {
+			clusterModel.Tags = types.MapNull(types.StringType)
+		} else {
+			emptyMap := make(map[string]string)
+			clusterModel.Tags, diags = types.MapValueFrom(ctx, types.StringType, emptyMap)
+			if diags.HasError() {
+				return diags
+			}
+		}
 	} else {
 		tagsGoMap := map[string]attr.Value{}
 		for key, val := range qbertCluster.Tags {
@@ -1379,8 +1388,9 @@ func qbertClusterToTerraformCluster(ctx context.Context, qbertCluster *qbert.Clu
 func createCreateClusterRequest(ctx context.Context, clusterModel *resource_cluster.ClusterModel) (qbert.CreateClusterRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	createClusterReq := qbert.CreateClusterRequest{
-		EtcdBackup: &qbert.EtcdBackupConfig{},
-		Monitoring: &qbert.MonitoringConfig{},
+		EtcdBackup:          &qbert.EtcdBackupConfig{},
+		Monitoring:          &qbert.MonitoringConfig{},
+		DeployLuigiOperator: false,
 	}
 	masterNodes := []string{}
 	diags.Append(clusterModel.MasterNodes.ElementsAs(ctx, &masterNodes, false)...)
@@ -1402,8 +1412,12 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 	if !clusterModel.AllowWorkloadsOnMaster.IsNull() && !clusterModel.AllowWorkloadsOnMaster.IsUnknown() {
 		createClusterReq.AllowWorkloadOnMaster = clusterModel.AllowWorkloadsOnMaster.ValueBoolPointer()
 	}
-	createClusterReq.MasterVirtualIPIface = clusterModel.MasterVipIface.ValueStringPointer()
-	createClusterReq.MasterVirtualIP = clusterModel.MasterVipIpv4.ValueStringPointer()
+	if !clusterModel.MasterVipIface.IsNull() && !clusterModel.MasterVipIface.IsUnknown() {
+		createClusterReq.MasterVirtualIPIface = clusterModel.MasterVipIface.ValueStringPointer()
+	}
+	if !clusterModel.MasterVipIpv4.IsNull() && !clusterModel.MasterVipIpv4.IsUnknown() {
+		createClusterReq.MasterVirtualIP = clusterModel.MasterVipIpv4.ValueStringPointer()
+	}
 	createClusterReq.ContainerCIDR = clusterModel.ContainersCidr.ValueStringPointer()
 	createClusterReq.ServiceCIDR = clusterModel.ServicesCidr.ValueStringPointer()
 	createClusterReq.MTUSize = ptr.To(int(clusterModel.MtuSize.ValueInt64()))
@@ -1435,7 +1449,9 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 		createClusterReq.CalicoNatOutgoing = clusterModel.CalicoNatOutgoing.ValueBoolPointer()
 	}
 	createClusterReq.CalicoV4BlockSize = clusterModel.CalicoV4BlockSize.ValueStringPointer()
-	createClusterReq.CalicoIpv4 = clusterModel.CalicoIpv4.ValueStringPointer()
+	if !clusterModel.CalicoIpv4.IsNull() && !clusterModel.CalicoIpv4.IsUnknown() {
+		createClusterReq.CalicoIpv4 = clusterModel.CalicoIpv4.ValueStringPointer()
+	}
 	createClusterReq.CalicoIpv4DetectionMethod = clusterModel.CalicoIpv4DetectionMethod.ValueStringPointer()
 
 	createClusterReq.CalicoIPv6 = clusterModel.CalicoIpv6.ValueString()
@@ -1529,7 +1545,10 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 			return createClusterReq, diags
 		}
 		createClusterReq.Tags = planTagsMap
+	} else {
+		createClusterReq.Tags = make(map[string]string)
 	}
+
 	return createClusterReq, diags
 }
 
@@ -1545,6 +1564,7 @@ func (r *clusterResource) listClusterAddons(ctx context.Context, clusterID strin
 			notDeletedAddons = append(notDeletedAddons, addon)
 		}
 	}
+	tflog.Debug(ctx, "Received enabled addons", map[string]interface{}{"clusterID": clusterID, "addons": notDeletedAddons})
 	return notDeletedAddons, nil
 }
 
