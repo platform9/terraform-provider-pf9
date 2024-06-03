@@ -621,6 +621,11 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 		editClusterReq.CustomRegistrySelfSignedCerts = getIntPtrFromBool(plan.CustomRegistry.SelfSignedCerts)
 	}
 
+	if !plan.CalicoIpv4DetectionMethod.Equal(state.CalicoIpv4DetectionMethod) {
+		editRequired = true
+		editClusterReq.CalicoIpv4DetectionMethod = plan.CalicoIpv4DetectionMethod.ValueString()
+	}
+
 	if !plan.Tags.Equal(state.Tags) && !plan.Tags.IsUnknown() {
 		if !plan.Tags.IsNull() {
 			editRequired = true
