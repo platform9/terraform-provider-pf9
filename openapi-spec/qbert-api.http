@@ -1,0 +1,183 @@
+# These variable values are loaded from a .env file in the same directory.
+@DU_FQDN = {{$dotenv DU_FQDN}}
+@DU_USERNAME = {{$dotenv DU_USERNAME}}
+@DU_PASSWORD = {{$dotenv DU_PASSWORD}}
+@DU_TENANT = {{$dotenv DU_TENANT}}
+@DU_REGION = {{$dotenv DU_REGION}}
+
+###
+
+# @name keystoneAuth
+POST {{DU_FQDN}}/keystone/v3/auth/tokens?nocatalog
+Content-Type: application/json
+
+{
+  "auth": {
+    "identity": {
+      "methods": [
+        "password"
+      ],
+      "password": {
+        "user": {
+          "domain": {
+            "id": "default"
+          },
+          "password": "{{DU_PASSWORD}}",
+          "name": "{{DU_USERNAME}}"
+        }
+      }
+    },
+    "scope": {
+      "project": {
+        "name": "{{DU_TENANT}}",
+        "domain": {
+          "id": "default"
+        }
+      }
+    }
+  }
+}
+
+###
+
+@token = {{keystoneAuth.response.headers.x-subject-token}}
+@projectID = {{keystoneAuth.response.body.token.project.id}}
+
+###
+
+# @name clusters
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters
+Content-Type: application/json
+X-Auth-Token: {{token}}
+
+###
+@clusterID = {{clusters.response.body.0.uuid}}
+
+###
+
+# @name cluster
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}
+Content-Type: application/json
+X-Auth-Token: {{token}}
+
+###
+
+# @name createCluster
+POST {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters
+Content-Type: application/json
+X-Auth-Token: {{token}}
+
+{
+    "name": "api-cluster-1",
+    "masterNodes": [
+        "359cce4a-1839-4b82-8533-8f2761079cd8"
+    ],
+    "allowWorkloadsOnMaster": true,
+    "containersCidr": "10.20.0.0/22",
+    "servicesCidr": "10.21.0.0/22",
+    "mtuSize": 1440,
+    "privileged": true,
+    "useHostname": false,
+    "nodePoolUuid": "21d5325c-d47e-47e7-bb78-517e0eef34e8",
+    "kubeRoleVersion": "1.27.8-pmk.47",
+    "calicoIpIpMode": "Always",
+    "calicoNatOutgoing": true,
+    "calicoV4BlockSize": "26",
+    "calicoIPv4DetectionMethod": "first-found",
+    "networkPlugin": "calico",
+    "runtimeConfig": "",
+    "containerRuntime": "containerd",
+    "etcdBackup": {
+        "storageType": "local",
+        "isEtcdBackupEnabled": 1,
+        "storageProperties": {
+            "localPath": "/etc/pf9/etcd-backup"
+        },
+        "dailyBackupTime": "02:00",
+        "maxTimestampBackupCount": 3
+    },
+    "monitoring": {},
+    "tags": {}
+}
+
+###
+
+# @clusterID = {{createCluster.response.body.uuid}}
+
+###
+
+# @name attachNodes
+POST {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}/attach
+Content-Type: application/json
+X-Auth-Token: {{token}}
+
+[{"isMaster":false,"uuid":"fdd6e1ba-7ee3-4399-8d59-6120d75fc11f"}]
+
+###
+
+# @name updateCluster
+PUT {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}
+Content-Type: application/json
+X-Auth-Token: {{token}}
+
+{
+    "tags": {
+      "key1": "value1"
+    }
+}
+
+###
+
+# @name deleteCluster
+DELETE {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}
+X-Auth-Token: {{token}}
+
+###
+
+# @name getKubeconfig
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/kubeconfig/{{clusterID}}?force_cert_auth=false
+X-Auth-Token: {{token}}
+
+###
+
+# @name getClusterNodes
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}/nodes
+X-Auth-Token: {{token}}
+
+###
+
+# @name getNodes
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/nodes
+X-Auth-Token: {{token}}
+
+###
+
+# @name supportedAddonOperatorTags
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}/supportedaddonoperatorversions
+X-Auth-Token: {{token}}
+
+###
+
+# @name addonversions
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}/addonversions
+X-Auth-Token: {{token}}
+
+###
+
+# @name supportedAddonVersionsMonitoring
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/clusters/{{clusterID}}/supportedaddonversions/monitoring
+X-Auth-Token: {{token}}
+
+###
+
+# @name clusterAddons
+
+GET {{DU_FQDN}}/qbert/v4/{{projectID}}/sunpike/apis/sunpike.platform9.com/v1alpha2/namespaces/default/clusteraddons
+X-Auth-Token: {{token}}
+
+###

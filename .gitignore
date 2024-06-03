@@ -15,9 +15,18 @@
 # vendor/
 
 # Terraform resources
-terraform-provider-pf9
+terraform-provider-*
 .terraform/
 *.tfstate
 *.backup
-crash.log
-workspace.code-workspace
+*.log
+bin/
+dist/
+
+*.code-workspace
+
+main.tf
+*.env
+*.terraform*
+
+TODO.md
