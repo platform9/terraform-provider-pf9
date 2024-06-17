@@ -114,4 +114,4 @@ require (
 )
 
 // Uncomment when developing locally
-replace github.com/platform9/pf9-sdk-go => ../pf9-sdk-go
+replace github.com/platform9/pf9-sdk-go => ./pf9-sdk-go
