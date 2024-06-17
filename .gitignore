@@ -30,3 +30,9 @@ main.tf
 *.terraform*
 
 TODO.md
+
+# Prevents goreleaser dirty state error, https://goreleaser.com/errors/dirty/ 
+pf9-sdk-go
+pf9-sdk-go/
+pf9-sdk-go/*
+pf9-sdk-go/**
