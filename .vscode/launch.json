@@ -8,7 +8,6 @@
             "mode": "debug",
             "program": "${workspaceFolder}",
             "env": {
-                "DU_PASSWORD": "",
                 "TF_LOG": "DEBUG",
             },
             "args": [

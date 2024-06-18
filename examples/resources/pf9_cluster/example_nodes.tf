@@ -1,11 +1,11 @@
 variable "master_ip" {
   description = "The primary IP address of the master node"
-  type = string
+  type        = string
 }
 
 variable "worker1_hostname" {
   description = "The hostname of the worker node"
-  type = string
+  type        = string
 }
 
 # find node with hostname worker1
@@ -57,5 +57,5 @@ resource "pf9_cluster" "example" {
   tags = {
     "key1" = "value1"
   }
-  depends_on = [ data.pf9_host.master, data.pf9_nodes.workers ]
+  depends_on = [data.pf9_host.master, data.pf9_nodes.workers]
 }

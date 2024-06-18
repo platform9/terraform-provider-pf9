@@ -15,20 +15,20 @@ The `kubeconfig` data source enables you to generate a kubeconfig file for a clu
 ```terraform
 data "pf9_clusters" "example" {
   filters = [{
-    name = "name"
-    values = [ "mycluster01" ]
+    name   = "name"
+    values = ["mycluster01"]
   }]
 }
 
 data "pf9_kubeconfig" "example" {
-  id = data.pf9_clusters.example.cluster_ids[0]
+  id                    = data.pf9_clusters.example.cluster_ids[0]
   authentication_method = "token"
 }
 
 resource "local_file" "kubeconfig" {
-  count      = 1
-  content    = data.pf9_kubeconfig.example.raw
-  filename   = "${path.root}/kubeconfig"
+  count    = 1
+  content  = data.pf9_kubeconfig.example.raw
+  filename = "${path.root}/kubeconfig"
 }
 ```
 
@@ -38,10 +38,10 @@ resource "local_file" "kubeconfig" {
 terraform {
   required_providers {
     pf9 = {
-      source  = "platform9/pf9"
+      source = "platform9/pf9"
     }
     kubernetes = {
-      source = "hashicorp/kubernetes"
+      source  = "hashicorp/kubernetes"
       version = ">= 2.7.0"
     }
     helm = {
@@ -54,25 +54,25 @@ terraform {
 provider "pf9" {}
 
 variable "cluster_name" {
-  type = string
+  type    = string
   default = "mycluster"
 }
 
 data "pf9_clusters" "example" {
-  filters = [ {
+  filters = [{
     name   = "name"
     values = [var.cluster_name]
-  } ]
+  }]
 }
 
 data "pf9_kubeconfig" "example" {
-  id = data.pf9_clusters.example.cluster_ids[0]
+  id                    = data.pf9_clusters.example.cluster_ids[0]
   authentication_method = "token"
 }
 
 provider "kubernetes" {
-  host             = data.pf9_kubeconfig.kubeconfigs[0].endpoint
-  token            = data.pf9_kubeconfig.kubeconfigs[0].token
+  host  = data.pf9_kubeconfig.kubeconfigs[0].endpoint
+  token = data.pf9_kubeconfig.kubeconfigs[0].token
   cluster_ca_certificate = base64decode(
     data.pf9_kubeconfig.kubeconfigs[0].cluster_ca_certificate
   )
