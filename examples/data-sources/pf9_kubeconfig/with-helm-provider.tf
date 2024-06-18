@@ -1,10 +1,10 @@
 terraform {
   required_providers {
     pf9 = {
-      source  = "platform9/pf9"
+      source = "platform9/pf9"
     }
     kubernetes = {
-      source = "hashicorp/kubernetes"
+      source  = "hashicorp/kubernetes"
       version = ">= 2.7.0"
     }
     helm = {
@@ -17,25 +17,25 @@ terraform {
 provider "pf9" {}
 
 variable "cluster_name" {
-  type = string
+  type    = string
   default = "mycluster"
 }
 
 data "pf9_clusters" "example" {
-  filters = [ {
+  filters = [{
     name   = "name"
     values = [var.cluster_name]
-  } ]
+  }]
 }
 
 data "pf9_kubeconfig" "example" {
-  id = data.pf9_clusters.example.cluster_ids[0]
+  id                    = data.pf9_clusters.example.cluster_ids[0]
   authentication_method = "token"
 }
 
 provider "kubernetes" {
-  host             = data.pf9_kubeconfig.kubeconfigs[0].endpoint
-  token            = data.pf9_kubeconfig.kubeconfigs[0].token
+  host  = data.pf9_kubeconfig.kubeconfigs[0].endpoint
+  token = data.pf9_kubeconfig.kubeconfigs[0].token
   cluster_ca_certificate = base64decode(
     data.pf9_kubeconfig.kubeconfigs[0].cluster_ca_certificate
   )

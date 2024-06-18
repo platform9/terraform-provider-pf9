@@ -1,7 +1,7 @@
 data "pf9_clusters" "example" {
   filters = [{
-    name = "name"
-    values = [ "mycluster01" ]
+    name   = "name"
+    values = ["mycluster01"]
   }]
 }
 

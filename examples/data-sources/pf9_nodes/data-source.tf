@@ -15,7 +15,7 @@ output "foobar" {
 # Filter nodes attached to the cluster named "mycluster"
 data "pf9_nodes" "example" {
   filter = {
-    name = "cluster_name"
-    values = [ "mycluster" ]
+    name   = "cluster_name"
+    values = ["mycluster"]
   }
 }

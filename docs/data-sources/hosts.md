@@ -21,7 +21,7 @@ data "pf9_hosts" "connected" {
       values = ["true"]
     },
     {
-      name   = "os_info"
+      name    = "os_info"
       regexes = ["Ubuntu.*"]
     }
   ]

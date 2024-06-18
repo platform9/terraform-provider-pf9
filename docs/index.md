@@ -25,7 +25,7 @@ Before you begin, ensure you have the following:
 terraform {
   required_providers {
     pf9 = {
-      source  = "platform9/pf9"
+      source = "platform9/pf9"
     }
   }
 }
@@ -45,8 +45,8 @@ provider "pf9" {
 
 # Create a cluster
 resource "pf9_cluster" "example" {
-  name = "example-cluster"
-  master_nodes = [ "<node-id>" ]
+  name         = "example-cluster"
+  master_nodes = ["<node-id>"]
   # other attributes...
 }
 ```
@@ -90,12 +90,12 @@ It is also possible to provide the node IDs using `nodes` data source.
 ```terraform
 variable "master_ip" {
   description = "The primary IP address of the master node"
-  type = string
+  type        = string
 }
 
 variable "worker1_hostname" {
   description = "The hostname of the worker node"
-  type = string
+  type        = string
 }
 
 # find node with hostname worker1
@@ -147,7 +147,7 @@ resource "pf9_cluster" "example" {
   tags = {
     "key1" = "value1"
   }
-  depends_on = [ data.pf9_host.master, data.pf9_nodes.workers ]
+  depends_on = [data.pf9_host.master, data.pf9_nodes.workers]
 }
 ```
 

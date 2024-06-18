@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     pf9 = {
-      source  = "platform9/pf9"
+      source = "platform9/pf9"
     }
   }
 }
@@ -21,7 +21,7 @@ provider "pf9" {
 
 # Create a cluster
 resource "pf9_cluster" "example" {
-  name = "example-cluster"
-  master_nodes = [ "<node-id>" ]
+  name         = "example-cluster"
+  master_nodes = ["<node-id>"]
   # other attributes...
 }

@@ -1,10 +1,10 @@
 data "pf9_clusters" "example" {
-    filters = [
-        {
-            name = "tenant"
-            values = [ "service" ]
-        }
-    ]
+  filters = [
+    {
+      name   = "tenant"
+      values = ["service"]
+    }
+  ]
 }
 
 # finds IDs of the clusters from the tenant service
