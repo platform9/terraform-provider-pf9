@@ -1642,7 +1642,9 @@ func getEtcdBackupConfig(ctx context.Context, etcdBackupValue resource_cluster.E
 		}
 	}
 	if !etcdBackupValue.StorageLocalPath.IsNull() && !etcdBackupValue.StorageLocalPath.IsUnknown() {
-		etcdBackupConfig.StorageProperties.LocalPath = etcdBackupValue.StorageLocalPath.ValueStringPointer()
+		etcdBackupConfig.StorageProperties = &qbert.StorageProperties{
+			LocalPath: etcdBackupValue.StorageLocalPath.ValueStringPointer(),
+		}
 	}
 	if etcdBackupValue.StorageType.ValueString() != "" {
 		etcdBackupConfig.StorageType = ptr.To(etcdBackupValue.StorageType.ValueString())
@@ -1672,7 +1674,7 @@ func getEtcdBackupValue(ctx context.Context, etcdBackupConfig *qbert.EtcdBackupC
 		if etcdBackupConfig.IntervalInHours != nil && *etcdBackupConfig.IntervalInHours != 0 || etcdBackupConfig.IntervalInMins != 0 {
 			var backupIntervalVal string
 			if *etcdBackupConfig.IntervalInHours != 0 {
-				backupIntervalVal = fmt.Sprintf("%dh", etcdBackupConfig.IntervalInHours)
+				backupIntervalVal = fmt.Sprintf("%dh", *etcdBackupConfig.IntervalInHours)
 			} else if etcdBackupConfig.IntervalInMins != 0 {
 				backupIntervalVal = fmt.Sprintf("%dm", etcdBackupConfig.IntervalInMins)
 			}
@@ -1693,7 +1695,7 @@ func getEtcdBackupValue(ctx context.Context, etcdBackupConfig *qbert.EtcdBackupC
 			intervalObjVal = types.ObjectNull(resource_cluster.IntervalValue{}.AttributeTypes(ctx))
 		}
 		var localPath string
-		if etcdBackupConfig.StorageProperties.LocalPath != nil {
+		if etcdBackupConfig.StorageProperties != nil && etcdBackupConfig.StorageProperties.LocalPath != nil {
 			localPath = *etcdBackupConfig.StorageProperties.LocalPath
 		}
 
