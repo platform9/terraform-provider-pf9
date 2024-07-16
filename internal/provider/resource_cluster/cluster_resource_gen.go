@@ -747,7 +747,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "If master_vip_ipv4 is specified, this field is required. Specify the interface that the VIP attaches to",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
 					stringvalidator.AlsoRequires(path.MatchRoot("master_vip_ipv4")),
@@ -760,7 +759,6 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				MarkdownDescription: "API server Virtual IP that provides failover. When specified, deploy keepalived setup to cluster master nodes together",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"master_vip_vrouter_id": schema.StringAttribute{
