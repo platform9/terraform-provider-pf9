@@ -680,7 +680,7 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 			return
 		}
 		for addonName, tfAddon := range tfAddonsMap {
-			if sunpikeAddon, found := sunpikeAddonsMap[addonName]; found && !tfAddon.IsNull() {
+			if sunpikeAddon, found := sunpikeAddonsMap[addonName]; !tfAddon.IsNull() {
 				if !tfAddon.Enabled.IsNull() && !tfAddon.Enabled.IsUnknown() && !tfAddon.Enabled.ValueBool() {
 					tflog.Debug(ctx, "Disabling addon because enabled=false", map[string]interface{}{"addon": addonName})
 					err = r.addonsClient.Disable(ctx, AddonSpec{ClusterID: clusterID, Type: addonName})
@@ -690,35 +690,72 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 					}
 					continue
 				}
-				// Patch the addon
-				tflog.Debug(ctx, "Checking if addon version and params needs to be patched")
-				var addonVersion string
-				if tfAddon.Version.IsNull() || tfAddon.Version.IsUnknown() {
-					tflog.Debug(ctx, "Version is not provided in the plan, getting default version")
-					addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
-				} else {
-					addonVersion = tfAddon.Version.ValueString()
-				}
-				tfParamsInPlan := map[string]types.String{}
-				if !tfAddon.Params.IsUnknown() {
-					resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &tfParamsInPlan, false)...)
-					if resp.Diagnostics.HasError() {
+				if found {
+					// Patch the addon
+					tflog.Debug(ctx, "Checking if addon version and params needs to be patched")
+					var addonVersion string
+					if tfAddon.Version.IsNull() || tfAddon.Version.IsUnknown() {
+						tflog.Debug(ctx, "Version is not provided in the plan, getting default version")
+						addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
+					} else {
+						addonVersion = tfAddon.Version.ValueString()
+					}
+					tfParamsInPlan := map[string]types.String{}
+					if !tfAddon.Params.IsUnknown() {
+						resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &tfParamsInPlan, false)...)
+						if resp.Diagnostics.HasError() {
+							return
+						}
+					}
+					paramsInPlan := map[string]string{}
+					for key, value := range tfParamsInPlan {
+						paramsInPlan[key] = value.ValueString()
+					}
+					err := r.addonsClient.Patch(ctx, AddonSpec{
+						ClusterID: clusterID,
+						Type:      addonName,
+						Version:   addonVersion,
+						ParamsMap: paramsInPlan,
+					}, &sunpikeAddon)
+					if err != nil {
+						resp.Diagnostics.AddError("Failed to patch addon", err.Error())
 						return
 					}
-				}
-				paramsInPlan := map[string]string{}
-				for key, value := range tfParamsInPlan {
-					paramsInPlan[key] = value.ValueString()
-				}
-				err := r.addonsClient.Patch(ctx, AddonSpec{
-					ClusterID: clusterID,
-					Type:      addonName,
-					Version:   addonVersion,
-					ParamsMap: paramsInPlan,
-				}, &sunpikeAddon)
-				if err != nil {
-					resp.Diagnostics.AddError("Failed to patch addon", err.Error())
-					return
+				} else {
+					// Enable the addon
+					tflog.Debug(ctx, "Enabling addon", map[string]interface{}{"addon": addonName})
+					tfParamsInPlan := map[string]types.String{}
+					if !tfAddon.Params.IsUnknown() {
+						resp.Diagnostics.Append(tfAddon.Params.ElementsAs(ctx, &tfParamsInPlan, false)...)
+						if resp.Diagnostics.HasError() {
+							return
+						}
+					}
+					paramsInPlan := map[string]string{}
+					for key, value := range tfParamsInPlan {
+						paramsInPlan[key] = value.ValueString()
+					}
+					var addonVersion string
+					if !tfAddon.Version.IsNull() && !tfAddon.Version.IsUnknown() {
+						addonVersion = tfAddon.Version.ValueString()
+					} else {
+						addonVersion = getDefaultAddonVersion(defaultAddonVersions, addonName)
+					}
+					if addonVersion == "" {
+						resp.Diagnostics.AddAttributeError(path.Root("addons").AtMapKey(addonName),
+							"Failed to get addon version", fmt.Sprintf("Unrecognized addon name %s or missing version in the API response", addonName))
+						return
+					}
+					err = r.addonsClient.Enable(ctx, AddonSpec{
+						ClusterID: clusterID,
+						Type:      addonName,
+						Version:   addonVersion,
+						ParamsMap: paramsInPlan,
+					})
+					if err != nil {
+						resp.Diagnostics.AddError("Failed to enable addon", err.Error())
+						return
+					}
 				}
 			} else if tfAddon.IsNull() {
 				// Disable the addon because it is null in the plan
@@ -854,6 +891,12 @@ func (r *clusterResource) Update(ctx context.Context, req resource.UpdateRequest
 	// To prevent inconsistency. This attr is read only in case
 	// of upgrade cluster, it is not associated with any remote attribute
 	state.BatchUpgradePercent = plan.BatchUpgradePercent
+	if !plan.MasterVipIpv4.IsUnknown() {
+		state.MasterVipIpv4 = plan.MasterVipIpv4
+	}
+	if !plan.MasterVipIface.IsUnknown() {
+		state.MasterVipIface = plan.MasterVipIface
+	}
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
