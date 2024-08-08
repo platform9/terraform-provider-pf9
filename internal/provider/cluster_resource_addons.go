@@ -153,6 +153,7 @@ func (r *addonsClient) Disable(ctx context.Context, addonSpec AddonSpec) error {
 var addonAliases = map[string]string{
 	"kubevirt":             "kubevirtaddon",
 	"kubernetes-dashboard": "dashboard",
+	"metrics-server":       "metricsserver",
 }
 
 // APIs have different names for the same addon, hence this function
