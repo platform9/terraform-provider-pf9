@@ -115,7 +115,7 @@ resource "pf9_cluster" "example" {
 
 ### Disable the Addon
 
-The code example below shows how to disable the `monitoring` amd `metallb` addons from a cluster that's already set up.
+The code example below shows how to disable the `monitoring` and `metallb` addons from a cluster that's already set up.
 
 ```terraform
 resource "pf9_cluster" "example" {
