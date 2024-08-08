@@ -39,24 +39,32 @@ func ClusterResourceSchema(ctx context.Context) schema.Schema {
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"enabled": schema.BoolAttribute{
-							Optional: true,
-							Computed: true,
-							Default:  booldefault.StaticBool(true),
+							Optional:            true,
+							Computed:            true,
+							Description:         "Indicates whether the addon is enabled (true) or disabled (false)",
+							MarkdownDescription: "Indicates whether the addon is enabled (true) or disabled (false)",
+							Default:             booldefault.StaticBool(true),
 						},
 						"params": schema.MapAttribute{
-							ElementType: types.StringType,
-							Optional:    true,
-							Computed:    true,
+							ElementType:         types.StringType,
+							Optional:            true,
+							Computed:            true,
+							Description:         "A map of configuration parameters specific to the addon",
+							MarkdownDescription: "A map of configuration parameters specific to the addon",
 							PlanModifiers: []planmodifier.Map{
 								mapplanmodifier.UseStateForUnknown(),
 							},
 						},
 						"phase": schema.StringAttribute{
-							Computed: true,
+							Computed:            true,
+							Description:         "Represents the current installation status of the addon, such as Installing or Installed",
+							MarkdownDescription: "Represents the current installation status of the addon, such as Installing or Installed",
 						},
 						"version": schema.StringAttribute{
-							Optional: true,
-							Computed: true,
+							Optional:            true,
+							Computed:            true,
+							Description:         "Specifies the version of the addon being used",
+							MarkdownDescription: "Specifies the version of the addon being used",
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseStateForUnknown(),
 							},

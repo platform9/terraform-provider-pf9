@@ -26,7 +26,7 @@ resource "pf9_cluster" "example" {
 
 ### Create Cluster with Specific Addons
 
-If you want to create a cluster with specific set of addons, these can be specified in the configuration. The configuration for the addons, if needed, can also be declared under the params attribute. Be aware that some addons may not function without the necessary configuration and it is advised to consult the addon documentation for the needed configuration. The document's final section contains a list of supported addon names along with their required and optional configurations.
+If you want to create a cluster with specific set of addons, these can be specified in the configuration. The configuration for the addons, if needed, can also be declared under the params attribute. Be aware that some addons may not function without the necessary configuration and it is advised to consult the [addon documentation for the needed configuration](https://platform9.com/docs/kubernetes/configuring-add-on-resource-requests-and-limits). The document's final section contains a list of supported addon names along with their required and optional configurations. For more information about pf9 addons, please refer to the official [documentation](https://platform9.com/docs/kubernetes/platform9-managed-add-ons-overview).
 
 The version of the addon to be installed can also be selected. If the version isn't specified, then the addon's default version will be installed. For instance, the following configuration installs the `0.67.0` version, superseding the default version of the `monitoring` addon.
 
@@ -38,19 +38,24 @@ resource "pf9_cluster" "example" {
   allow_workloads_on_master = true
   addons = {
     "coredns" = {
+      enabled = true
       params = {
         dnsMemoryLimit = "170Mi"
         dnsDomain      = "cluster.local"
       }
     }
-    "kubernetes-dashboard" = {}
+    "kubernetes-dashboard" = {
+      enabled = true
+    }
     "metrics-server" = {
+      enabled = true
       params = {
         metricsMemoryLimit = "300Mi"
         metricsCpuLimit    = "100m"
       }
     }
     "monitoring" = {
+      enabled = true
       version = "0.67.0"
       params = {
         retentionTime = "6d"
@@ -64,7 +69,7 @@ Be aware that if you create a cluster without providing the `addons` attribute, 
 
 ### Enable the Addon
 
-The code snippet below illustrates how to activate the `metallb` addon in an already existing cluster.
+The code snippet below illustrates how to activate the `metallb` addon in an already existing cluster. You can use `enabled` flag to enable or disable the addon. The default value of `enabled` is `true`.
 
 ```terraform
 resource "pf9_cluster" "example" {
@@ -74,19 +79,24 @@ resource "pf9_cluster" "example" {
   allow_workloads_on_master = true
   addons = {
     "coredns" = {
+      enabled = true
       params = {
         dnsMemoryLimit = "170Mi"
         dnsDomain      = "cluster.local"
       }
     }
-    "kubernetes-dashboard" = {}
+    "kubernetes-dashboard" = {
+      enabled = true
+    }
     "metrics-server" = {
+      enabled = true
       params = {
         metricsMemoryLimit = "300Mi"
         metricsCpuLimit    = "100m"
       }
     }
     "monitoring" = {
+      enabled = true
       version = "0.67.0"
       params = {
         retentionTime = "6d"
@@ -94,9 +104,10 @@ resource "pf9_cluster" "example" {
     }
     # Enable the new addon
     "metallb" = {
-        params = {
-            MetallbIpRange = "192.168.5.0-192.168.6.0"
-        }
+      enabled = true
+      params = {
+          MetallbIpRange = "192.168.5.0-192.168.6.0"
+      }
     }
   }
 }
@@ -104,7 +115,7 @@ resource "pf9_cluster" "example" {
 
 ### Disable the Addon
 
-The code example below shows how to disable the `monitoring` addon in a cluster that's already set up.
+The code example below shows how to disable the `monitoring` amd `metallb` addons from a cluster that's already set up.
 
 ```terraform
 resource "pf9_cluster" "example" {
@@ -114,29 +125,38 @@ resource "pf9_cluster" "example" {
   allow_workloads_on_master = true
   addons = {
     "coredns" = {
+      enabled = true
       params = {
         dnsMemoryLimit = "170Mi"
         dnsDomain      = "cluster.local"
       }
     }
-    "kubernetes-dashboard" = {}
+    "kubernetes-dashboard" = {
+      enabled = true
+    }
     "metrics-server" = {
+      enabled = true
       params = {
         metricsMemoryLimit = "300Mi"
         metricsCpuLimit    = "100m"
       }
     }
-    # Disable the addon
-    # "monitoring" = {
-    #   version = "0.67.0"
-    #   params = {
-    #     retentionTime = "6d"
-    #   }
-    # }
+
+    # Disable the monitoring addon
+    "monitoring" = {
+      enabled = false
+      version = "0.67.0"
+      params = {
+        retentionTime = "6d"
+      }
+    }
+
+    # Disable the metallb addon
     "metallb" = {
-        params = {
-            MetallbIpRange = "192.168.5.0-192.168.6.0"
-        }
+      enabled = false
+      params = {
+        MetallbIpRange = "192.168.5.0-192.168.6.0"
+      }
     }
   }
 }
@@ -154,6 +174,7 @@ resource "pf9_cluster" "example" {
   allow_workloads_on_master = true
   addons = {
     "coredns" = {
+      enabled = true
       params = {
         dnsMemoryLimit = "170Mi"
         dnsDomain      = "cluster.local"
@@ -161,6 +182,7 @@ resource "pf9_cluster" "example" {
     }
     "kubernetes-dashboard" = {}
     "metrics-server" = {
+      enabled = true
       # Upgrades the addon from current default version to 0.6.5
       version = "0.6.5"
       params = {
@@ -169,13 +191,18 @@ resource "pf9_cluster" "example" {
       }
     }
     "metallb" = {
-        params = {
-            MetallbIpRange = "192.168.5.0-192.168.6.0"
-        }
+      enabled = true
+      params = {
+        MetallbIpRange = "192.168.5.0-192.168.6.0"
+      }
     }
   }
 }
 ```
+
+### Add-on Health
+
+Addon installation occurs asynchronously. After enabling an addon, you can confirm its installation status by checking the `phase` attribute. The `phase` attribute will indicate `Installed` once the addon is successfully installed. For instance, running `terraform state show pf9_cluster.example | grep phase` will return `phase = Installed` if the addon is installed. For more information about addon health, please refer to the official [documentation](https://platform9.com/docs/kubernetes/add-on-health).
 
 ## Manage `etcd_backup` Addon
 
@@ -245,19 +272,24 @@ resource "pf9_cluster" "example" {
   }
   addons = {
     "coredns" = {
+      enabled = true
       params = {
         dnsMemoryLimit = "170Mi" # required
         dnsDomain      = "cluster.local" # required
       }
     }
-    "kubernetes-dashboard" = {}
+    "kubernetes-dashboard" = {
+      enabled = true
+    }
     "metrics-server" = {
+      enabled = true
       params = {
         metricsCpuLimit    = "100m" # required
         metricsMemoryLimit = "300Mi" # required
       }
     }
     "monitoring" = {
+      enabled = true
       params = {
         retentionTime = "7d" # required
         storageClassName = "default" # optional
@@ -265,13 +297,19 @@ resource "pf9_cluster" "example" {
       }
     }
     "metallb" = {
+      enabled = true
       params = {
         MetallbIpRange = "192.168.5.0-192.168.6.0" # required
       }
     }
-    "kubevirt" = {}
-    "luigi" = {}
+    "kubevirt" = {
+      enabled = true
+    }
+    "luigi" = {
+      enabled = true
+    }
     "metal3" = {
+      enabled = true
       params = {
         Metal3DhcpInterface = "ens3" # required
         Metal3DhcpRange = "192.168.52.230,192.168.52.250" # required

@@ -2291,13 +2291,15 @@
 											"default": {
 												"static": true
 											},
-											"computed_optional_required": "computed_optional"
+											"computed_optional_required": "computed_optional",
+											"description": "Indicates whether the addon is enabled (true) or disabled (false)"
 										}
 									},
 									{
 										"name": "version",
 										"string": {
 											"computed_optional_required": "computed_optional",
+											"description": "Specifies the version of the addon being used",
 											"plan_modifiers": [
 												{
 													"custom": {
@@ -2316,6 +2318,7 @@
 										"name": "params",
 										"map": {
 											"computed_optional_required": "computed_optional",
+											"description": "A map of configuration parameters specific to the addon",
 											"element_type": {
 												"string": {}
 											},
@@ -2336,7 +2339,8 @@
 									{
 										"name": "phase",
 										"string": {
-											"computed_optional_required": "computed"
+											"computed_optional_required": "computed",
+											"description": "Represents the current installation status of the addon, such as Installing or Installed"
 										}
 									}
 								]
