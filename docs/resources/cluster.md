@@ -25,7 +25,7 @@ resource "pf9_cluster" "example" {
     "2bfbc40e-1d72-4bfc-a46b-56b674862cc7",
     "bbbd1c20-3cda-405d-ae4b-d0337fffd6e1"
   ]
-  master_vip_ipv4              = "10.149.107.237"
+  master_vip_ipv4              = "x.x.x.x"
   master_vip_iface             = "ens3"
   containers_cidr              = "10.20.0.0/16"
   services_cidr                = "10.21.0.0/16"
@@ -40,6 +40,36 @@ resource "pf9_cluster" "example" {
   }
   tags = {
     "key1" = "value1"
+  }
+  addons = {
+    "coredns" = {
+      enabled = true
+      params = {
+        "CoresPerReplica"              = "257"
+        "MaxReplicas"                  = "101"
+        "MinReplicas"                  = "2"
+        "NodesPerReplica"              = "17"
+        "PollPeriodSecs"               = "301"
+        "dnsDomain"                    = "cluster.local"
+        "dnsMemoryLimit"               = "170Mi"
+      }
+      version = "1.11.1"
+    },
+    "kubernetes-dashboard" = {
+      enabled = true
+      params  = {}
+    },
+    "metallb" = {
+      enabled = false
+    },
+    "metrics-server" = {
+      enabled = true
+      params = {
+        "metricsCpuLimit"    = "100m"
+        "metricsMemoryLimit" = "300Mi"
+      }
+      version = "0.6.4"
+    }
   }
 }
 ```
@@ -126,13 +156,13 @@ resource "pf9_cluster" "example" {
 
 Optional:
 
-- `enabled` (Boolean)
-- `params` (Map of String)
-- `version` (String)
+- `enabled` (Boolean) Indicates whether the addon is enabled (true) or disabled (false)
+- `params` (Map of String) A map of configuration parameters specific to the addon
+- `version` (String) Specifies the version of the addon being used
 
 Read-Only:
 
-- `phase` (String)
+- `phase` (String) Represents the current installation status of the addon, such as Installing or Installed
 
 
 <a id="nestedatt--calico_limits"></a>
