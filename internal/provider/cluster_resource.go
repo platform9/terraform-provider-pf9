@@ -941,12 +941,6 @@ func (r *clusterResource) Delete(ctx context.Context, req resource.DeleteRequest
 	projectID := authInfo.ProjectID
 	clusterID := data.Id.ValueString()
 
-	tflog.Debug(ctx, "Deleting cluster addons", map[string]interface{}{"clusterID": clusterID})
-	err = r.client.Qbert().DeleteAllClusterAddons(ctx, clusterID)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to delete cluster addons", err.Error())
-		return
-	}
 	tflog.Debug(ctx, "Deleting cluster", map[string]interface{}{"clusterID": clusterID})
 	err = r.client.Qbert().DeleteCluster(clusterID, projectID)
 	if err != nil {
