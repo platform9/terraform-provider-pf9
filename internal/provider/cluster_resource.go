@@ -1586,6 +1586,10 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 			return createClusterReq, diags
 		}
 		createClusterReq.CloudProperties = cloudProperties
+		// It looks like the cloudProperties field is getting embedded under
+		// another cloudProperties field causing terraform to complain about inconsitency
+		// This fix prevents that. We might have to relook at the whole cloudProperties section later
+		createClusterReq.ApiServerFlags = cloudProperties.APIServerFlags
 	}
 
 	createClusterReq.EtcdBackup, diags = getEtcdBackupConfig(ctx, clusterModel.EtcdBackup)
