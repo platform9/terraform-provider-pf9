@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -534,6 +535,22 @@ func (r *clusterResource) Create(ctx context.Context, req resource.CreateRequest
 	// This attr is useful in Update only, copied value from state to prevent inconsistency
 	state.BatchUpgradePercent = data.BatchUpgradePercent
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+
+	tflog.Debug(ctx, "Waiting for cluster to be ready...!")
+	for start_time := time.Now(); time.Since(start_time) < time.Minute*30; {
+		time.Sleep(time.Minute)
+		cluster, err := r.client.Qbert().GetCluster(ctx, projectID, clusterID)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to get cluster.", err.Error())
+			return
+		}
+		if cluster.Status == "ok" && cluster.TaskStatus == "success" {
+			tflog.Debug(ctx, "Cluster is ready.")
+			return
+		}
+		tflog.Debug(ctx, fmt.Sprintf("Cluster is not ready yet...status: %s, task_status: %s", cluster.Status, cluster.TaskStatus))
+	}
+	resp.Diagnostics.AddError("Cluster creation timed out.", "Waited for 30 minutes.")
 }
 
 func (r *clusterResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -1586,6 +1603,7 @@ func createCreateClusterRequest(ctx context.Context, clusterModel *resource_clus
 			return createClusterReq, diags
 		}
 		createClusterReq.CloudProperties = cloudProperties
+		createClusterReq.ApiServerFlags = cloudProperties.APIServerFlags
 	}
 
 	createClusterReq.EtcdBackup, diags = getEtcdBackupConfig(ctx, clusterModel.EtcdBackup)
